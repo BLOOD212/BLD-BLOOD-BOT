@@ -33,7 +33,7 @@ const defaultMenu = {
   after: `_Powered by BLD-BOT Interface_`,
 }
 
-const localImg = join(process.cwd(), 'menu-principale.jpeg')
+const localImg = './menu-principale.jpeg'
 
 const bldButtons = [
   { title: "🛡️ SICUREZZA", command: "attiva" },
