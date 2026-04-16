@@ -7,9 +7,9 @@
   "license": "Apache-2.0",
   "author": {
     "name": "blood",
-    "url": "https://github.com/BLOOD212"
+    "url": "https://github.com/realvare"
   },
-  "homepage": "https://github.com/BLOOD212/BLD-BLOOD-BOT",
+  "homepage": "https://github.com/realvare/varebot",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/realvare/varebot.git"
