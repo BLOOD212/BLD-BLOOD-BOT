@@ -49,7 +49,7 @@ if (!global.cacheListenersSet) {
                     }
                     global.groupCache.set(update.id, metadata, { ttl: 300 })
                 } catch (e) {
-                    if (!e.message?.includes('not authorized') && !e.message?.includes('chat not found') && !e.message?.includes('not in group')) {
+                    if (!e?.message?.includes('not authorized') && !e?.message?.includes('chat not found') && !e?.message?.includes('not in group')) {
                         console.error(`[ERRORE] Errore nell'aggiornamento cache su groups.update per ${update.id}:`, e)
                     }
                 }
@@ -408,12 +408,9 @@ if (m.message?.protocolMessage?.type === 'MESSAGE_EDIT') {
             status: 0
         })
 
-        // --- GHOST REGISTER (SOLUZIONE DEFINITIVA) ---
-        // Se le registrazioni sono OFF nel menu, "inganniamo" il sistema
         if (settings.registrazioni === false) {
             user.registered = true;
         }
-        // --------------------------------------------
 
         if (m.mtype === 'pollUpdateMessage') return
         if (m.mtype === 'reactionMessage') return
@@ -705,7 +702,6 @@ if (m.message?.protocolMessage?.type === 'MESSAGE_EDIT') {
                     continue
                 }
 
-                // BLOCCO REGISTRAZIONE SOLO SE ATTIVO E NON IN GHOST MODE
                 if (plugin.register && !user.registered) {
                     fail('unreg', m, this)
                     continue
@@ -755,12 +751,12 @@ if (m.message?.protocolMessage?.type === 'MESSAGE_EDIT') {
                 } catch (e) {
                     m.error = e
                     console.error(`[ERRORE] Errore nell'esecuzione del plugin per la chat ${m.chat}, mittente ${m.sender}:`, e)
-                    if (e.message.includes('rate-overlimit')) {
+                    if (e && e.message && e.message.includes('rate-overlimit')) {
                         console.warn('[AVVISO] Rate limit raggiunto, ritento dopo 2 secondi...')
                         await delay(2000)
                     }
-                    let text = format(e)
-                    await this.reply(m.chat, text, m).catch(e => console.error('[ERRORE] Errore nella risposta:', e))
+                    let textErr = format(e)
+                    await this.reply(m.chat, textErr, m).catch(err => console.error('[ERRORE] Errore nella risposta:', err))
                 } finally {
                     if (typeof plugin.after === 'function') {
                         try {
@@ -837,7 +833,6 @@ if (m.message?.protocolMessage?.type === 'MESSAGE_EDIT') {
 
 global.dfail = async (type, m, conn) => {
     const settings = global.db.data.settings[conn.user.jid] || {}
-    // SE REGISTRAZIONE È OFF, BLOCCA IL MESSAGGIO UNREG (DOUBLE CHECK)
     if (type === 'unreg' && settings.registrazioni === false) return
 
     const nome = m.pushName || 'sam'
