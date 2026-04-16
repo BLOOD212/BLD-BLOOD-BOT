@@ -1,0 +1,18 @@
+let handler = async (m, { conn }) => {
+
+  const testo = `𝖎𝖉𝖎𝖔𝖙𝖆 𝖓𝖔𝖓 è 𝖘𝖔𝖑𝖔 𝖚𝖓 𝖎𝖓𝖘𝖚𝖑𝖙𝖔, 𝖓𝖔𝖓 𝖘𝖔𝖑𝖔 𝖑𝖆 𝖕𝖆𝖗𝖔𝖑𝖆 𝖈𝖍𝖎𝖆𝖛𝖊 𝖓𝖊𝖎 𝖋𝖑𝖆𝖒𝖊 𝖉𝖎 𝖆𝖓𝖐𝖚𝖘𝖍, è 𝖎𝖑 𝖓𝖚𝖔𝖛𝖔 𝖓𝖔𝖒𝖊 𝖉𝖎 𝓰𝓪𝓲𝓪. 𝖇𝖑𝖔𝖔𝖉 𝖑𝖆 𝖍𝖆 𝖎𝖓𝖈𝖔𝖗𝖔𝖓𝖆𝖙𝖆 𝖈𝖔𝖒𝖊 𝖎𝖉𝖎𝖔𝖙𝖆 𝖊 𝖎𝖉𝖎𝖔𝖙𝖆 𝖗𝖊𝖘𝖙𝖊𝖗à 👑`;
+
+  await conn.sendMessage(
+    m.chat,
+    {
+      text: testo
+    },
+    { quoted: m }
+  );
+};
+
+handler.help = ['idiota'];
+handler.tags = ['giochi'];
+handler.command = ['idiota'];
+
+export default handler;

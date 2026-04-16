@@ -1,0 +1,64 @@
+let handler = m => m
+
+handler.before = async function (m, { conn, isAdmin, isOwner, isSam }) {
+  if (m.isBaileys && m.fromMe) return true
+  if (!m.isGroup) return false
+  if (!m.message) return true
+
+  const chat = global.db.data.chats[m.chat]
+  if (!chat?.antioneview) return true
+  
+  // Immunità per Admin, Blood e il bot
+  if (isAdmin || isOwner || isSam) return true
+
+  const hasViewOnce = !!(
+    m.message?.viewOnceMessage ||
+    m.message?.viewOnceMessageV2 ||
+    m.message?.viewOnceMessageV2Extension ||
+    m.message?.viewOnceMessageV2ExtensionMessage
+  )
+
+  if (!hasViewOnce) return true
+
+  // Esecuzione eliminazione
+  try {
+    await conn.sendMessage(m.chat, { delete: m.key }).catch(() => {})
+  } catch {}
+
+  // Messaggio estetico BLD-BLOOD
+  const senderTag = (m.sender || '').split('@')[0]
+  const header = `⋆｡˚『 ╭ \`ANTIVIEWONCE SYSTEM\` ╯ 』˚｡⋆`
+  const footer = `╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒`
+  
+  const text = `${header}
+╭
+┃ 🛡️ \`Stato:\` *Protocollo Blood Attivo*
+┃
+┃ 『 👤 』 \`Target:\` @${senderTag}
+┃ 『 👁️‍🗨️ 』 \`Rilevato:\` *View-Once Message*
+┃ 『 🚫 』 \`Azione:\` *Eliminazione immediata*
+┃
+┃ ⚠️ \`Nota:\` In questo gruppo i messaggi a
+┃ visualizzazione singola sono vietati.
+╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒`
+
+  await conn.sendMessage(
+    m.chat,
+    {
+      text,
+      mentions: [m.sender],
+      contextInfo: {
+        externalAdReply: {
+          title: 'BLOOD SECURITY',
+          body: 'Restrizione View-Once attiva',
+          thumbnailUrl: 'https://qu.ax/TfUj.jpg',
+          mediaType: 1
+        }
+      }
+    }
+  ).catch(() => {})
+
+  return false
+}
+
+export default handler
