@@ -1,36 +1,40 @@
-// Database temporaneo (in produzione usa qualcosa come Lowdb o un JSON)
+// Database temporaneo in memoria (si svuota se riavvii la VPS)
 const msgStorage = {};
 
-sock.ev.on('messages.upsert', async ({ messages }) => {
-    const m = messages[0];
-    if (!m.message) return;
+let handler = m => m;
 
-    const chat = m.key.remoteJid;
-    const msgId = m.key.id;
+handler.before = async function (m, { conn }) {
+    if (!m) return;
+    
+    const chat = m.chat;
+    const msgId = m.id || m.key?.id;
 
     // 1. SALVATAGGIO: Se non è un messaggio di sistema, salvalo
-    if (!m.message.protocolMessage) {
+    if (!m.message?.protocolMessage) {
         msgStorage[msgId] = m;
     }
 
-    // 2. RECUPERO: Se arriva un comando di eliminazione (ProtocolMessage tipo 0)
-    if (m.message.protocolMessage && m.message.protocolMessage.type === 0) {
+    // 2. RECUPERO: Se arriva un comando di eliminazione
+    if (m.message?.protocolMessage && m.message.protocolMessage.type === 0) {
         const deletedKey = m.message.protocolMessage.key;
         const savedMsg = msgStorage[deletedKey.id];
 
         if (savedMsg) {
             const user = deletedKey.participant || deletedKey.remoteJid;
 
-            await sock.sendMessage(chat, { 
+            await conn.sendMessage(chat, { 
                 text: `🚨 *ANTI-DELETE RILEVATO* 🚨\n\n@${user.split('@')[0]} aveva eliminato questo:`,
                 mentions: [user]
-            });
+            }, { quoted: savedMsg });
 
             // Inoltra il messaggio originale (testo, immagine, etc.)
-            await sock.copyNForward(chat, savedMsg, true);
+            await conn.copyNForward(chat, savedMsg, true);
 
-            // Pulisci la memoria
+            // Pulisci la memoria per non intasare la RAM della VPS
             delete msgStorage[deletedKey.id];
         }
     }
-});
+    return true;
+};
+
+export default handler;
