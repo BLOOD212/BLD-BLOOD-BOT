@@ -1,9 +1,5 @@
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&height=250&section=header&text=BLD-BLOOD-BOT&fontSize=70&fontAlignY=40&animation=twinkling&theme=dark" alt="BLD-BLOOD-BOT Header" />
-</p>
-
-<p align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=Orbitron&size=35&pause=1000&color=FF0000&center=true&vCenter=true&width=600&height=100&lines=🩸+BLD-BLOOD-BOT+🩸;DEVELOPED+BY+BLOOD;THE+ULTIMATE+EXPERIENCE" alt="Typing SVG" />
+  <img src="https://readme-typing-svg.herokuapp.com?font=Orbitron&size=35&center=true&vCenter=true&width=500&lines=🩸+BLD-BLOOD-BOT+🩸;DEVELOPED+BY+BLOOD;STAFF:+BLOOD" alt="Typing SVG" />
 </p>
 
 <p align="center">
