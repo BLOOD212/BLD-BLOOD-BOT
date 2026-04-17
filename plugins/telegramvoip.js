@@ -1,84 +1,189 @@
-// 🎯 PLUGIN VOIP ELITE V3.5 - PROXY BRIDGE VERSION
-// Powered by Giuse & Blood
-
-let isScraperReady = false;
 let axios, cheerio;
+let ready = false;
 
 try {
-    axios = (await import('axios')).default;
-    cheerio = await import('cheerio');
-    isScraperReady = true;
-} catch (e) {
-    console.log("ERRORE VOIP: Librerie mancanti.");
-}
+  axios = (await import('axios')).default;
+  cheerio = await import('cheerio');
+  ready = true;
+} catch (e) {}
 
-const baseUrl = 'https://sms24.me';
-
-// Sostituiamo la chiamata diretta con un servizio di bypass o un proxy pubblico
-const bypassUrl = (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-
-const getHeaders = () => ({
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36'
-});
-
-async function fetchMessaggi(numeroTelefono) {
-    try {
-        const target = `${baseUrl}/en/numbers/${numeroTelefono.replace('+', '')}`;
-        // Usiamo AllOrigins per nascondere l'IP della VPS
-        const { data } = await axios.get(bypassUrl(target), { timeout: 20000 });
-        const html = JSON.parse(data.contents || data).contents || data.contents;
-        const $ = cheerio.load(html);
-        let messaggi = [];
-        $('.shadow-sm, .list-group-item, .callout').each((i, el) => {
-            let mittente = $(el).find('a').first().text().trim() || 'SCONOSCIUTO';
-            let testo = $(el).text().replace(/\s+/g, ' ').replace(mittente, '').trim();
-            if (testo.length > 5) messaggi.push({ mittente, testo });
-        });
-        return messaggi;
-    } catch (e) { return null; }
-}
-
-let handler = async (m, { conn, args, usedPrefix, command }) => {
-    if (!isScraperReady) return m.reply("❌ Errore librerie.");
-    const cmd = command.toLowerCase();
-
-    if (cmd === 'menuvoip') {
-        return m.reply(`┏━━━ « 📱 *VOIP PROXY-MODE* » ━━━┓\n┃\n┃ 🌍 *${usedPrefix}voip*\n┃ 🔥 *${usedPrefix}lastvoips*\n┃ 📡 *${usedPrefix}regvoip <num>*\n┗━━━━━━━━━━━━━━━━━━━━━━┛`);
-    }
-
-    if (cmd === 'lastvoips' || (cmd === 'voip' && args[0])) {
-        let nazione = [
-            { id: '6', path: '/en/countries/it' },
-            { id: '1', path: '/en/countries/us' }
-            // Aggiungi le altre nazioni se necessario...
-        ].find(n => n.id === args[0]);
-
-        let targetUrl = nazione ? `${baseUrl}${nazione.path}` : `${baseUrl}/en`;
-        let { key } = await conn.sendMessage(m.chat, { text: `🛡️ *BYPASSING CLOUDFLARE...*` });
-
-        try {
-            // Chiamata tramite Proxy Bridge
-            const response = await axios.get(bypassUrl(targetUrl), { timeout: 25000 });
-            const html = response.data.contents; 
-            const $ = cheerio.load(html);
-            
-            let nms = [];
-            $('a').each((i, el) => {
-                let t = $(el).text().trim();
-                if (t.includes('+')) nms.push(t.replace(/[^0-9]/g, ''));
-            });
-
-            if (nms.length === 0) throw new Error("Nessun numero trovato tramite Bridge.");
-
-            let res = `🟢 *NUMERI (PROXY MODE)* 🟢\n\n`;
-            [...new Set(nms)].slice(0, 15).forEach((n, i) => res += `*${i+1}.* \`+${n}\`\n`);
-            return conn.sendMessage(m.chat, { text: res, edit: key });
-
-        } catch (e) {
-            return conn.sendMessage(m.chat, { text: `❌ *FALLIMENTO TOTALE:* Anche il proxy è stato respinto.\nIl provider SMS ha attivato una protezione "Under Attack Mode".`, edit: key });
-        }
-    }
+const headers = {
+  'User-Agent': 'Mozilla/5.0'
 };
 
-handler.command = /^(voip|regvoip|lastvoips|menuvoip)$/i;
+const sites = [
+  'https://receive-sms-online.info',
+  'https://receive-smss.com',
+  'https://www.receivesms.co',
+  'https://freephonenum.com',
+  'https://receive-sms.cc',
+  'https://sms-online.co',
+  'https://receiveasms.com'
+];
+
+const countries = [
+  { name: 'USA 🇺🇸', prefix: '+1' },
+  { name: 'UK 🇬🇧', prefix: '+44' },
+  { name: 'Francia 🇫🇷', prefix: '+33' },
+  { name: 'Germania 🇩🇪', prefix: '+49' },
+  { name: 'Spagna 🇪🇸', prefix: '+34' },
+  { name: 'Italia 🇮🇹', prefix: '+39' },
+  { name: 'Svezia 🇸🇪', prefix: '+46' },
+  { name: 'Canada 🇨🇦', prefix: '+1' },
+  { name: 'Paesi Bassi 🇳🇱', prefix: '+31' },
+  { name: 'Polonia 🇵🇱', prefix: '+48' },
+  { name: 'Russia 🇷🇺', prefix: '+7' },
+  { name: 'Ucraina 🇺🇦', prefix: '+380' },
+  { name: 'India 🇮🇳', prefix: '+91' },
+  { name: 'Indonesia 🇮🇩', prefix: '+62' },
+  { name: 'Filippine 🇵🇭', prefix: '+63' }
+];
+
+async function getNumbers() {
+  let results = [];
+
+  for (let site of sites) {
+    try {
+      const { data } = await axios.get(site, { headers, timeout: 10000 });
+      const $ = cheerio.load(data);
+
+      $('a, td, div').each((i, el) => {
+        let t = $(el).text().trim();
+
+        let match = t.match(/\+\d{6,15}/g);
+        if (match) results.push(...match);
+      });
+
+    } catch (e) {
+      console.log('Errore sito:', site);
+    }
+  }
+
+  results = [...new Set(results)].filter(n => n.length >= 8);
+
+  return results;
+}
+
+async function getSMS(num) {
+  let clean = num.replace('+', '');
+
+  for (let site of sites) {
+    try {
+      const { data } = await axios.get(`${site}/${clean}`, { headers, timeout: 10000 });
+      const $ = cheerio.load(data);
+
+      let msgs = [];
+
+      $('table tr, .list, .sms, div').each((i, el) => {
+        let text = $(el).text().trim();
+
+        if (text.length > 10 && text.length < 300) {
+          msgs.push(text);
+        }
+      });
+
+      if (msgs.length > 0) return msgs.slice(0, 10);
+
+    } catch {}
+  }
+
+  return [];
+}
+
+let sessions = {};
+
+let handler = async (m, { conn, args, usedPrefix }) => {
+  if (!ready) return m.reply("❌ Librerie mancanti.");
+
+  let user = m.sender;
+
+  if (!args[0]) {
+    let txt = `🌍 *SCEGLI PAESE*\n\n`;
+
+    countries.forEach((c, i) => {
+      txt += `${i + 1}. ${c.name}\n`;
+    });
+
+    txt += `\nUsa: ${usedPrefix}voip <numero>`;
+    return m.reply(txt);
+  }
+
+  if (!isNaN(args[0])) {
+    let country = countries[parseInt(args[0]) - 1];
+    if (!country) return m.reply("❌ Paese non valido");
+
+    m.reply("⏳ Cerco numeri...");
+
+    let all = await getNumbers();
+
+    let nums = all.filter(n => n.startsWith(country.prefix));
+
+    if (nums.length === 0) return m.reply("❌ Nessun numero trovato");
+
+    sessions[user] = {
+      country,
+      nums,
+      current: 0
+    };
+
+    let num = nums[0];
+
+    return conn.sendMessage(m.chat, {
+      text: `📱 *NUMERO ATTIVO*\n\n🌍 ${country.name}\n📲 ${num}`,
+      buttons: [
+        { buttonId: `${usedPrefix}voip next`, buttonText: { displayText: '🔄 Cambia Numero' }, type: 1 },
+        { buttonId: `${usedPrefix}voip sms`, buttonText: { displayText: '📩 Controlla SMS' }, type: 1 },
+        { buttonId: `${usedPrefix}voip`, buttonText: { displayText: '🌍 Cambia Paese' }, type: 1 }
+      ],
+      headerType: 1
+    });
+  }
+
+  if (args[0] === 'next') {
+    let session = sessions[user];
+    if (!session) return m.reply("❌ Seleziona prima un paese");
+
+    session.current++;
+    if (session.current >= session.nums.length) session.current = 0;
+
+    let num = session.nums[session.current];
+
+    return conn.sendMessage(m.chat, {
+      text: `📱 *NUOVO NUMERO*\n\n🌍 ${session.country.name}\n📲 ${num}`,
+      buttons: [
+        { buttonId: `${usedPrefix}voip next`, buttonText: { displayText: '🔄 Cambia Numero' }, type: 1 },
+        { buttonId: `${usedPrefix}voip sms`, buttonText: { displayText: '📩 Controlla SMS' }, type: 1 },
+        { buttonId: `${usedPrefix}voip`, buttonText: { displayText: '🌍 Cambia Paese' }, type: 1 }
+      ],
+      headerType: 1
+    });
+  }
+
+  if (args[0] === 'sms') {
+    let session = sessions[user];
+    if (!session) return m.reply("❌ Nessuna sessione");
+
+    let num = session.nums[session.current];
+
+    m.reply("⏳ Controllo SMS...");
+
+    let msgs = await getSMS(num);
+
+    if (msgs.length === 0) return m.reply("❌ Nessun SMS");
+
+    let txt = `📩 *SMS ${num}*\n\n`;
+
+    msgs.forEach(x => {
+      txt += `💬 ${x}\n────────────\n`;
+    });
+
+    return m.reply(txt.trim());
+  }
+};
+
+handler.help = ['voip'];
+handler.tags = ['tools'];
+handler.command = /^(voip)$/i;
+handler.owner = true
+
 export default handler;
