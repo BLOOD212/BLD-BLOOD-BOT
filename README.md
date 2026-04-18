@@ -37,7 +37,8 @@
 ### 📱 METODO 1: TERMUX (Android)
 *Apri Termux e incolla questi comandi uno alla volta:*
 
-1.  **Preparazione:** ```bash
+1.  **Preparazione:** 
+    ```bash
     pkg update && pkg upgrade -y
     pkg install git nodejs -y
     ```
