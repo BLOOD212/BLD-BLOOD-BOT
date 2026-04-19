@@ -2,14 +2,14 @@ const handler = async (m, {conn, text, usedPrefix, command}) => {
   let who;
   if (m.isGroup) who = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : false;
   else who = m.chat;
-  const textpremERROR = `令 Inserisci il tag dell'utente che vuoi aggiungere come utente premium.`;
+  const textpremERROR = ` Inserisci il tag del coglione che vuoi aggiungere come utente premium.`;
   if (!who) return m.reply(textpremERROR, null, {mentions: conn.parseMention(textpremERROR)});
 
   const user = global.db.data.users[who];
   const txt = text.replace('@' + who.split`@`[0], '').trim();
   const name = await '@' + who.split`@`[0];
 
-  const ERROR = `令 Questo utente non è presente nel mio database!`;
+  const ERROR = ` sto testa di cazzo non è presente nel mio database!`;
   if (!user) return m.reply(ERROR, null, {mentions: conn.parseMention(ERROR)});
 
   const secondi10 = 10 * 1000; // 10 secondi in millisecondi
