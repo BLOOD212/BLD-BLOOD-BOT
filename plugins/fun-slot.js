@@ -2,14 +2,15 @@ import { createCanvas, loadImage } from 'canvas'
 import GIFEncoder from 'gif-encoder-2'
 
 // --- CONFIGURAZIONI ---
+// Usiamo PNG invece di SVG per evitare l'errore di node-canvas
 const fruits = ['🍒', '🍋', '🍉', '🍇', '🍎', '🍓']
 const fruitURLs = {
-    '🍒': 'https://openmoji.org/data/color/svg/1F352.svg',
-    '🍋': 'https://openmoji.org/data/color/svg/1F34B.svg',
-    '🍉': 'https://openmoji.org/data/color/svg/1F349.svg',
-    '🍇': 'https://openmoji.org/data/color/svg/1F347.svg',
-    '🍎': 'https://openmoji.org/data/color/svg/1F34E.svg',
-    '🍓': 'https://openmoji.org/data/color/svg/1F353.svg'
+    '🍒': 'https://raw.githubusercontent.com/hfg-gmuend/openmoji/master/color/png/72x72/1F352.png',
+    '🍋': 'https://raw.githubusercontent.com/hfg-gmuend/openmoji/master/color/png/72x72/1F34B.png',
+    '🍉': 'https://raw.githubusercontent.com/hfg-gmuend/openmoji/master/color/png/72x72/1F349.png',
+    '🍇': 'https://raw.githubusercontent.com/hfg-gmuend/openmoji/master/color/png/72x72/1F347.png',
+    '🍎': 'https://raw.githubusercontent.com/hfg-gmuend/openmoji/master/color/png/72x72/1F34E.png',
+    '🍓': 'https://raw.githubusercontent.com/hfg-gmuend/openmoji/master/color/png/72x72/1F353.png'
 }
 const cavalliConfig = [
     { nome: 'ROSSO', color: '#ff4d4d' },
@@ -72,18 +73,28 @@ let handler = async (m, { conn, command, args, usedPrefix }) => {
             const encoder = new GIFEncoder(600, 250)
             encoder.start(); encoder.setRepeat(0); encoder.setDelay(100); encoder.setQuality(10)
             const canvas = createCanvas(600, 250); const ctx = canvas.getContext('2d')
+            
             let final = [fruits[Math.floor(Math.random()*6)], fruits[Math.floor(Math.random()*6)], fruits[Math.floor(Math.random()*6)]]
             let win = (final[0] === final[1] || final[1] === final[2] || final[0] === final[2])
-            const imgs = {}; for(let f of fruits) imgs[f] = await loadImage(fruitURLs[f])
+            
+            const imgs = {}; 
+            for(let f of fruits) imgs[f] = await loadImage(fruitURLs[f])
 
             for(let i=0; i<8; i++) {
                 ctx.fillStyle = '#111'; ctx.fillRect(0,0,600,250)
-                for(let j=0; j<3; j++) ctx.drawImage(imgs[fruits[Math.floor(Math.random()*6)]], 100+(j*150), 50, 100, 100)
+                for(let j=0; j<3; j++) {
+                    let rand = fruits[Math.floor(Math.random()*6)]
+                    ctx.drawImage(imgs[rand], 100+(j*150), 50, 100, 100)
+                }
                 encoder.addFrame(ctx)
             }
+            
             ctx.fillStyle = '#111'; ctx.fillRect(0,0,600,250)
-            ctx.drawImage(imgs[final[0]], 100, 50, 100, 100); ctx.drawImage(imgs[final[1]], 250, 50, 100, 100); ctx.drawImage(imgs[final[2]], 400, 50, 100, 100)
+            ctx.drawImage(imgs[final[0]], 100, 50, 100, 100)
+            ctx.drawImage(imgs[final[1]], 250, 50, 100, 100)
+            ctx.drawImage(imgs[final[2]], 400, 50, 100, 100)
             for(let i=0; i<10; i++) encoder.addFrame(ctx)
+            
             encoder.finish()
             user.euro += win ? 200 : -100
             
@@ -109,9 +120,12 @@ let handler = async (m, { conn, command, args, usedPrefix }) => {
             encoder.start(); encoder.setRepeat(0); encoder.setDelay(120)
             const canvas = createCanvas(600, 300); const ctx = canvas.getContext('2d')
             let pos = { sx: 150, cx: 300, dx: 450 }
+            
             for(let f=0; f<7; f++) {
-                ctx.fillStyle = '#2e7d32'; ctx.fillRect(0,0,600,300); ctx.strokeStyle = '#fff'; ctx.strokeRect(100, 50, 400, 200)
-                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(300 + (pos[tiro]-300)*(f/6), 250 - (150*(f/6)), 15, 0, Math.PI*2); ctx.fill()
+                ctx.fillStyle = '#2e7d32'; ctx.fillRect(0,0,600,300); 
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 5; ctx.strokeRect(100, 50, 400, 200)
+                ctx.fillStyle = '#fff'; ctx.beginPath(); 
+                ctx.arc(300 + (pos[tiro]-300)*(f/6), 250 - (150*(f/6)), 15, 0, Math.PI*2); ctx.fill()
                 encoder.addFrame(ctx)
             }
             encoder.finish()
@@ -137,11 +151,13 @@ let handler = async (m, { conn, command, args, usedPrefix }) => {
             const encoder = new GIFEncoder(600, 300)
             encoder.start(); encoder.setRepeat(0); encoder.setDelay(150)
             const canvas = createCanvas(600, 300); const ctx = canvas.getContext('2d')
+            
             for(let f=0; f<10; f++) {
                 ctx.fillStyle = '#558b2f'; ctx.fillRect(0,0,600,300)
                 cavalliConfig.forEach((c, i) => {
                     let x = 50 + (f === 9 && i === winnerIdx ? 450 : Math.random()*350)
                     ctx.fillStyle = c.color; ctx.beginPath(); ctx.arc(x, 60+(i*60), 15, 0, Math.PI*2); ctx.fill()
+                    ctx.fillStyle = '#fff'; ctx.font = '12px Arial'; ctx.fillText(c.nome, 10, 65+(i*60))
                 })
                 encoder.addFrame(ctx)
             }
@@ -168,13 +184,16 @@ let handler = async (m, { conn, command, args, usedPrefix }) => {
             ctx.fillStyle = '#000'; ctx.font = 'bold 30px Arial'; ctx.textAlign = 'center'
             ctx.fillText(premio > 0 ? `HAI VINTO ${premio}€!` : 'NON HAI VINTO', 200, 110)
             user.euro += (premio - 200)
-            const buttons = [{ buttonId: `${usedPrefix}gratta`, buttonText: { displayText: '🎟️ RIGIOCA' }, type: 1 }]
+            const buttons = [
+                { buttonId: `${usedPrefix}gratta`, buttonText: { displayText: '🎟️ RIGIOCA' }, type: 1 },
+                { buttonId: `${usedPrefix}casino`, buttonText: { displayText: '🏠 MENU' }, type: 1 }
+            ]
             return conn.sendMessage(m.chat, { image: canvas.toBuffer(), caption: `Saldo: ${user.euro}€`, buttons }, { quoted: m })
         }
 
     } catch (e) {
         console.error(e)
-        m.reply('❌ Errore interno. Riprova.')
+        m.reply(`❌ Errore critico: ${e.message}`)
     }
 }
 
