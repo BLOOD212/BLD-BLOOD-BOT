@@ -5,69 +5,25 @@ const pins = async (judul) => {
 
   const headers = {
     'accept': 'application/json, text/javascript, */*; q=0.01',
-    'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-    'priority': 'u=1, i',
     'referer': 'https://id.pinterest.com/',
-    'screen-dpr': '1', //by samakavare github.com/realvare
-    'sec-ch-ua': '"Not(A:Brand";v="99", "Google Chrome";v="133", "Chromium";v="133"',
-    'sec-ch-ua-full-version-list': '"Not(A:Brand";v="99.0.0.0", "Google Chrome";v="133.0.6943.142", "Chromium";v="133.0.6943.142"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-model': '""',
-    'sec-ch-ua-platform': '"Windows"',
-    'sec-ch-ua-platform-version': '"10.0.0"',
-    'sec-fetch-dest': 'empty',
-    'sec-fetch-mode': 'cors',
-    'sec-fetch-site': 'same-origin',
-    'user-agent': 'varebot/2.5',
-    'x-app-version': 'c056fb7',
-    'x-pinterest-appstate': 'active',
-    'x-pinterest-pws-handler': 'www/index.js',
-    'x-pinterest-source-url': '/',
-    'x-requested-with': 'XMLHttpRequest'
+    'user-agent': 'varebot/2.5'
   };
 
   try {
     const res = await axios.get(link, { headers });
-    if (res.data && res.data.resource_response && res.data.resource_response.data && res.data.resource_response.data.results) {
+    if (res.data?.resource_response?.data?.results) {
       return res.data.resource_response.data.results.map(item => {
-        if (item.images) {
-          const author = item.pinner?.username || 
-                        item.pinner?.first_name || 
-                        item.creator?.username ||
-                        item.creator?.first_name ||
-                        item.board?.owner?.username ||
-                        item.board?.owner?.first_name ||
-                        'Utente sconosciuto';
-          const saves = item.aggregated_pin_data?.aggregated_stats?.saves || 
-                       item.stats?.saves || 
-                       item.reaction_counts?.saves ||
-                       item.pin_metrics?.saves ||
-                       item.save_count ||
-                       null;
-          const domain = item.rich_summary?.site_name || 
-                        item.domain || 
-                        item.link?.split('//')[1]?.split('/')[0] ||
-                        'Pinterest';
-
-          return {
-            image_large_url: item.images.orig?.url || null,
-            image_medium_url: item.images['564x']?.url || null,
-            image_small_url: item.images['236x']?.url || null,
-            title: item.rich_summary?.display_name || item.grid_title || item.title || '',
-            description: item.rich_summary?.description || item.description || 'Nessuna descrizione disponibile',
-            url: `https://pinterest.com/pin/${item.id}/`,
-            domain: domain,
-            author: author,
-            saves: saves,
-            raw_item: process.env.NODE_ENV === 'development' ? item : undefined
-          };
-        }
-        return null;
+        if (!item.images) return null;
+        return {
+          image: item.images.orig?.url || item.images['564x']?.url,
+          title: item.grid_title || item.title || judul,
+          author: item.pinner?.username || item.creator?.username || 'Utente',
+          url: `https://pinterest.com/pin/${item.id}/`
+        };
       }).filter(img => img !== null);
     }
     return [];
   } catch (error) {
-    console.error('Error:', error);
     return [];
   }
 };
@@ -75,7 +31,8 @@ const pins = async (judul) => {
 let handler = async (m, { conn, usedPrefix, command, text }) => {
   if (!text) {
     return conn.reply(m.chat, `
-ㅤㅤ⋆｡˚『 ╭ \`PINTEREST\` ╯ 』˚｡⋆\n╭\n│
+ㅤㅤ⋆｡˚『 ╭ \`PINTEREST\` ╯ 』˚｡⋆
+╭
 │  \`inserisci il termine da cercare.\`
 │
 │ 『 📚 』 \`Esempio d'uso:\`
@@ -89,68 +46,55 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
   try {
     const results = await pins(text);
     if (!results || results.length === 0) {
-      return conn.reply(m.chat, `\`Non ho trovato nessuna immagine per "${text}", Prova con una ricerca diversa\``, m);
+      return conn.reply(m.chat, `\`Non ho trovato nulla per "${text}"\``, m);
     }
 
-    const selectedResults = results.slice(0, 15);
+    // Seleziona un risultato casuale tra i primi 20 per variare la scelta al click del bottone
+    const res = results[Math.floor(Math.random() * Math.min(results.length, 20))];
     
-    const cards = selectedResults.map((result, index) => {
-      const imageUrl = result.image_large_url || result.image_medium_url || result.image_small_url;
-      const title = result.title ? result.title.replace(/#[^\s#]+/g, '').replace(/\s+/g, ' ').trim() : `${text}`;
-      const author = result.author || 'Utente sconosciuto';
-      const saves = result.saves !== null ? 
-                   (typeof result.saves === 'number' ? result.saves.toLocaleString() : result.saves) : 
-                   'Non disponibile';
-      let bodyParts = [];
-      bodyParts.push(`『 👤 』 *${author}*`);
-      if (saves !== 'Non disponibile') {
-        bodyParts.push(`『 📌 』 *${saves} salvataggi*`);
-      }
-      
-      return {
-        image: { url: imageUrl },
-        title: `\`${title.substring(0, 80) + (title.length > 80 ? '...' : '')}\``,
-        body: bodyParts.join('\n'),
-        footer: '˗ˏˋ𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙ˎˊ˗',
-        buttons: [
-          {
-            name: "cta_url",
-            buttonParamsJson: JSON.stringify({
-              display_text: "📌 Apri su Pinterest",
-              url: result.url
-            })
-          },
-           {
-            name: "cta_copy",
-            buttonParamsJson: JSON.stringify({
-              display_text: "📎 Copia Link",
-              copy_code: result.url
-            })
-          }
-        ]
-      };
-    });
+    const caption = `
+『 🔍 』 *Risultato per:* ${text}
 
-    await conn.sendMessage(
-      m.chat,
-      {
-        text: `『 🔍 』 \`Risultati per:\`\n- *${text}*`,
-        title: '',
-        footer: `𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙`,
-        cards: cards
-      },
-      { quoted: m }
-    );
+━━━━━━━━━━━━━━━━━━━━
+『 📖 』 *Titolo:* \`${res.title}\`
+『 👤 』 *Autore:* ${res.author}
+━━━━━━━━━━━━━━━━━━━━
+
+˗ˏˋ𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙ˎˊ˗`.trim();
+
+    // Invio con bottone "Altra Foto"
+    await conn.sendMessage(m.chat, {
+      image: { url: res.image },
+      caption: caption,
+      footer: 'Clicca sotto per un\'altra immagine',
+      buttons: [
+        {
+          name: "quick_reply",
+          buttonParamsJson: JSON.stringify({
+            display_text: "🔄 Altra Foto",
+            id: `${usedPrefix}${command} ${text}`
+          })
+        },
+        {
+          name: "cta_url",
+          buttonParamsJson: JSON.stringify({
+            display_text: "📌 Apri Originale",
+            url: res.url
+          })
+        }
+      ]
+    }, { quoted: m });
+
+    await m.react('✅');
 
   } catch (error) {
-    console.error('ERRORE nella ricerca Pinterest:', error.message || error);
-    await conn.reply(m.chat, `${global.errore}`, m);
+    console.error(error);
+    await conn.reply(m.chat, `⚠️ Errore durante la ricerca.`, m);
   }
 };
 
 handler.help = ['pinterest <testo>'];
 handler.tags = ['ricerca'];
 handler.command = ['pinterest'];
-handler.register = false;
 
 export default handler;
