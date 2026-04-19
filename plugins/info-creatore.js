@@ -1,4 +1,14 @@
-let handler = async (m, { conn, usedPrefix }) => {
+let handler = async (m, { conn, usedPrefix, command }) => {
+  
+  // Se il comando eseguito è 'git' o 'insta', manda solo il link e chiudi la funzione
+  if (command === 'git') {
+    return await conn.reply(m.chat, '💻 *GitHub:* https://github.com/BLOOD212/BLD-BLOOD-BOT', m)
+  }
+  if (command === 'insta') {
+    return await conn.reply(m.chat, '📸 *Instagram:* https://www.instagram.com/blood_ilreal', m)
+  }
+
+  // Se invece il comando è 'owner' o 'creatore', manda il box con i bottoni
   let mention = `@${m.sender.split('@')[0]}`
   let text = `
 *╭───╼ ⚡ ╾───╮*
@@ -18,7 +28,6 @@ ecco i riferimenti ufficiali del mio creatore.
    *😈 𝖇𝖑𝖔𝖔𝖉 𝖉𝖔𝖒𝖎𝖓𝖆 ⚡*
 ━━━━━━━━━━━━━━━━━━━━`.trim()
 
-  // Usiamo il prefisso direttamente nell'ID per attivare il comando
   const buttons = [
     { buttonId: `${usedPrefix}menu`, buttonText: { displayText: '🛡️ MENU' }, type: 1 },
     { buttonId: `${usedPrefix}ping`, buttonText: { displayText: '⚡ STATUS' }, type: 1 },
@@ -37,21 +46,9 @@ ecco i riferimenti ufficiali del mio creatore.
   await conn.sendMessage(m.chat, buttonMessage, { quoted: m })
 }
 
-// Invece di handler.before, usiamo handler.all o registriamo i comandi separatamente
-handler.all = async (m) => {
-  if (!m.text) return
-  
-  // Riconoscimento dei Button ID
-  if (m.text.endsWith('git')) {
-    await conn.reply(m.chat, '💻 *GitHub:* https://github.com/BLOOD212/BLD-BLOOD-BOT', m)
-  }
-  if (m.text.endsWith('insta')) {
-    await conn.reply(m.chat, '📸 *Instagram:* https://www.instagram.com/blood_ilreal', m)
-  }
-}
-
 handler.help = ['owner']
 handler.tags = ['info']
-handler.command = /^(owner|creatore|git|insta)$/i // Aggiunti i comandi qui
+// Registriamo tutti i comandi necessari
+handler.command = ['owner', 'creatore', 'git', 'insta'] 
 
 export default handler
