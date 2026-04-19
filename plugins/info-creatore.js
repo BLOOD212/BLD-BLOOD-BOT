@@ -18,11 +18,12 @@ ecco i riferimenti ufficiali del mio creatore.
    *😈 𝖇𝖑𝖔𝖔𝖉 𝖉𝖔𝖒𝖎𝖓𝖆 ⚡*
 ━━━━━━━━━━━━━━━━━━━━`.trim()
 
+  // Usiamo il prefisso direttamente nell'ID per attivare il comando
   const buttons = [
     { buttonId: `${usedPrefix}menu`, buttonText: { displayText: '🛡️ MENU' }, type: 1 },
     { buttonId: `${usedPrefix}ping`, buttonText: { displayText: '⚡ STATUS' }, type: 1 },
-    { buttonId: 'git_link', buttonText: { displayText: '💻 GITHUB' }, type: 1 },
-    { buttonId: 'insta_link', buttonText: { displayText: '📸 INSTAGRAM' }, type: 1 }
+    { buttonId: `${usedPrefix}git`, buttonText: { displayText: '💻 GITHUB' }, type: 1 },
+    { buttonId: `${usedPrefix}insta`, buttonText: { displayText: '📸 INSTAGRAM' }, type: 1 }
   ]
 
   const buttonMessage = {
@@ -33,31 +34,24 @@ ecco i riferimenti ufficiali del mio creatore.
       mentions: [m.sender]
   }
 
-  try {
-    await conn.sendMessage(m.chat, buttonMessage, { quoted: m })
-  } catch (e) {
-    console.error("Errore invio bottoni:", e)
-    await conn.reply(m.chat, text, m, { mentions: [m.sender] })
-  }
+  await conn.sendMessage(m.chat, buttonMessage, { quoted: m })
 }
 
-// Funzione modificata per intercettare i Button ID correttamente
-handler.before = async (m, { conn }) => {
-  if (!m.quoted || !m.quoted.fromMe || !m.quoted.isBaileys || !m.text) return
+// Invece di handler.before, usiamo handler.all o registriamo i comandi separatamente
+handler.all = async (m) => {
+  if (!m.text) return
   
-  // Intercettazione tramite ID del bottone
-  if (m.text === 'git_link') {
+  // Riconoscimento dei Button ID
+  if (m.text.endsWith('git')) {
     await conn.reply(m.chat, '💻 *GitHub:* https://github.com/BLOOD212/BLD-BLOOD-BOT', m)
-    return true
   }
-  if (m.text === 'insta_link') {
+  if (m.text.endsWith('insta')) {
     await conn.reply(m.chat, '📸 *Instagram:* https://www.instagram.com/blood_ilreal', m)
-    return true
   }
 }
 
 handler.help = ['owner']
 handler.tags = ['info']
-handler.command = ['owner', 'creatore']
+handler.command = /^(owner|creatore|git|insta)$/i // Aggiunti i comandi qui
 
 export default handler
