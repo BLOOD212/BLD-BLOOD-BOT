@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@hapi/boom": "^10.0.1",
-    "@realvare/based": "latest",
+    "@realvare/based": "npm:@realvare/baileys@latest",
     "awesome-phonenumber": "^3.4.0",
     "axios": "^1.12.2",
     "canvas": "^3.2.0",
