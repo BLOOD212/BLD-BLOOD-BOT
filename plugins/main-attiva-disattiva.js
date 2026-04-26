@@ -1,6 +1,11 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
 import path from 'path';
+// Importiamo il file usando il nome che hai scelto
+import { createAIService } from './risposte-ai.js'; 
+
+// Inizializzazione del servizio Bloodbot (Inserisci la tua API Key qui sotto)
+const bloodbot = createAIService('LA_TUA_OPENAI_API_KEY');
 
 const PERM = {
   ADMIN: 'admin',
@@ -9,7 +14,7 @@ const PERM = {
 };
 
 const featureRegistry = [
-  { key: 'bestemmiometro', store: 'chat', perm: PERM.ADMIN, name: '🤬 Bestemmiometro', desc: 'Rileva e conta le bestemmie' }, // AGGIUNTO QUI
+  { key: 'bestemmiometro', store: 'chat', perm: PERM.ADMIN, name: '🤬 Bestemmiometro', desc: 'Rileva e conta le bestemmie' },
   { key: 'antidelete', store: 'chat', perm: PERM.ADMIN, name: '🗑️ Antidelete', desc: 'Recupera messaggi eliminati' },
   { key: 'welcome', store: 'chat', perm: PERM.ADMIN, name: '👋 Welcome', desc: 'Messaggio di benvenuto' },
   { key: 'goodbye', store: 'chat', perm: PERM.ADMIN, name: '🚪 Addio', desc: 'Messaggio di addio' },
@@ -28,7 +33,7 @@ const featureRegistry = [
   { key: 'antiporno', store: 'chat', perm: PERM.ADMIN, name: '🔞 Antiporno', desc: 'Filtro contenuti NSFW' },
   { key: 'antigore', store: 'chat', perm: PERM.ADMIN, name: '🚫 Antigore', desc: 'Blocca contenuti splatter' },
   { key: 'modoadmin', store: 'chat', perm: PERM.ADMIN, name: '🛡️ Soloadmin', desc: 'Comandi solo per amministratori' },
-  { key: 'ai', store: 'chat', perm: PERM.ADMIN, name: '🧠 IA', desc: 'Intelligenza Artificiale attiva' },
+  { key: 'ai', store: 'chat', perm: PERM.ADMIN, name: '🧠 Bloodbot IA', desc: 'Intelligenza Artificiale attiva' },
   { key: 'vocali', store: 'chat', perm: PERM.ADMIN, name: '🎤 Siri', desc: 'Risponde con audio ai messaggi' },
   { key: 'antivoip', store: 'chat', perm: PERM.ADMIN, name: '📞 Antivoip', desc: 'Blocca numeri non italiani' },
   { key: 'antiLink', store: 'chat', perm: PERM.ADMIN, name: '🔗 Antilink', desc: 'Blocca link WhatsApp' },
@@ -53,7 +58,7 @@ featureRegistry.forEach(f => {
 });
 
 let handler = async (m, { conn, usedPrefix, command, args, isOwner, isAdmin, isSam }) => {
-  let isEnable = ['enable', 'attiva', 'on', '1'].includes(command.toLowerCase());
+  const isEnable = ['enable', 'attiva', 'on', '1'].includes(command?.toLowerCase());
   const userName = m.pushName || 'User';
 
   global.db.data.chats = global.db.data.chats || {};
@@ -62,20 +67,48 @@ let handler = async (m, { conn, usedPrefix, command, args, isOwner, isAdmin, isS
   const botJid = conn.decodeJid(conn.user.jid);
   const bot = global.db.data.settings[botJid] || (global.db.data.settings[botJid] = {});
 
-  if (args[0]) {
-    let type = args[0].toLowerCase();
-    const feat = aliasMap.get(type);
-    if (!feat) return m.reply(`『 ❌ 』 Modulo *${type}* non trovato.`);
+  // 1. GESTIONE COMANDI ATTIVA/DISATTIVA
+  if (command && ['enable', 'disable', 'attiva', 'disattiva', 'on', 'off'].includes(command)) {
+    if (args[0]) {
+      let type = args[0].toLowerCase();
+      const feat = aliasMap.get(type);
+      if (!feat) return m.reply(`『 ❌ 』 Modulo *${type}* non trovato.`);
 
-    if (feat.perm === PERM.sam && !isSam) return m.reply('『 ❌ 』 Accesso negato: Solo Blood.');
-    if (feat.perm === PERM.OWNER && !isOwner && !isSam) return m.reply('『 ❌ 』 Accesso negato: Solo Owner.');
-    if (feat.perm === PERM.ADMIN && m.isGroup && !(isAdmin || isOwner || isSam)) return m.reply('『 ❌ 』 Richiesti permessi Admin.');
+      if (feat.perm === PERM.sam && !isSam) return m.reply('『 ❌ 』 Accesso negato: Solo Blood.');
+      if (feat.perm === PERM.OWNER && !isOwner && !isSam) return m.reply('『 ❌ 』 Accesso negato: Solo Owner.');
+      if (feat.perm === PERM.ADMIN && m.isGroup && !(isAdmin || isOwner || isSam)) return m.reply('『 ❌ 』 Richiesti permessi Admin.');
 
-    const target = feat.store === 'bot' ? bot : chat;
-    target[feat.key] = isEnable;
-    return m.reply(`*〘 📡 BLD-SYSTEM 〙*\n\nModulo: *${feat.name}*\nStato: *${isEnable ? 'ATTIVATO 🟢' : 'DISATTIVATO 🔴'}*`);
+      const target = feat.store === 'bot' ? bot : chat;
+      target[feat.key] = isEnable;
+      
+      if (feat.key === 'ai' && !isEnable) bloodbot.resetHistory(m.chat);
+
+      return m.reply(`*〘 📡 BLD-SYSTEM 〙*\n\nModulo: *${feat.name}*\nStato: *${isEnable ? 'ATTIVATO 🟢' : 'DISATTIVATO 🔴'}*`);
+    }
   }
 
+  // 2. RISPOSTA AUTOMATICA BLOODBOT (se modulo AI è ON)
+  // Risponde se: modulo AI è attivo E (è una chat privata OPPURE il bot viene menzionato)
+  const isMentioned = m.mentionedJid?.includes(botJid) || m.text?.includes(botJid.split('@')[0]);
+  if (!command && chat.ai && m.text && !m.fromMe && (!m.isGroup || isMentioned)) {
+    try {
+      const textClean = m.text.replace(new RegExp(`@${botJid.split('@')[0]}`, 'gi'), '').trim();
+      const reply = await bloodbot.generateReply({
+        messageText: textClean || "Ciao Bloodbot",
+        authorName: userName,
+        chatName: m.isGroup ? m.chat : 'Privato',
+        chatId: m.chat
+      });
+      if (reply) return conn.reply(m.chat, reply, m);
+    } catch (e) {
+      console.error('Errore Bloodbot:', e);
+    }
+  }
+
+  // Se è un comando ma non è attiva/disattiva, non mostrare il menu (evita spam)
+  if (command && !['enable', 'disable', 'attiva', 'disattiva', 'on', 'off'].includes(command)) return;
+
+  // 3. COSTRUZIONE MENU VISIVO (se scrivi solo .attiva o .disattiva senza argomenti)
   const getStatus = (f) => (f.store === 'bot' ? bot[f.key] : chat[f.key]) ? '🟢' : '🔴';
 
   let menu = `┎━━━━━━━━━━━━━━━━━━━━┑
@@ -93,7 +126,6 @@ let handler = async (m, { conn, usedPrefix, command, args, isOwner, isAdmin, isS
 
 *┍━━━━━〔 🛡️ sɪᴄᴜʀᴇᴢﾞᴀ 〕━━━━━┑*\n`;
 
-  // Aggiunto 'bestemmiometro' alla lista sicurezza
   const sicurezzaKeys = ['bestemmiometro', 'antidelete', 'antigore', 'modoadmin', 'antivoip', 'antiLink', 'antiLinkUni', 'antiLink2', 'antitrava', 'antinuke', 'antioneview', 'antispam', 'antisondaggi', 'antiparolacce', 'antiBot', 'antiBot2', 'antimedia', 'antitagall', 'antiporno'];
   featureRegistry.filter(f => sicurezzaKeys.includes(f.key)).forEach(f => {
     menu += `┇ ${getStatus(f)} ${f.name}\n┇ _${f.desc}_\n┇ ➤ *${f.key}*\n┇\n`;
@@ -121,7 +153,6 @@ let handler = async (m, { conn, usedPrefix, command, args, isOwner, isAdmin, isS
 
   let thumb;
   const imagePath = path.join(process.cwd(), 'menu-sicurezza.jpeg');
-
   if (fs.existsSync(imagePath)) {
     thumb = fs.readFileSync(imagePath);
   } else {
