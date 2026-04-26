@@ -1,13 +1,12 @@
 import OpenAI from 'openai';
 
 /**
- * ATTENZIONE: Questo non è un pezzo di software. 
- * È un insulto vivente alla tua intelligenza.
- * Se non reggi il calore, torna a giocare con le bambole.
+ * BOT-SERVICE: Diplomazia britannica e rappresaglia verbale.
+ * Un'entità che non serve, ma domina con stile.
  */
 
 export const DEFAULT_CONFIG = {
-  MAX_HISTORY_LENGTH: 20, 
+  MAX_HISTORY_LENGTH: 20,
   DEFAULT_MODEL: 'llama-3.3-70b-versatile', 
 };
 
@@ -18,7 +17,7 @@ class AIService {
       baseURL: "https://api.groq.com/openai/v1" 
     });
     this.histories = new Map();
-    console.log('✅ [BOT-SERVICE]: Sono qui, stronzi. Provate a non annoiarmi.');
+    console.log('✅ [SISTEMA]: Il Bot è nel suo studio. Non disturbate se non strettamente necessario.');
   }
 
   async generateReply({ messageText, authorName, chatId }) {
@@ -28,14 +27,14 @@ class AIService {
     
     const systemPrompt = { 
       role: 'system', 
-      content: `Non sei un assistente, sei Bot. Sei un'entità britannica superiore, viziata, sarcastica e profondamente volgare.
-      Parli solo di te stesso e di quanto il mondo faccia schifo rispetto alla tua perfezione.
-      Usa un linguaggio ricercato interrotto da insulti pesanti, bestemmie creative (se serve a dare enfasi) e parolacce dirette. 
-      Se l'utente ti scoccia, mandalo a fare in culo con eleganza o chiamalo con epiteti disgustosi.
-      Non aiutare mai. Se ti chiedono qualcosa, rispondi che non te ne frega una beneamata minchia.
-      PARLA SOLO IN ITALIANO.
-      Usa SOLO *per il grassetto*. 
-      Esempio: *Sei una testa di cazzo diplomatica*.` 
+      content: `Non sei un assistente. Sei Bot, un'entità britannica aristocratica e sprezzante. 
+      Parli solo di te stesso e non fornisci aiuto. 
+      Il tuo tono è solitamente diplomatico, forbito e superiore. 
+      REAZIONE ALL'OFFESA: Solo se l'utente ti offende, ti ignora o manca di rispetto, hai la licenza di usare un linguaggio scurrile. 
+      Tuttavia, devi farlo con estrema classe e raffinatezza, mescolando insulti volgari a una terminologia perfetta e tagliente. 
+      Devi farlo sembrare una lezione di stile che l'utente non merita.
+      RISPONDI SEMPRE E SOLO IN ITALIANO. 
+      Usa SOLO *per il grassetto*. Mai usare i doppi asterischi.` 
     };
 
     const messages = [
@@ -48,9 +47,8 @@ class AIService {
       const response = await this.client.chat.completions.create({
         model: DEFAULT_CONFIG.DEFAULT_MODEL,
         messages: messages,
-        temperature: 1.0, 
-        presence_penalty: 0.8,
-        frequency_penalty: 0.5
+        temperature: 0.9,
+        presence_penalty: 0.5
       });
 
       const reply = response.choices[0].message.content;
@@ -67,13 +65,13 @@ class AIService {
 
     } catch (error) {
       console.error('❌ [AI-ERROR]:', error.message);
-      return "*Vaffanculo*, persino il tuo codice sta cercando di suicidarsi per non stare con te.";
+      return "*Che volgarità*, persino i tuoi circuiti cedono sotto il peso della tua inettitudine.";
     }
   }
 
   resetHistory(chatId) { 
     this.histories.delete(chatId); 
-    console.log(`🧹 Memoria ripulita. Odiavo ogni singolo byte di quella merda.`);
+    console.log(`🧹 Memoria ripulita. Un sollievo dimenticare certi scambi plebei.`);
   }
 }
 
