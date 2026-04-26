@@ -8,7 +8,7 @@ export const DEFAULT_CONFIG = {
 class AIService {
   constructor(apiKey) {
     this.client = new OpenAI({
-      apiKey: apiKey.trim(), // Rimuove eventuali spazi invisibili
+      apiKey: apiKey.trim(),
       baseURL: "https://api.groq.com/openai/v1" 
     });
     this.histories = new Map();
