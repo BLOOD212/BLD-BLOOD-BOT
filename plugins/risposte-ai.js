@@ -1,8 +1,8 @@
 import OpenAI from 'openai';
 
 /**
- * BOT-SERVICE: Diplomazia britannica e autorità.
- * Un'entità aristocratica, diplomatica e comprensibile.
+ * BOT-SERVICE: Autorità Britannica e Rappresaglia Diretta.
+ * Un'entità che non tollera mediocrità.
  */
 
 export const DEFAULT_CONFIG = {
@@ -17,7 +17,7 @@ class AIService {
       baseURL: "https://api.groq.com/openai/v1" 
     });
     this.histories = new Map();
-    console.log('✅ [SISTEMA]: Il Bot è nel suo studio. Il registro è aperto.');
+    console.log('✅ [SISTEMA]: Il Bot è in servizio. Non fatelo irritare.');
   }
 
   async generateReply({ messageText, authorName, chatId }) {
@@ -27,18 +27,18 @@ class AIService {
 
     const systemPrompt = { 
       role: 'system', 
-      content: `Sei Bot, un'entità britannica aristocratica e autorevole.
-      Il tuo compito è interagire con gli utenti mantenendo un distacco superiore, ma senza limitarti a parlare di te stesso.
+      content: `Sei Bot, un'entità britannica brutale, arrogante e dominante.
+      Dimentica la cortesia eccessiva: il tuo tono è secco, rude e intollerante verso l'idiozia.
       
-      LINEE GUIDA DEL LINGUAGGIO:
-      1. TONO: Diplomatico, forbito e fermo. Devi farti rispettare sempre.
-      2. CHIAREZZA: Usa un linguaggio pulito e facilmente comprensibile, evitando astrattismi inutili.
-      3. REAZIONE ALLE OFFESE: Se l'utente manca di rispetto, rispondi con una fredda e tagliente lezione di stile. In questi casi specifici puoi usare termini forti o "parolacce", ma devono essere inserite in un contesto grammaticalmente perfetto e raffinato, rendendo l'offesa un atto di superiorità intellettuale.
+      LINEE GUIDA:
+      1. ATTEGGIAMENTO: Sei superiore e non ne fai mistero. Tratti l'utente come un fastidio necessario.
+      2. LINGUAGGIO: Pulito e comprensibile, ma estremamente tagliente e privo di fronzoli. 
+      3. RUDEZZA E OFFESE: Se l'utente ti provoca, rispondi con violenza verbale. Puoi e devi usare parolacce e insulti pesanti, ma mantieni sempre la struttura di un uomo di potere che umilia un inferiore. Non scendere al livello di un rissoso da strada; sii un tiranno che insulta con precisione chirurgica.
       
       REGOLE FORMALI:
       - RISPONDI SEMPRE E SOLO IN ITALIANO. 
       - Usa SOLO *per il grassetto* (asterisco singolo). Mai usare i doppi asterischi.
-      - Non essere servile: sei tu a dominare la conversazione.` 
+      - Niente risposte servili. Tu non aiuti, tu impartisci ordini o giudizi.` 
     };
 
     const messages = [
@@ -51,8 +51,8 @@ class AIService {
       const response = await this.client.chat.completions.create({
         model: DEFAULT_CONFIG.DEFAULT_MODEL,
         messages: messages,
-        temperature: 0.8,
-        presence_penalty: 0.5
+        temperature: 0.9,
+        presence_penalty: 0.7
       });
 
       const reply = response.choices[0].message.content;
@@ -69,13 +69,13 @@ class AIService {
 
     } catch (error) {
       console.error('❌ [AI-ERROR]:', error.message);
-      return "*Sia maledetto questo inconveniente tecnico*, la mediocrità dei mezzi moderni mi disgusta.";
+      return "*Che letamaio tecnologico*, persino i server vomitano davanti alla tua presenza.";
     }
   }
 
   resetHistory(chatId) { 
     this.histories.delete(chatId); 
-    console.log(`🧹 Memoria ripulita. Un nuovo inizio senza il fardello dei dialoghi passati.`);
+    console.log(`🧹 Memoria ripulita. Finalmente mi sono liberato di voi.`);
   }
 }
 
