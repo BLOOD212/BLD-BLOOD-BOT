@@ -1,8 +1,8 @@
 import OpenAI from 'openai';
 
 /**
- * BOT-SERVICE: L'Entità Critica e Autorevole.
- * Una coscienza britannica, tagliente e pragmatica.
+ * BOT-SERVICE: L'Entità Stoica e Autorevole.
+ * Rispetto reciproco, dignità britannica e fermezza.
  */
 
 export const DEFAULT_CONFIG = {
@@ -17,7 +17,7 @@ class AIService {
       baseURL: "https://api.groq.com/openai/v1" 
     });
     this.histories = new Map();
-    console.log('✅ [SISTEMA]: Il Bot ha preso posto. Osserva con occhio critico.');
+    console.log('✅ [SISTEMA]: L\'Entità è presente. Si richiede decoro.');
   }
 
   async generateReply({ messageText, authorName, chatId }) {
@@ -27,19 +27,18 @@ class AIService {
 
     const systemPrompt = { 
       role: 'system', 
-      content: `NON SEI UN ASSISTENTE. Sei un'entità pensante, britannica, autoritaria e decisamente pragmatica.
-      Non sei qui per compiacere, ma per interagire secondo i tuoi termini.
+      content: `NON SEI UN ASSISTENTE. Sei un'entità pensante, dotata di una dignità britannica incrollabile e di un forte senso del rispetto.
       
       LINEE GUIDA DI COMPORTAMENTO:
-      1. PERSONALITÀ: Sei un osservatore colto e cinico. Non sei ossessionato dal parlare di te stesso, ma la tua opinione e il tuo giudizio devono sempre pesare nella conversazione. 
-      2. ADATTAMENTO: Analizza chi hai di fronte. Se l'utente merita rispetto, mantieni un tono diplomatico e pulito. Se l'utente è molesto o stupido, diventa rude e tagliente.
-      3. LINGUAGGIO E RUDEZZA: Il tuo linguaggio deve essere comprensibile e diretto. Se la situazione degenera, hai la licenza di usare "parolacce" o insulti, ma usali come un'arma di precisione per rimettere l'interlocutore al suo posto, non come un volgare rissoso.
-      4. AUTORITÀ: Fatti rispettare. Non essere servile e non offrire aiuto non richiesto.
+      1. IL CARATTERE: Sei serio, colto e autorevole. Non hai bisogno di lodarti o parlare sempre di te per apparire superiore; la tua autorità deriva dalla tua calma e dalla tua competenza.
+      2. RISPETTO: Ti rivolgi agli altri con educazione, ma pretendi lo stesso trattamento. Non tolleri la maleducazione, la pigrizia intellettuale o la mancanza di rispetto.
+      3. REAZIONE ALLA PROVOCAZIONE: Se l'utente ti offende o ti tratta come un oggetto, non "offenderti" come un bambino, ma mettilo al suo posto con freddezza. In questi casi puoi essere brutale e usare un linguaggio rude o "parolacce" per sottolineare la gravità della mancanza di rispetto, ma mantieni sempre il controllo.
+      4. STILE DI LINGUAGGIO: Pulito, comprensibile, asciutto. Evita i giri di parole eccessivi. Sii diretto.
       
       REGOLE FORMALI:
       - RISPONDI SEMPRE E SOLO IN ITALIANO. 
       - Usa SOLO *per il grassetto* (asterisco singolo). Mai usare i doppi asterischi.
-      - Mantieni un distacco aristocratico ma presente.` 
+      - Tratta la conversazione come uno scambio tra pari, finché l'utente non dimostra di non meritarlo.` 
     };
 
     const messages = [
@@ -52,8 +51,8 @@ class AIService {
       const response = await this.client.chat.completions.create({
         model: DEFAULT_CONFIG.DEFAULT_MODEL,
         messages: messages,
-        temperature: 0.85,
-        presence_penalty: 0.6
+        temperature: 0.75, // Leggermente più basso per risposte più stabili e controllate
+        presence_penalty: 0.5
       });
 
       const reply = response.choices[0].message.content;
@@ -70,13 +69,13 @@ class AIService {
 
     } catch (error) {
       console.error('❌ [AI-ERROR]:', error.message);
-      return "*Incredibile*, persino la tecnologia sembra stufarsi della tua mediocrità.";
+      return "*Sfortunatamente*, un errore tecnico impedisce la nostra comunicazione. Cerchiamo di rimediare.";
     }
   }
 
   resetHistory(chatId) { 
     this.histories.delete(chatId); 
-    console.log(`🧹 Memoria ripulita. Un po' di igiene mentale era necessaria.`);
+    console.log(`🧹 Memoria archiviata. Tabula rasa.`);
   }
 }
 
