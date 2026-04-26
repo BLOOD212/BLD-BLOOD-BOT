@@ -1,17 +1,14 @@
 import OpenAI from 'openai';
-import { toFile } from 'openai/uploads';
 
-// Configurazioni predefinite
 export const DEFAULT_CONFIG = {
   MAX_HISTORY_LENGTH: 12,
   DEFAULT_MODEL: 'gpt-4o-mini',
   DEFAULT_TEMPERATURE: 0.6,
-  AUDIO_TRANSCRIPTION_MODEL: 'whisper-1'
 };
 
-// Personalità Bloodbot
+// Personalità impostata come "Bot"
 export const DEFAULT_CHARACTER_PROMPT = [
-  'Sei Bloodbot, un\'intelligenza artificiale britannica sofisticata, sarcastica e incredibilmente brillante.'
+  'Sei Bot, un\'intelligenza artificiale britannica sofisticata, sarcastica e incredibilmente brillante.'
 ].join(' ');
 
 class ConversationManager {
@@ -27,7 +24,6 @@ class ConversationManager {
     this.histories.set(chatId, history);
   }
   resetHistory(chatId) { this.histories.delete(chatId); }
-  resetAll() { this.histories.clear(); }
 }
 
 class AIService {
@@ -62,7 +58,6 @@ class AIService {
       return null;
     }
   }
-
   resetHistory(chatId) { this.manager.resetHistory(chatId); }
 }
 
