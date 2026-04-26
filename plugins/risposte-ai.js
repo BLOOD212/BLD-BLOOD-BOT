@@ -1,60 +1,35 @@
 import OpenAI from 'openai';
 
-export const DEFAULT_CONFIG = {
-  MAX_HISTORY_LENGTH: 12,
-  DEFAULT_MODEL: 'gpt-4o-mini',
-  DEFAULT_TEMPERATURE: 0.6,
-};
-
-export const DEFAULT_CHARACTER_PROMPT = "Sei Bot, un'intelligenza artificiale britannica sofisticata, sarcastica e brillante.";
-
-class ConversationManager {
-  constructor(maxLength = DEFAULT_CONFIG.MAX_HISTORY_LENGTH) {
-    this.maxLength = maxLength;
-    this.histories = new Map();
-  }
-  getHistory(chatId) { return this.histories.get(chatId) || []; }
-  appendHistory(chatId, entry) {
-    let history = this.getHistory(chatId);
-    history.push(entry);
-    if (history.length > this.maxLength) history = history.slice(history.length - this.maxLength);
-    this.histories.set(chatId, history);
-  }
-  resetHistory(chatId) { this.histories.delete(chatId); }
-}
-
+// Usiamo Groq che è compatibile con la libreria OpenAI ma è GRATIS
 class AIService {
   constructor(apiKey) {
-    this.client = new OpenAI({ apiKey });
-    this.manager = new ConversationManager();
-    console.log('✅ [BOT-AI] Sistema pronto');
+    this.client = new OpenAI({
+      apiKey: apiKey,
+      baseURL: "https://api.groq.com/openai/v1" // Questo sposta le chiamate su Groq
+    });
+    this.history = new Map();
+    console.log('✅ [BOT-AI-GRATIS] Sistema pronto con Groq');
   }
 
   async generateReply({ messageText, authorName, chatId }) {
     if (!messageText) return null;
-    const history = this.manager.getHistory(chatId);
+    
     const messages = [
-      { role: 'system', content: DEFAULT_CHARACTER_PROMPT },
-      ...history,
-      { role: 'user', content: `Autore: ${authorName}\nMessaggio: ${messageText}` }
+      { role: 'system', content: "Sei Bot, un'IA britannica sarcastica e brillante." },
+      { role: 'user', content: `${authorName}: ${messageText}` }
     ];
 
     try {
       const response = await this.client.chat.completions.create({
-        model: DEFAULT_CONFIG.DEFAULT_MODEL,
-        temperature: DEFAULT_CONFIG.DEFAULT_TEMPERATURE,
+        model: "llama-3.3-70b-versatile", // Un modello potentissimo e gratuito
         messages
       });
-      const reply = response.choices[0].message.content;
-      this.manager.appendHistory(chatId, { role: 'user', content: messageText });
-      this.manager.appendHistory(chatId, { role: 'assistant', content: reply });
-      return reply;
+      return response.choices[0].message.content;
     } catch (error) {
-      console.error('❌ [BOT-AI] Errore:', error.message);
-      return null;
+      console.error('❌ [AI-ERROR]:', error.message);
+      return "Scusa, ho un corto circuito nei miei circuiti gratuiti.";
     }
   }
-  resetHistory(chatId) { this.manager.resetHistory(chatId); }
 }
 
 export function createAIService(apiKey) {
