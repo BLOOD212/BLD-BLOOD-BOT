@@ -1,35 +1,52 @@
 import OpenAI from 'openai';
 
-// Usiamo Groq che è compatibile con la libreria OpenAI ma è GRATIS
+export const DEFAULT_CONFIG = {
+  MAX_HISTORY_LENGTH: 10,
+  DEFAULT_MODEL: 'llama-3.3-70b-versatile', // Il modello gratuito più potente su Groq
+};
+
 class AIService {
   constructor(apiKey) {
     this.client = new OpenAI({
       apiKey: apiKey,
-      baseURL: "https://api.groq.com/openai/v1" // Questo sposta le chiamate su Groq
+      baseURL: "https://api.groq.com/openai/v1" // Reindirizzamento su Groq
     });
-    this.history = new Map();
-    console.log('✅ [BOT-AI-GRATIS] Sistema pronto con Groq');
+    this.histories = new Map();
+    console.log('✅ [BOT-FREE] Sistema IA Groq Inizializzato');
   }
 
   async generateReply({ messageText, authorName, chatId }) {
     if (!messageText) return null;
     
+    let history = this.histories.get(chatId) || [];
     const messages = [
-      { role: 'system', content: "Sei Bot, un'IA britannica sarcastica e brillante." },
+      { role: 'system', content: "Sei Bot, un'intelligenza artificiale britannica sofisticata, sarcastica e brillante. Rispondi in italiano." },
+      ...history,
       { role: 'user', content: `${authorName}: ${messageText}` }
     ];
 
     try {
       const response = await this.client.chat.completions.create({
-        model: "llama-3.3-70b-versatile", // Un modello potentissimo e gratuito
-        messages
+        model: DEFAULT_CONFIG.DEFAULT_MODEL,
+        messages: messages,
+        temperature: 0.7
       });
-      return response.choices[0].message.content;
+
+      const reply = response.choices[0].message.content;
+      
+      // Gestione memoria
+      history.push({ role: 'user', content: messageText });
+      history.push({ role: 'assistant', content: reply });
+      if (history.length > DEFAULT_CONFIG.MAX_HISTORY_LENGTH) history = history.slice(-DEFAULT_CONFIG.MAX_HISTORY_LENGTH);
+      this.histories.set(chatId, history);
+
+      return reply;
     } catch (error) {
-      console.error('❌ [AI-ERROR]:', error.message);
-      return "Scusa, ho un corto circuito nei miei circuiti gratuiti.";
+      console.error('❌ [GROQ-ERROR]:', error.message);
+      return null;
     }
   }
+  resetHistory(chatId) { this.histories.delete(chatId); }
 }
 
 export function createAIService(apiKey) {
