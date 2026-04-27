@@ -1,4 +1,5 @@
 import { createCanvas } from 'canvas'
+import { promises as fs } from 'fs'
 
 let unoSession = {}
 
@@ -9,14 +10,6 @@ const coloriHex = {
     'Verde': '#4CD964', 
     'Jolly': '#1C1C1E' 
 }
-
-const gameButtons = () => [{
-    name: 'quick_reply',
-    buttonParamsJson: JSON.stringify({ display_text: '📥 PESCA', id: 'pesca' })
-}, {
-    name: 'quick_reply',
-    buttonParamsJson: JSON.stringify({ display_text: '🛑 ABBANDONA', id: 'enduno' })
-}];
 
 async function generaGrafica(s) {
     const canvas = createCanvas(1000, 600)
@@ -69,17 +62,24 @@ function puoGiocare(carta, tavolo, coloreScelto) {
     return c_c === coloreScelto || v_c === v_t
 }
 
-// FUNZIONE DI INVIO SEPARATA: PRIMA IMMAGINE, POI BOTTONI (MOLTO PIÙ STABILE SU IOS)
-async function sendUpdate(conn, chat, img, caption, m) {
-    await conn.sendMessage(chat, { image: img }, { quoted: m })
+// FUNZIONE DI INVIO CON I BOTTONI DEL TUO MENU
+async function inviaStatoGioco(conn, chat, img, caption, m) {
+    const buttons = [
+        { buttonId: 'pesca', buttonText: { displayText: '📥 PESCA' }, type: 1 },
+        { buttonId: 'enduno', buttonText: { displayText: '🛑 ABBANDONA' }, type: 1 }
+    ]
+
     return await conn.sendMessage(chat, {
-        text: caption,
-        footer: '𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙',
-        interactiveButtons: gameButtons()
+        image: img,
+        caption: caption,
+        footer: "B L D - B O T  U N O",
+        buttons: buttons,
+        headerType: 4,
+        viewOnce: true
     }, { quoted: m })
 }
 
-let handler = async (m, { conn }) => {
+let handler = async (m, { conn, usedPrefix }) => {
     let chat = m.chat
     let mazzo = creaMazzo()
     unoSession[chat] = {
@@ -92,33 +92,28 @@ let handler = async (m, { conn }) => {
     unoSession[chat].currentColor = unoSession[chat].tableCard.split(' ')[0]
     let img = await generaGrafica(unoSession[chat])
     
-    await sendUpdate(conn, chat, img, `🃏 *PARTITA INIZIATA*\n🎨 Colore attuale: *${unoSession[chat].currentColor}*`, m)
+    await inviaStatoGioco(conn, chat, img, `🃏 *UNO MATCH*\n🎨 Colore attuale: *${unoSession[chat].currentColor}*\n\nInvia il numero della carta per giocare!`, m)
+    await m.react('🃏')
 }
 
 handler.before = async (m, { conn }) => {
     let chat = m.chat, s = unoSession[chat]
     if (!s || s.player !== m.sender) return
     
-    let msgText = (m.text || '').trim().toLowerCase()
-
-    if (m.message && m.message.interactiveResponseMessage) {
-        const response = m.message.interactiveResponseMessage
-        if (response.nativeFlowResponseMessage?.paramsJson) {
-            try {
-                const params = JSON.parse(response.nativeFlowResponseMessage.paramsJson)
-                msgText = params.id.toLowerCase()
-            } catch (e) {}
-        }
-    }
-
+    // Gestione clic bottoni (buttonId) o testo
+    let msgText = (m.buttonId || m.text || '').trim().toLowerCase()
+    
     if (msgText === '.uno' || msgText === 'uno') return
-    if (msgText === 'enduno') { delete unoSession[chat]; return m.reply('🛑 Partita interrotta.') }
+    if (msgText === 'enduno') { 
+        delete unoSession[chat]
+        return conn.reply(chat, '🛑 Partita terminata con successo.', m) 
+    }
 
     let report = ""
     if (msgText === 'pesca') {
         if (s.mazzo.length === 0) s.mazzo = creaMazzo()
         let p = s.mazzo.shift(); s.playerHand.push(p)
-        report = `📥 Hai pescato: ${p}`
+        report = `📥 Hai pescato: *${p}*`
         if (!puoGiocare(p, s.tableCard, s.currentColor)) {
             report += `\n❌ Non giocabile. Passi il turno.`
             report += botTurno(s)
@@ -127,11 +122,11 @@ handler.before = async (m, { conn }) => {
         let idx = parseInt(msgText) - 1
         if (isNaN(idx) || idx < 0 || idx >= s.playerHand.length) return
         let carta = s.playerHand[idx]
-        if (!puoGiocare(carta, s.tableCard, s.currentColor)) return m.reply('❌ Mossa non valida!')
+        if (!puoGiocare(carta, s.tableCard, s.currentColor)) return conn.reply(chat, '❌ Mossa non valida!', m)
         
         s.playerHand.splice(idx, 1); s.tableCard = carta
         s.currentColor = carta.includes('Jolly') ? s.currentColor : carta.split(' ')[0]
-        report = `✅ Hai giocato ${carta}`
+        report = `✅ Hai giocato: *${carta}*`
         
         if (carta.includes('+2')) { 
             for(let i=0; i<2; i++) s.botHand.push(s.mazzo.shift()); report += `\n⚠️ Bot subisce +2!`
@@ -142,11 +137,11 @@ handler.before = async (m, { conn }) => {
         }
     }
 
-    if (s.playerHand.length === 0) { delete unoSession[chat]; return m.reply('🏆 HAI VINTO!') }
-    if (s.botHand.length === 0) { delete unoSession[chat]; return m.reply('💀 HAI PERSO!') }
+    if (s.playerHand.length === 0) { delete unoSession[chat]; return conn.reply(chat, '🏆 HAI VINTO!', m) }
+    if (s.botHand.length === 0) { delete unoSession[chat]; return conn.reply(chat, '💀 IL BOT HA VINTO!', m) }
 
     let img = await generaGrafica(s)
-    await sendUpdate(conn, chat, img, report, m)
+    await inviaStatoGioco(conn, chat, img, report, m)
 }
 
 function botTurno(s) {
@@ -157,9 +152,9 @@ function botTurno(s) {
         s.currentColor = scelta.includes('Jolly') ? ['Rosso','Blu','Verde','Giallo'][Math.floor(Math.random()*4)] : scelta.split(' ')[0]
         let res = `\n🤖 Bot gioca: *${scelta}*`
         if (scelta.includes('+2')) { 
-            for(let i=0; i<2; i++) s.playerHand.push(s.mazzo.shift()); res += `\n⚠️ Ti becchi +2!`; res += botTurno(s) 
+            for(let i=0; i<2; i++) s.playerHand.push(s.mazzo.shift()); res += `\n⚠️ +2 per te!`; res += botTurno(s) 
         } else if (scelta.includes('+4')) { 
-            for(let i=0; i<4; i++) s.playerHand.push(s.mazzo.shift()); res += `\n🔥 Ti becchi +4!`; res += botTurno(s) 
+            for(let i=0; i<4; i++) s.playerHand.push(s.mazzo.shift()); res += `\n🔥 +4 per te!`; res += botTurno(s) 
         }
         return res
     } else {
