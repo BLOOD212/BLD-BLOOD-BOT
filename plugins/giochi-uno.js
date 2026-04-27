@@ -1,5 +1,4 @@
 import { createCanvas } from 'canvas'
-import { promises as fs } from 'fs'
 
 let unoSession = {}
 
@@ -62,24 +61,7 @@ function puoGiocare(carta, tavolo, coloreScelto) {
     return c_c === coloreScelto || v_c === v_t
 }
 
-// FUNZIONE DI INVIO CON I BOTTONI DEL TUO MENU
-async function inviaStatoGioco(conn, chat, img, caption, m) {
-    const buttons = [
-        { buttonId: 'pesca', buttonText: { displayText: '📥 PESCA' }, type: 1 },
-        { buttonId: 'enduno', buttonText: { displayText: '🛑 ABBANDONA' }, type: 1 }
-    ]
-
-    return await conn.sendMessage(chat, {
-        image: img,
-        caption: caption,
-        footer: "B L D - B O T  U N O",
-        buttons: buttons,
-        headerType: 4,
-        viewOnce: true
-    }, { quoted: m })
-}
-
-let handler = async (m, { conn, usedPrefix }) => {
+let handler = async (m, { conn }) => {
     let chat = m.chat
     let mazzo = creaMazzo()
     unoSession[chat] = {
@@ -92,21 +74,25 @@ let handler = async (m, { conn, usedPrefix }) => {
     unoSession[chat].currentColor = unoSession[chat].tableCard.split(' ')[0]
     let img = await generaGrafica(unoSession[chat])
     
-    await inviaStatoGioco(conn, chat, img, `🃏 *UNO MATCH*\n🎨 Colore attuale: *${unoSession[chat].currentColor}*\n\nInvia il numero della carta per giocare!`, m)
-    await m.react('🃏')
+    let txt = `🃏 *UNO MATCH STARTED*\n\n`
+    txt += `🎨 Colore: *${unoSession[chat].currentColor}*\n`
+    txt += `👉 Scrivi il *numero* della carta\n`
+    txt += `📥 Scrivi *pesca* per pescare\n`
+    txt += `🛑 Scrivi *fine* per chiudere`
+
+    await conn.sendMessage(chat, { image: img, caption: txt }, { quoted: m })
 }
 
 handler.before = async (m, { conn }) => {
     let chat = m.chat, s = unoSession[chat]
     if (!s || s.player !== m.sender) return
     
-    // Gestione clic bottoni (buttonId) o testo
-    let msgText = (m.buttonId || m.text || '').trim().toLowerCase()
+    let msgText = (m.text || '').trim().toLowerCase()
     
-    if (msgText === '.uno' || msgText === 'uno') return
-    if (msgText === 'enduno') { 
+    if (msgText === 'uno' || msgText === '.uno') return
+    if (msgText === 'fine' || msgText === 'stop') { 
         delete unoSession[chat]
-        return conn.reply(chat, '🛑 Partita terminata con successo.', m) 
+        return m.reply('🛑 Partita terminata.')
     }
 
     let report = ""
@@ -115,33 +101,37 @@ handler.before = async (m, { conn }) => {
         let p = s.mazzo.shift(); s.playerHand.push(p)
         report = `📥 Hai pescato: *${p}*`
         if (!puoGiocare(p, s.tableCard, s.currentColor)) {
-            report += `\n❌ Non giocabile. Passi il turno.`
+            report += `\n❌ Non giocabile. Passi.`
             report += botTurno(s)
         }
     } else {
         let idx = parseInt(msgText) - 1
         if (isNaN(idx) || idx < 0 || idx >= s.playerHand.length) return
+        
         let carta = s.playerHand[idx]
-        if (!puoGiocare(carta, s.tableCard, s.currentColor)) return conn.reply(chat, '❌ Mossa non valida!', m)
+        if (!puoGiocare(carta, s.tableCard, s.currentColor)) return m.reply('❌ Mossa non valida!')
         
         s.playerHand.splice(idx, 1); s.tableCard = carta
         s.currentColor = carta.includes('Jolly') ? s.currentColor : carta.split(' ')[0]
         report = `✅ Hai giocato: *${carta}*`
         
         if (carta.includes('+2')) { 
-            for(let i=0; i<2; i++) s.botHand.push(s.mazzo.shift()); report += `\n⚠️ Bot subisce +2!`
+            for(let i=0; i<2; i++) s.botHand.push(s.mazzo.shift()); report += `\n⚠️ Bot +2!`
         } else if (carta.includes('+4')) { 
-            for(let i=0; i<4; i++) s.botHand.push(s.mazzo.shift()); report += `\n🔥 Bot subisce +4!`
+            for(let i=0; i<4; i++) s.botHand.push(s.mazzo.shift()); report += `\n🔥 Bot +4!`
         } else {
             report += botTurno(s)
         }
     }
 
-    if (s.playerHand.length === 0) { delete unoSession[chat]; return conn.reply(chat, '🏆 HAI VINTO!', m) }
-    if (s.botHand.length === 0) { delete unoSession[chat]; return conn.reply(chat, '💀 IL BOT HA VINTO!', m) }
+    if (s.playerHand.length === 0) { delete unoSession[chat]; return m.reply('🏆 HAI VINTO!') }
+    if (s.botHand.length === 0) { delete unoSession[chat]; return m.reply('💀 HAI PERSO!') }
 
     let img = await generaGrafica(s)
-    await inviaStatoGioco(conn, chat, img, report, m)
+    await conn.sendMessage(chat, { 
+        image: img, 
+        caption: `${report}\n\n🎨 Colore attuale: *${s.currentColor}*\n🃏 Carte bot: ${s.botHand.length}\n\n_Invia il numero o 'pesca'_` 
+    }, { quoted: m })
 }
 
 function botTurno(s) {
