@@ -13,7 +13,11 @@ function creaMazzo() {
         mazzo.push('Jolly')
         mazzo.push('Jolly +4')
     }
-    return mazzo.sort(() => Math.random() - 0.5)
+    for (let i = mazzo.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [mazzo[i], mazzo[j]] = [mazzo[j], mazzo[i]]
+    }
+    return mazzo
 }
 
 function formattaCarta(carta) {
@@ -25,14 +29,9 @@ function formattaCarta(carta) {
 
 function puoGiocare(carta, tavolo, coloreScelto) {
     if (carta.includes('Jolly')) return true
-    
     let [c_c, v_c] = carta.split(' ')
     let [c_t, v_t] = tavolo.split(' ')
-    
-    if (tavolo.includes('Jolly')) {
-        return c_c === coloreScelto
-    }
-    
+    if (tavolo.includes('Jolly')) return c_c === coloreScelto
     return c_c === c_t || v_c === v_t || c_c === coloreScelto
 }
 
@@ -43,7 +42,8 @@ function generaStato(s, nomeUtente, extraMsg = '') {
     if (extraMsg) txt += `${extraMsg}\n\n`
     txt += `📍 In Tavola: ${formattaCarta(s.tableCard)}\n`
     txt += `🎨 Colore Attivo: *${s.currentColor} ${colori[s.currentColor] || ''}*\n`
-    txt += `🤖 Carte Bot: *${s.botHand.length}*\n\n`
+    txt += `🤖 Carte Bot: *${s.botHand.length}*\n`
+    txt += `🎴 Carte rimaste nel mazzo: *${s.mazzo.length}*\n\n`
     txt += `👤 *MANO DI ${nomeUtente.toUpperCase()}:*\n`
     s.playerHand.forEach((c, i) => {
         txt += `  *${i + 1}* ⮕ ${formattaCarta(c)}\n`
@@ -64,15 +64,15 @@ let handler = async (m, { conn, command }) => {
         let mazzo = creaMazzo()
         let playerHand = mazzo.splice(0, 7)
         let botHand = mazzo.splice(0, 7)
-        let tableCard = mazzo.find(c => !c.includes('Jolly'))
-        mazzo.splice(mazzo.indexOf(tableCard), 1)
+        let tableIdx = mazzo.findIndex(c => !c.includes('Jolly') && !c.includes('+2'))
+        let tableCard = mazzo.splice(tableIdx, 1)[0]
 
         unoSession[chat] = {
             player: m.sender,
-            mazzo,
-            playerHand,
-            botHand,
-            tableCard,
+            mazzo: mazzo,
+            playerHand: playerHand,
+            botHand: botHand,
+            tableCard: tableCard,
             currentColor: tableCard.split(' ')[0]
         }
 
@@ -99,31 +99,26 @@ handler.before = async function (m, { conn }) {
         if (s.mazzo.length === 0) s.mazzo = creaMazzo()
         let p = s.mazzo.shift()
         s.playerHand.push(p)
+        let reportP = `📥 Hai pescato: ${formattaCarta(p)}`
         
-        let reportPesca = `📥 Hai pescato: ${formattaCarta(p)}`
         let bIdx = s.botHand.findIndex(c => puoGiocare(c, s.tableCard, s.currentColor))
-        
         if (bIdx !== -1) {
             let cBot = s.botHand.splice(bIdx, 1)[0]
             s.tableCard = cBot
             s.currentColor = cBot.includes('Jolly') ? s.currentColor : cBot.split(' ')[0]
-            reportPesca += `\n🤖 Il bot risponde con: ${formattaCarta(cBot)}`
+            reportP += `\n🤖 Il bot risponde con: ${formattaCarta(cBot)}`
         } else {
             if (s.mazzo.length === 0) s.mazzo = creaMazzo()
             s.botHand.push(s.mazzo.shift())
-            reportPesca += `\n🤖 Il bot non ha mosse e pesca.`
+            reportP += `\n🤖 Il bot non ha mosse e pesca.`
         }
-        
-        return m.reply(generaStato(s, name, reportPesca))
+        return m.reply(generaStato(s, name, reportP))
     }
 
     let index = parseInt(msg) - 1
     if (!isNaN(index) && index >= 0 && index < s.playerHand.length) {
         let cartaScelta = s.playerHand[index]
-
-        if (!puoGiocare(cartaScelta, s.tableCard, s.currentColor)) {
-            return m.reply(`🚫 *MOSSA NON VALIDA*`)
-        }
+        if (!puoGiocare(cartaScelta, s.tableCard, s.currentColor)) return m.reply(`🚫 *MOSSA NON VALIDA*`)
 
         s.playerHand.splice(index, 1)
         s.tableCard = cartaScelta
@@ -149,7 +144,7 @@ handler.before = async function (m, { conn }) {
                 if (s.mazzo.length === 0) s.mazzo = creaMazzo()
                 s.botHand.push(s.mazzo.shift())
             }
-            report += `\n🤖 Il bot pesca ${num} e salta il turno!`
+            report += `\n🤖 Il bot pesca ${num} e salta il turno!\n👉 Tocca a te!`
             return m.reply(generaStato(s, name, report))
         }
 
@@ -165,7 +160,6 @@ handler.before = async function (m, { conn }) {
                 s.currentColor = cBot.split(' ')[0]
             }
             report += `\n🤖 Il bot risponde con: ${formattaCarta(cBot)}`
-            
             if (cBot.includes('+2') || cBot.includes('+4')) {
                 let numB = cBot.includes('+4') ? 4 : 2
                 for(let i=0; i < numB; i++) {
@@ -184,7 +178,6 @@ handler.before = async function (m, { conn }) {
             delete unoSession[m.chat]
             return m.reply(`${report}\n\n🤡 *SCONFITTA!*`)
         }
-
         return m.reply(generaStato(s, name, report))
     }
 }
