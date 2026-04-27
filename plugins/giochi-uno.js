@@ -21,23 +21,12 @@ async function generaGrafica(s) {
 
     const drawCard = (x, y, label, color, isHidden = false, scale = 1) => {
         const w = 80 * scale, h = 120 * scale
-        ctx.fillStyle = '#ffffff'
-        ctx.beginPath()
-        ctx.roundRect(x, y, w, h, 8)
-        ctx.fill()
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(x, y, w, h, 8); ctx.fill()
         if (isHidden) {
-            ctx.fillStyle = '#2c2c2e'
-            ctx.beginPath()
-            ctx.roundRect(x + 4, y + 4, w - 8, h - 8, 5)
-            ctx.fill()
+            ctx.fillStyle = '#2c2c2e'; ctx.beginPath(); ctx.roundRect(x + 4, y + 4, w - 8, h - 8, 5); ctx.fill()
         } else {
-            ctx.fillStyle = color
-            ctx.beginPath()
-            ctx.roundRect(x + 4, y + 4, w - 8, h - 8, 5)
-            ctx.fill()
-            ctx.fillStyle = '#ffffff'
-            ctx.textAlign = 'center'
-            ctx.font = `bold ${22 * scale}px Arial`
+            ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(x + 4, y + 4, w - 8, h - 8, 5); ctx.fill()
+            ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.font = `bold ${22 * scale}px Arial`
             ctx.fillText(label.split(' ')[1] || label, x + (w/2), y + (h/2) + 10)
         }
     }
@@ -51,9 +40,7 @@ async function generaGrafica(s) {
     s.playerHand.forEach((c, i) => {
         let col = coloriHex[c.split(' ')[0]] || coloriHex['Jolly']
         drawCard(startX + (i * 90), 420, c, col, false, 1)
-        ctx.fillStyle = '#ffffff'
-        ctx.font = 'bold 18px Arial'
-        ctx.textAlign = 'center'
+        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 18px Arial'; ctx.textAlign = 'center'
         ctx.fillText(i + 1, startX + (i * 90) + 40, 565)
     })
     return canvas.toBuffer()
@@ -111,15 +98,20 @@ let handler = async (m, { conn }) => {
     global.unoSession[chat].currentColor = global.unoSession[chat].tableCard.split(' ')[0]
     let img = await generaGrafica(global.unoSession[chat])
     
+    const sections = [{
+        title: "AZIONI DI GIOCO",
+        rows: [
+            {title: "📥 PESCA", rowId: "pesca"},
+            {title: "🛑 ABBANDONA", rowId: "enduno"}
+        ]
+    }]
+
     await conn.sendMessage(chat, {
         image: img,
-        caption: `🃏 *UNO MATCH*\n🎨 Colore attuale: *${global.unoSession[chat].currentColor}*`,
+        caption: `🃏 *UNO MATCH*\n🎨 Colore: *${global.unoSession[chat].currentColor}*`,
         footer: '𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙',
-        buttons: [
-            { buttonId: 'pesca', buttonText: { displayText: '📥 PESCA' }, type: 1 },
-            { buttonId: 'enduno', buttonText: { displayText: '🛑 FINE' }, type: 1 }
-        ],
-        headerType: 4
+        buttonText: "SCEGLI MOSSA",
+        sections
     }, { quoted: m })
 }
 
@@ -129,7 +121,7 @@ handler.before = async (m, { conn }) => {
     let s = global.unoSession[chat]
     if (s.player !== m.sender) return
 
-    let msgText = (m.quoted?.buttonsResponseMessage?.selectedButtonId || m.msg?.selectedButtonId || m.message?.templateButtonReplyMessage?.selectedId || m.text || '').trim().toLowerCase()
+    let msgText = (m.msg?.selectedRowId || m.text || '').trim().toLowerCase()
 
     if (msgText === '.uno' || msgText === 'uno') return
     if (msgText === 'enduno') {
@@ -167,25 +159,24 @@ handler.before = async (m, { conn }) => {
         }
     }
 
-    if (s.playerHand.length === 0) {
-        delete global.unoSession[chat]
-        return m.reply('🏆 HAI VINTO!')
-    }
-    if (s.botHand.length === 0) {
-        delete global.unoSession[chat]
-        return m.reply('💀 HAI PERSO!')
-    }
+    if (s.playerHand.length === 0) { delete global.unoSession[chat]; return m.reply('🏆 HAI VINTO!') }
+    if (s.botHand.length === 0) { delete global.unoSession[chat]; return m.reply('💀 HAI PERSO!') }
 
     let img = await generaGrafica(s)
+    const sections = [{
+        title: "AZIONI DI GIOCO",
+        rows: [
+            {title: "📥 PESCA", rowId: "pesca"},
+            {title: "🛑 ABBANDONA", rowId: "enduno"}
+        ]
+    }]
+
     await conn.sendMessage(chat, {
         image: img,
         caption: report,
         footer: '𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙',
-        buttons: [
-            { buttonId: 'pesca', buttonText: { displayText: '📥 PESCA' }, type: 1 },
-            { buttonId: 'enduno', buttonText: { displayText: '🛑 FINE' }, type: 1 }
-        ],
-        headerType: 4
+        buttonText: "SCEGLI MOSSA",
+        sections
     }, { quoted: m })
 }
 
