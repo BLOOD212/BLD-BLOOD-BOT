@@ -51,7 +51,7 @@ function creaMazzo() {
         for (let v = 1; v <= 9; v++) { mazzo.push(`${c} ${v}`); mazzo.push(`${c} ${v}`) }
         for (let i = 0; i < 2; i++) mazzo.push(`${c} +2`)
     })
-    for (let i = 0; i < 4; i++) { mazzo.push('Jolly'); mazzo.push('Jolly +4') }
+    for (let i = 0; i < 4; i++) { mazzo.push('Jolly'); mazzo.push('Jazzo +4') }
     return mazzo.sort(() => Math.random() - 0.5)
 }
 
@@ -74,23 +74,27 @@ let handler = async (m, { conn }) => {
     unoSession[chat].currentColor = unoSession[chat].tableCard.split(' ')[0]
     let img = await generaGrafica(unoSession[chat])
     
-    const buttons = [
-        { buttonId: 'pesca', buttonText: { displayText: '📥 PESCA' }, type: 1 },
-        { buttonId: 'enduno', buttonText: { displayText: '🛑 ABBANDONA' }, type: 1 }
-    ]
-    
-    await conn.sendButton(chat, `🎨 Colore attuale: *${unoSession[chat].currentColor}*`, 'Tocca un tasto o scrivi il numero della carta', img, buttons, m)
+    // FORMATO TEMPLATE: IL PIÙ COMPATIBILE IN ASSOLUTO
+    await conn.sendMessage(chat, {
+        image: img,
+        caption: `🎨 Colore attuale: *${unoSession[chat].currentColor}*`,
+        footer: 'Tocca un tasto o invia il numero',
+        templateButtons: [
+            { index: 1, quickReplyButton: { displayText: '📥 PESCA', id: 'pesca' } },
+            { index: 2, quickReplyButton: { displayText: '🛑 ABBANDONA', id: 'enduno' } }
+        ]
+    }, { quoted: m })
 }
 
 handler.before = async (m, { conn }) => {
     let chat = m.chat, s = unoSession[chat]
     if (!s || s.player !== m.sender) return
     
-    // Supporto per clic bottoni, messaggi di testo e numeri
-    let msgText = (m.selectedButtonId || m.text || m.body || '').trim().toLowerCase()
+    // Cattura input da tasto template o testo
+    let msgText = (m.selectedButtonId || m.text || '').trim().toLowerCase()
     
     if (msgText === '.uno' || msgText === 'uno') return
-    if (msgText === 'enduno') { delete unoSession[chat]; return m.reply('🛑 Partita terminata.') }
+    if (msgText === 'enduno') { delete unoSession[chat]; return m.reply('🛑 Partita chiusa.') }
 
     let report = ""
     if (msgText === 'pesca') {
@@ -98,7 +102,7 @@ handler.before = async (m, { conn }) => {
         let p = s.mazzo.shift(); s.playerHand.push(p)
         report = `📥 Hai pescato: ${p}`
         if (!puoGiocare(p, s.tableCard, s.currentColor)) {
-            report += `\n❌ Non giocabile. Passi il turno.`
+            report += `\n❌ Non giocabile. Passi.`
             report += botTurno(s)
         }
     } else {
@@ -121,15 +125,18 @@ handler.before = async (m, { conn }) => {
     }
 
     if (s.playerHand.length === 0) { delete unoSession[chat]; return m.reply('🏆 HAI VINTO!') }
-    if (s.botHand.length === 0) { delete unoSession[chat]; return m.reply('💀 IL BOT HA VINTO!') }
+    if (s.botHand.length === 0) { delete unoSession[chat]; return m.reply('💀 HAI PERSO!') }
 
     let img = await generaGrafica(s)
-    const buttons = [
-        { buttonId: 'pesca', buttonText: { displayText: '📥 PESCA' }, type: 1 },
-        { buttonId: 'enduno', buttonText: { displayText: '🛑 ABBANDONA' }, type: 1 }
-    ]
-    
-    await conn.sendButton(chat, report, `Mano: ${s.playerHand.length} carte`, img, buttons, m)
+    await conn.sendMessage(chat, {
+        image: img,
+        caption: report,
+        footer: `Mano: ${s.playerHand.length} carte`,
+        templateButtons: [
+            { index: 1, quickReplyButton: { displayText: '📥 PESCA', id: 'pesca' } },
+            { index: 2, quickReplyButton: { displayText: '🛑 ABBANDONA', id: 'enduno' } }
+        ]
+    }, { quoted: m })
 }
 
 function botTurno(s) {
@@ -140,9 +147,9 @@ function botTurno(s) {
         s.currentColor = scelta.includes('Jolly') ? ['Rosso','Blu','Verde','Giallo'][Math.floor(Math.random()*4)] : scelta.split(' ')[0]
         let res = `\n🤖 Bot gioca: *${scelta}*`
         if (scelta.includes('+2')) { 
-            for(let i=0; i<2; i++) s.playerHand.push(s.mazzo.shift()); res += `\n⚠️ +2 per te! Turno saltato.`; res += botTurno(s) 
+            for(let i=0; i<2; i++) s.playerHand.push(s.mazzo.shift()); res += `\n⚠️ +2 per te!`; res += botTurno(s) 
         } else if (scelta.includes('+4')) { 
-            for(let i=0; i<4; i++) s.playerHand.push(s.mazzo.shift()); res += `\n🔥 +4 per te! Turno saltato.`; res += botTurno(s) 
+            for(let i=0; i<4; i++) s.playerHand.push(s.mazzo.shift()); res += `\n🔥 +4 per te!`; res += botTurno(s) 
         }
         return res
     } else {
