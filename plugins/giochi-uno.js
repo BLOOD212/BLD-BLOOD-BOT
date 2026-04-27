@@ -10,6 +10,18 @@ const coloriHex = {
     'Jolly': '#1C1C1E' 
 }
 
+// FORMATO BOTTONI IDENTICO A BANDIERA
+const playButtons = () => [
+    {
+        name: 'quick_reply',
+        buttonParamsJson: JSON.stringify({ display_text: '📥 PESCA', id: 'pesca' })
+    },
+    {
+        name: 'quick_reply',
+        buttonParamsJson: JSON.stringify({ display_text: '🛑 ABBANDONA', id: 'enduno' })
+    }
+];
+
 async function generaGrafica(s) {
     const canvas = createCanvas(1000, 600)
     const ctx = canvas.getContext('2d')
@@ -74,13 +86,13 @@ let handler = async (m, { conn }) => {
     unoSession[chat].currentColor = unoSession[chat].tableCard.split(' ')[0]
     let img = await generaGrafica(unoSession[chat])
     
-    let txt = `🃏 *UNO MATCH STARTED*\n\n`
-    txt += `🎨 Colore: *${unoSession[chat].currentColor}*\n`
-    txt += `👉 Scrivi il *numero* della carta\n`
-    txt += `📥 Scrivi *pesca* per pescare\n`
-    txt += `🛑 Scrivi *fine* per chiudere`
-
-    await conn.sendMessage(chat, { image: img, caption: txt }, { quoted: m })
+    // INVIO CON interactiveButtons (FORMATO BANDIERA)
+    await conn.sendMessage(chat, {
+        image: img,
+        caption: `🃏 *UNO MATCH*\n🎨 Colore: *${unoSession[chat].currentColor}*`,
+        footer: '𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙',
+        interactiveButtons: playButtons()
+    }, { quoted: m })
 }
 
 handler.before = async (m, { conn }) => {
@@ -88,12 +100,20 @@ handler.before = async (m, { conn }) => {
     if (!s || s.player !== m.sender) return
     
     let msgText = (m.text || '').trim().toLowerCase()
-    
-    if (msgText === 'uno' || msgText === '.uno') return
-    if (msgText === 'fine' || msgText === 'stop') { 
-        delete unoSession[chat]
-        return m.reply('🛑 Partita terminata.')
+
+    // GESTIONE INPUT DA interactiveButtons (DA BANDIERA)
+    if (m.message?.interactiveResponseMessage) {
+        const response = m.message.interactiveResponseMessage
+        if (response.nativeFlowResponseMessage?.paramsJson) {
+            try {
+                const params = JSON.parse(response.nativeFlowResponseMessage.paramsJson)
+                msgText = params.id.toLowerCase()
+            } catch (e) {}
+        }
     }
+    
+    if (msgText === '.uno' || msgText === 'uno') return
+    if (msgText === 'enduno') { delete unoSession[chat]; return m.reply('🛑 Partita terminata.') }
 
     let report = ""
     if (msgText === 'pesca') {
@@ -107,7 +127,6 @@ handler.before = async (m, { conn }) => {
     } else {
         let idx = parseInt(msgText) - 1
         if (isNaN(idx) || idx < 0 || idx >= s.playerHand.length) return
-        
         let carta = s.playerHand[idx]
         if (!puoGiocare(carta, s.tableCard, s.currentColor)) return m.reply('❌ Mossa non valida!')
         
@@ -128,9 +147,11 @@ handler.before = async (m, { conn }) => {
     if (s.botHand.length === 0) { delete unoSession[chat]; return m.reply('💀 HAI PERSO!') }
 
     let img = await generaGrafica(s)
-    await conn.sendMessage(chat, { 
-        image: img, 
-        caption: `${report}\n\n🎨 Colore attuale: *${s.currentColor}*\n🃏 Carte bot: ${s.botHand.length}\n\n_Invia il numero o 'pesca'_` 
+    await conn.sendMessage(chat, {
+        image: img,
+        caption: report,
+        footer: '𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙',
+        interactiveButtons: playButtons()
     }, { quoted: m })
 }
 
