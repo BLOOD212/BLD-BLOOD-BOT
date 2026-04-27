@@ -74,25 +74,20 @@ let handler = async (m, { conn }) => {
     unoSession[chat].currentColor = unoSession[chat].tableCard.split(' ')[0]
     let img = await generaGrafica(unoSession[chat])
     
-    // Metodo di invio ultra-compatibile per BLD-BLOOD-BOT
-    await conn.sendMessage(chat, { 
-        image: img, 
-        caption: `🎨 Colore attuale: *${unoSession[chat].currentColor}*`,
-        interactiveButtons: [
-            { name: "quick_reply", buttonParamsJson: JSON.stringify({ display_text: "📥 PESCA", id: "pesca" }) },
-            { name: "quick_reply", buttonParamsJson: JSON.stringify({ display_text: "🛑 ABBANDONA", id: "enduno" }) }
-        ]
-    }, { quoted: m })
+    const buttons = [
+        { buttonId: 'pesca', buttonText: { displayText: '📥 PESCA' }, type: 1 },
+        { buttonId: 'enduno', buttonText: { displayText: '🛑 ABBANDONA' }, type: 1 }
+    ]
+    
+    await conn.sendButton(chat, `🎨 Colore attuale: *${unoSession[chat].currentColor}*`, 'Tocca un tasto o scrivi il numero della carta', img, buttons, m)
 }
 
 handler.before = async (m, { conn }) => {
     let chat = m.chat, s = unoSession[chat]
     if (!s || s.player !== m.sender) return
-    let msgText = (m.text || m.body || '').trim().toLowerCase()
     
-    if (m.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson) {
-        msgText = JSON.parse(m.message.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson).id.toLowerCase()
-    }
+    // Supporto per clic bottoni, messaggi di testo e numeri
+    let msgText = (m.selectedButtonId || m.text || m.body || '').trim().toLowerCase()
     
     if (msgText === '.uno' || msgText === 'uno') return
     if (msgText === 'enduno') { delete unoSession[chat]; return m.reply('🛑 Partita terminata.') }
@@ -111,16 +106,15 @@ handler.before = async (m, { conn }) => {
         if (isNaN(idx) || idx < 0 || idx >= s.playerHand.length) return
         let carta = s.playerHand[idx]
         if (!puoGiocare(carta, s.tableCard, s.currentColor)) return m.reply('❌ Mossa non valida!')
+        
         s.playerHand.splice(idx, 1); s.tableCard = carta
         s.currentColor = carta.includes('Jolly') ? s.currentColor : carta.split(' ')[0]
         report = `✅ Hai giocato ${carta}`
         
         if (carta.includes('+2')) { 
-            for(let i=0; i<2; i++) s.botHand.push(s.mazzo.shift())
-            report += `\n⚠️ Bot subisce +2! Salta il turno.`
+            for(let i=0; i<2; i++) s.botHand.push(s.mazzo.shift()); report += `\n⚠️ Bot +2!`
         } else if (carta.includes('+4')) { 
-            for(let i=0; i<4; i++) s.botHand.push(s.mazzo.shift())
-            report += `\n🔥 Bot subisce +4! Salta il turno.`
+            for(let i=0; i<4; i++) s.botHand.push(s.mazzo.shift()); report += `\n🔥 Bot +4!`
         } else {
             report += botTurno(s)
         }
@@ -130,14 +124,12 @@ handler.before = async (m, { conn }) => {
     if (s.botHand.length === 0) { delete unoSession[chat]; return m.reply('💀 IL BOT HA VINTO!') }
 
     let img = await generaGrafica(s)
-    await conn.sendMessage(chat, { 
-        image: img, 
-        caption: report, 
-        interactiveButtons: [
-            { name: "quick_reply", buttonParamsJson: JSON.stringify({ display_text: "📥 PESCA", id: "pesca" }) },
-            { name: "quick_reply", buttonParamsJson: JSON.stringify({ display_text: "🛑 ABBANDONA", id: "enduno" }) }
-        ]
-    }, { quoted: m })
+    const buttons = [
+        { buttonId: 'pesca', buttonText: { displayText: '📥 PESCA' }, type: 1 },
+        { buttonId: 'enduno', buttonText: { displayText: '🛑 ABBANDONA' }, type: 1 }
+    ]
+    
+    await conn.sendButton(chat, report, `Mano: ${s.playerHand.length} carte`, img, buttons, m)
 }
 
 function botTurno(s) {
@@ -148,11 +140,9 @@ function botTurno(s) {
         s.currentColor = scelta.includes('Jolly') ? ['Rosso','Blu','Verde','Giallo'][Math.floor(Math.random()*4)] : scelta.split(' ')[0]
         let res = `\n🤖 Bot gioca: *${scelta}*`
         if (scelta.includes('+2')) { 
-            for(let i=0; i<2; i++) s.playerHand.push(s.mazzo.shift())
-            res += `\n⚠️ Ti becchi +2! Salti il turno.`; res += botTurno(s) 
+            for(let i=0; i<2; i++) s.playerHand.push(s.mazzo.shift()); res += `\n⚠️ +2 per te! Turno saltato.`; res += botTurno(s) 
         } else if (scelta.includes('+4')) { 
-            for(let i=0; i<4; i++) s.playerHand.push(s.mazzo.shift())
-            res += `\n🔥 Ti becchi +4! Salti il turno.`; res += botTurno(s) 
+            for(let i=0; i<4; i++) s.playerHand.push(s.mazzo.shift()); res += `\n🔥 +4 per te! Turno saltato.`; res += botTurno(s) 
         }
         return res
     } else {
