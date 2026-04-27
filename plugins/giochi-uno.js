@@ -39,19 +39,20 @@ function generaStato(s, nomeUtente, extraMsg = '') {
     let txt = `━━━━━━━━━━━━━━━━━━━━\n`
     txt += `🃏   *PARTITA DI UNO* 🃏\n`
     txt += `━━━━━━━━━━━━━━━━━━━━\n`
-    txt += `*DESCRIZIONE:* Sfida il bot a UNO! L'obiettivo è restare senza carte. Abbina colore o numero. Se peschi una carta non utilizzabile, il turno passerà automaticamente al bot.\n\n`
+    txt += `*DESCRIZIONE:* Sfida il bot a UNO! Abbina colore o numero. Se peschi e non puoi giocare, il turno passa al bot.\n\n`
     if (extraMsg) txt += `${extraMsg}\n\n`
     txt += `📍 In Tavola: ${formattaCarta(s.tableCard)}\n`
     txt += `🎨 Colore Attivo: *${s.currentColor} ${colori[s.currentColor] || ''}*\n`
     txt += `🤖 Carte Bot: *${s.botHand.length}*\n`
-    txt += `🎴 Carte nel mazzo: *${s.mazzo.length}*\n\n`
+    txt += `🎴 Mazzo: *${s.mazzo.length}*\n\n`
     txt += `👤 *MANO DI ${nomeUtente.toUpperCase()}:*\n`
     s.playerHand.forEach((c, i) => {
         txt += `  *${i + 1}* ⮕ ${formattaCarta(c)}\n`
     })
     txt += `\n*COMANDI:*`
-    txt += `\n⮕ Scrivi il *numero* della carta`
-    txt += `\n⮕ Usa il tasto *Pesca* se sei bloccato`
+    txt += `\n⮕ Scrivi il *numero* per giocare`
+    txt += `\n⮕ Scrivi *pesca* per pescare`
+    txt += `\n⮕ Scrivi *enduno* per chiudere`
     txt += `\n━━━━━━━━━━━━━━━━━━━━`
     return txt
 }
@@ -78,25 +79,16 @@ let handler = async (m, { conn, command }) => {
 
         let s = unoSession[chat]
         let name = conn.getName(m.sender)
-        
-        await conn.sendMessage(chat, {
-            text: generaStato(s, name),
-            footer: 'Uno Bot Game',
-            buttons: [
-                { buttonId: 'pesca', buttonText: { displayText: '📥 Pesca' }, type: 1 },
-                { buttonId: 'enduno', buttonText: { displayText: '❌ Chiudi' }, type: 1 }
-            ],
-            headerType: 1
-        }, { quoted: m })
+        await m.reply(generaStato(s, name))
     }
 }
 
 handler.before = async function (m, { conn }) {
-    if (!m.chat || !m.sender || m.isBaileys) return
+    if (!m.chat || !m.sender || m.isBaileys || !m.text) return
     let s = unoSession[m.chat]
     if (!s || s.player !== m.sender) return
 
-    let msg = (m.text || m.selectedButtonId || '').trim().toLowerCase()
+    let msg = m.text.trim().toLowerCase()
     let name = conn.getName(m.sender)
 
     if (msg === 'enduno') {
@@ -112,30 +104,23 @@ handler.before = async function (m, { conn }) {
         let reportP = `📥 Hai pescato: ${formattaCarta(p)}`
         
         if (puoGiocare(p, s.tableCard, s.currentColor)) {
-            reportP += `\n✅ La carta è giocabile! Puoi usarla ora.`
+            reportP += `\n✅ Puoi giocare la carta appena pescata!`
         } else {
-            reportP += `\n❌ Non giocabile. Turno passato al Bot...`
+            reportP += `\n❌ Non giocabile. Turno al Bot...`
             
             let bIdx = s.botHand.findIndex(c => puoGiocare(c, s.tableCard, s.currentColor))
             if (bIdx !== -1) {
                 let cBot = s.botHand.splice(bIdx, 1)[0]
                 s.tableCard = cBot
                 s.currentColor = cBot.includes('Jolly') ? s.currentColor : cBot.split(' ')[0]
-                reportP += `\n🤖 Il bot risponde con: ${formattaCarta(cBot)}`
+                reportP += `\n🤖 Bot gioca: ${formattaCarta(cBot)}`
             } else {
                 if (s.mazzo.length === 0) s.mazzo = creaMazzo()
                 s.botHand.push(s.mazzo.shift())
-                reportP += `\n🤖 Il bot non ha mosse e pesca.`
+                reportP += `\n🤖 Bot pesca.`
             }
         }
-
-        return conn.sendMessage(m.chat, {
-            text: generaStato(s, name, reportP),
-            buttons: [
-                { buttonId: 'pesca', buttonText: { displayText: '📥 Pesca' }, type: 1 },
-                { buttonId: 'enduno', buttonText: { displayText: '❌ Chiudi' }, type: 1 }
-            ]
-        }, { quoted: m })
+        return m.reply(generaStato(s, name, reportP))
     }
 
     let index = parseInt(msg) - 1
@@ -167,7 +152,7 @@ handler.before = async function (m, { conn }) {
                 if (s.mazzo.length === 0) s.mazzo = creaMazzo()
                 s.botHand.push(s.mazzo.shift())
             }
-            report += `\n🤖 Il bot pesca ${num} e salta il turno!\n👉 Tocca ancora a te!`
+            report += `\n🤖 Bot pesca ${num} e salta il turno! Tocca a te.`
         } else {
             let bIdx = s.botHand.findIndex(c => puoGiocare(c, s.tableCard, s.currentColor))
             if (bIdx !== -1) {
@@ -180,19 +165,19 @@ handler.before = async function (m, { conn }) {
                 } else {
                     s.currentColor = cBot.split(' ')[0]
                 }
-                report += `\n🤖 Il bot risponde con: ${formattaCarta(cBot)}`
+                report += `\n🤖 Bot gioca: ${formattaCarta(cBot)}`
                 if (cBot.includes('+2') || cBot.includes('+4')) {
                     let numB = cBot.includes('+4') ? 4 : 2
                     for(let i=0; i < numB; i++) {
                         if (s.mazzo.length === 0) s.mazzo = creaMazzo()
                         s.playerHand.push(s.mazzo.shift())
                     }
-                    report += `\n⚠️ Hai dovuto pescare ${numB} e saltare il turno!`
+                    report += `\n⚠️ Peschi ${numB} e salti il turno!`
                 }
             } else {
                 if (s.mazzo.length === 0) s.mazzo = creaMazzo()
                 s.botHand.push(s.mazzo.shift())
-                report += `\n🤖 Il bot non ha mosse e pesca una carta.`
+                report += `\n🤖 Bot pesca.`
             }
         }
 
@@ -200,14 +185,7 @@ handler.before = async function (m, { conn }) {
             delete unoSession[m.chat]
             return m.reply(`${report}\n\n🤡 *SCONFITTA!*`)
         }
-
-        return conn.sendMessage(m.chat, {
-            text: generaStato(s, name, report),
-            buttons: [
-                { buttonId: 'pesca', buttonText: { displayText: '📥 Pesca' }, type: 1 },
-                { buttonId: 'enduno', buttonText: { displayText: '❌ Chiudi' }, type: 1 }
-            ]
-        }, { quoted: m })
+        return m.reply(generaStato(s, name, report))
     }
 }
 
