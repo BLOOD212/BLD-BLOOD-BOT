@@ -113,7 +113,7 @@ let handler = async (m, { conn }) => {
     
     await conn.sendMessage(chat, {
         image: img,
-        caption: `🃏 *UNO MATCH STARTED*\n🎨 Colore attuale: *${global.unoSession[chat].currentColor}*`,
+        caption: `🃏 *UNO MATCH*\n🎨 Colore attuale: *${global.unoSession[chat].currentColor}*`,
         footer: '𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙',
         buttons: [
             { buttonId: 'pesca', buttonText: { displayText: '📥 PESCA' }, type: 1 },
@@ -129,7 +129,7 @@ handler.before = async (m, { conn }) => {
     let s = global.unoSession[chat]
     if (s.player !== m.sender) return
 
-    let msgText = (m.quoted?.buttonsResponseMessage?.selectedButtonId || m.msg?.selectedButtonId || m.text || '').trim().toLowerCase()
+    let msgText = (m.quoted?.buttonsResponseMessage?.selectedButtonId || m.msg?.selectedButtonId || m.message?.templateButtonReplyMessage?.selectedId || m.text || '').trim().toLowerCase()
 
     if (msgText === '.uno' || msgText === 'uno') return
     if (msgText === 'enduno') {
