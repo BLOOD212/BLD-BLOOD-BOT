@@ -39,7 +39,7 @@ function generaStato(s, nomeUtente, extraMsg = '') {
     let txt = `━━━━━━━━━━━━━━━━━━━━\n`
     txt += `🃏   *PARTITA DI UNO* 🃏\n`
     txt += `━━━━━━━━━━━━━━━━━━━━\n`
-    txt += `*DESCRIZIONE:* Sfida il bot a UNO! L'obiettivo è restare senza carte. Abbina il colore o il numero della carta sul tavolo. Se non puoi giocare, usa il tasto pesca (passerai il turno).\n\n`
+    txt += `*DESCRIZIONE:* Sfida il bot a UNO! L'obiettivo è restare senza carte. Abbina colore o numero. Se peschi una carta non utilizzabile, il turno passerà automaticamente al bot.\n\n`
     if (extraMsg) txt += `${extraMsg}\n\n`
     txt += `📍 In Tavola: ${formattaCarta(s.tableCard)}\n`
     txt += `🎨 Colore Attivo: *${s.currentColor} ${colori[s.currentColor] || ''}*\n`
@@ -109,18 +109,24 @@ handler.before = async function (m, { conn }) {
         let p = s.mazzo.shift()
         s.playerHand.push(p)
         
-        let reportP = `📥 Hai pescato: ${formattaCarta(p)}\n🕒 *Turno finito, tocca al Bot...*`
+        let reportP = `📥 Hai pescato: ${formattaCarta(p)}`
         
-        let bIdx = s.botHand.findIndex(c => puoGiocare(c, s.tableCard, s.currentColor))
-        if (bIdx !== -1) {
-            let cBot = s.botHand.splice(bIdx, 1)[0]
-            s.tableCard = cBot
-            s.currentColor = cBot.includes('Jolly') ? s.currentColor : cBot.split(' ')[0]
-            reportP += `\n🤖 Il bot risponde con: ${formattaCarta(cBot)}`
+        if (puoGiocare(p, s.tableCard, s.currentColor)) {
+            reportP += `\n✅ La carta è giocabile! Puoi usarla ora.`
         } else {
-            if (s.mazzo.length === 0) s.mazzo = creaMazzo()
-            s.botHand.push(s.mazzo.shift())
-            reportP += `\n🤖 Il bot non ha mosse e pesca.`
+            reportP += `\n❌ Non puoi giocare questa carta. Turno passato al Bot...`
+            
+            let bIdx = s.botHand.findIndex(c => puoGiocare(c, s.tableCard, s.currentColor))
+            if (bIdx !== -1) {
+                let cBot = s.botHand.splice(bIdx, 1)[0]
+                s.tableCard = cBot
+                s.currentColor = cBot.includes('Jolly') ? s.currentColor : cBot.split(' ')[0]
+                reportP += `\n🤖 Il bot risponde con: ${formattaCarta(cBot)}`
+            } else {
+                if (s.mazzo.length === 0) s.mazzo = creaMazzo()
+                s.botHand.push(s.mazzo.shift())
+                reportP += `\n🤖 Il bot non ha mosse e pesca.`
+            }
         }
 
         return conn.sendMessage(m.chat, {
