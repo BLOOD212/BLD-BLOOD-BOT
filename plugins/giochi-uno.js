@@ -98,21 +98,17 @@ let handler = async (m, { conn }) => {
     global.unoSession[chat].currentColor = global.unoSession[chat].tableCard.split(' ')[0]
     let img = await generaGrafica(global.unoSession[chat])
     
-    const sections = [{
-        title: "AZIONI DI GIOCO",
-        rows: [
-            {title: "📥 PESCA", rowId: "pesca"},
-            {title: "🛑 ABBANDONA", rowId: "enduno"}
-        ]
-    }]
-
-    await conn.sendMessage(chat, {
-        image: img,
+    // FORMATO IDENTICO AL TUO MENU (TEMPLATE)
+    let template = {
+        image: { url: 'data:image/png;base64,' + img.toString('base64') },
         caption: `🃏 *UNO MATCH*\n🎨 Colore: *${global.unoSession[chat].currentColor}*`,
         footer: '𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙',
-        buttonText: "SCEGLI MOSSA",
-        sections
-    }, { quoted: m })
+        templateButtons: [
+            {index: 1, quickReplyButton: {displayText: '📥 PESCA', id: 'pesca'}},
+            {index: 2, quickReplyButton: {displayText: '🛑 ABBANDONA', id: 'enduno'}}
+        ]
+    }
+    await conn.sendMessage(chat, template, { quoted: m })
 }
 
 handler.before = async (m, { conn }) => {
@@ -121,7 +117,8 @@ handler.before = async (m, { conn }) => {
     let s = global.unoSession[chat]
     if (s.player !== m.sender) return
 
-    let msgText = (m.msg?.selectedRowId || m.text || '').trim().toLowerCase()
+    // LETTURA DEL TEMPLATEBUTTONREPLY (VISTO NEI TUOI LOG)
+    let msgText = (m.message?.templateButtonReplyMessage?.selectedId || m.text || '').trim().toLowerCase()
 
     if (msgText === '.uno' || msgText === 'uno') return
     if (msgText === 'enduno') {
@@ -151,9 +148,9 @@ handler.before = async (m, { conn }) => {
         report = `✅ Hai giocato: *${carta}*`
         
         if (carta.includes('+2')) { 
-            for(let i=0; i<2; i++) s.botHand.push(s.mazzo.shift()); report += `\n⚠️ Bot subisce +2!`
+            for(let i=0; i<2; i++) s.botHand.push(s.mazzo.shift()); report += `\n⚠️ Bot +2!`
         } else if (carta.includes('+4')) { 
-            for(let i=0; i<4; i++) s.botHand.push(s.mazzo.shift()); report += `\n🔥 Bot subisce +4!`
+            for(let i=0; i<4; i++) s.botHand.push(s.mazzo.shift()); report += `\n🔥 Bot +4!`
         } else {
             report += botTurno(s)
         }
@@ -163,21 +160,16 @@ handler.before = async (m, { conn }) => {
     if (s.botHand.length === 0) { delete global.unoSession[chat]; return m.reply('💀 HAI PERSO!') }
 
     let img = await generaGrafica(s)
-    const sections = [{
-        title: "AZIONI DI GIOCO",
-        rows: [
-            {title: "📥 PESCA", rowId: "pesca"},
-            {title: "🛑 ABBANDONA", rowId: "enduno"}
-        ]
-    }]
-
-    await conn.sendMessage(chat, {
-        image: img,
+    let template = {
+        image: { url: 'data:image/png;base64,' + img.toString('base64') },
         caption: report,
         footer: '𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙',
-        buttonText: "SCEGLI MOSSA",
-        sections
-    }, { quoted: m })
+        templateButtons: [
+            {index: 1, quickReplyButton: {displayText: '📥 PESCA', id: 'pesca'}},
+            {index: 2, quickReplyButton: {displayText: '🛑 ABBANDONA', id: 'enduno'}}
+        ]
+    }
+    await conn.sendMessage(chat, template, { quoted: m })
 }
 
 handler.command = /^(uno)$/i
