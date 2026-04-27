@@ -67,10 +67,15 @@ function generaStato(s, nomeUtente, extraMsg = '') {
 
 let handler = async (m, { conn, command }) => {
     let chat = m.chat
+    let now = Date.now()
     
     if (command === 'uno') {
         if (unoSession[chat]) {
-            return conn.reply(chat, '⚠️ Una partita è già in corso! Scrivi *enduno* per terminarla.', m)
+            if (now - unoSession[chat].lastActivity > 60000) {
+                delete unoSession[chat]
+            } else {
+                return conn.reply(chat, '⚠️ Una partita è già in corso! Attendi un minuto di inattività o scrivi *enduno*.', m)
+            }
         }
         
         let mazzo = creaMazzo()
@@ -85,7 +90,8 @@ let handler = async (m, { conn, command }) => {
             playerHand: playerHand,
             botHand: botHand,
             tableCard: tableCard,
-            currentColor: tableCard.split(' ')[0]
+            currentColor: tableCard.split(' ')[0],
+            lastActivity: now
         }
 
         let s = unoSession[chat]
@@ -116,6 +122,7 @@ handler.before = async (m, { conn }) => {
     }
 
     if (!s || s.player !== m.sender) return
+    s.lastActivity = Date.now()
 
     let msg = msgText.trim().toLowerCase()
     let name = conn.getName(m.sender)
