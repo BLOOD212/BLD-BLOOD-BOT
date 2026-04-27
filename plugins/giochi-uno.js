@@ -66,70 +66,62 @@ function generaStato(s, nomeUtente, extraMsg = '') {
 
 let handler = async (m, { conn, command, text }) => {
     let chat = m.chat
+    let name = conn.getName(m.sender)
     
-    // Avvio o Riavvio partita
-    if (command === 'uno' || text === '.uno') {
-        delete unoSession[chat]
-        
-        let mazzo = creaMazzo()
-        let playerHand = mazzo.splice(0, 7)
-        let botHand = mazzo.splice(0, 7)
-        let tableIdx = mazzo.findIndex(c => !c.includes('Jolly') && !c.includes('+2'))
-        let tableCard = mazzo.splice(tableIdx, 1)[0]
+    // Reset e Inizio
+    delete unoSession[chat]
+    let mazzo = creaMazzo()
+    let playerHand = mazzo.splice(0, 7)
+    let botHand = mazzo.splice(0, 7)
+    let tableIdx = mazzo.findIndex(c => !c.includes('Jolly') && !c.includes('+2'))
+    let tableCard = mazzo.splice(tableIdx, 1)[0]
 
-        unoSession[chat] = {
-            player: m.sender,
-            mazzo: mazzo,
-            playerHand: playerHand,
-            botHand: botHand,
-            tableCard: tableCard,
-            currentColor: tableCard.split(' ')[0],
-            lastActivity: Date.now()
-        }
-
-        let s = unoSession[chat]
-        let name = conn.getName(m.sender)
-        
-        await conn.sendMessage(chat, {
-            text: generaStato(s, name),
-            interactiveButtons: gameButtons()
-        }, { quoted: m })
+    unoSession[chat] = {
+        player: m.sender,
+        mazzo: mazzo,
+        playerHand: playerHand,
+        botHand: botHand,
+        tableCard: tableCard,
+        currentColor: tableCard.split(' ')[0]
     }
+
+    let s = unoSession[chat]
+    
+    await conn.sendMessage(chat, {
+        text: generaStato(s, name),
+        interactiveButtons: gameButtons()
+    }, { quoted: m })
 }
 
 handler.before = async (m, { conn }) => {
     const chat = m.chat
-    let msgText = m.text || ''
+    let msgText = (m.text || m.body || '').trim().toLowerCase()
     
-    // GESTIONE BOTTONI (Logica avanzata)
+    // Logica Intercettazione Bottoni (da interactiveResponseMessage)
     if (m.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson) {
         try {
             const params = JSON.parse(m.message.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson)
-            msgText = params.id // Prende 'pesca', 'enduno' o '.uno'
-        } catch (e) {
-            console.error('Errore parsing bottoni:', e)
-        }
+            msgText = params.id.toLowerCase()
+        } catch (e) {}
     }
 
-    // Se l'ID è .uno, resetta e avvia
-    if (msgText === '.uno') {
-        return handler(m, { conn, command: 'uno', text: '.uno' })
-    }
+    // Se il messaggio è ".uno", lasciamo che lo gestisca l'handler principale
+    if (msgText === '.uno') return false
 
     let s = unoSession[chat]
     if (!s || s.player !== m.sender) return
 
-    let msg = msgText.trim().toLowerCase()
     let name = conn.getName(m.sender)
 
-    // COMANDO CHIUDI
-    if (msg === 'enduno' || msg === 'chiudi') {
+    // AZIONE: CHIUDI
+    if (msgText === 'enduno' || msgText === '❌ chiudi') {
         delete unoSession[chat]
-        return m.reply('❌ Partita terminata.')
+        await m.reply('❌ Partita terminata.')
+        return true
     }
 
-    // COMANDO PESCA
-    if (msg === 'pesca') {
+    // AZIONE: PESCA
+    if (msgText === 'pesca' || msgText === '📥 pesca') {
         if (s.mazzo.length === 0) s.mazzo = creaMazzo()
         let p = s.mazzo.shift()
         s.playerHand.push(p)
@@ -151,17 +143,21 @@ handler.before = async (m, { conn }) => {
             reportP += `\n✅ Giocabile! Puoi usarla ora.`
         }
 
-        return conn.sendMessage(chat, {
+        await conn.sendMessage(chat, {
             text: generaStato(s, name, reportP),
             interactiveButtons: gameButtons()
         }, { quoted: m })
+        return true
     }
 
-    // GESTIONE NUMERI (Giocata carta)
-    let index = parseInt(msg) - 1
+    // AZIONE: GIOCA CARTA (NUMERO)
+    let index = parseInt(msgText) - 1
     if (!isNaN(index) && index >= 0 && index < s.playerHand.length) {
         let cartaScelta = s.playerHand[index]
-        if (!puoGiocare(cartaScelta, s.tableCard, s.currentColor)) return m.reply(`🚫 *MOSSA NON VALIDA*`)
+        if (!puoGiocare(cartaScelta, s.tableCard, s.currentColor)) {
+            await m.reply(`🚫 *MOSSA NON VALIDA*`)
+            return true
+        }
 
         s.playerHand.splice(index, 1)
         s.tableCard = cartaScelta
@@ -169,10 +165,11 @@ handler.before = async (m, { conn }) => {
 
         if (s.playerHand.length === 0) {
             delete unoSession[chat]
-            return conn.sendMessage(chat, {
+            await conn.sendMessage(chat, {
                 text: `🏆 *HAI VINTO!*`,
                 interactiveButtons: playAgainButtons()
             }, { quoted: m })
+            return true
         }
 
         let report = `✅ Hai giocato ${formattaCarta(cartaScelta)}.`
@@ -191,16 +188,18 @@ handler.before = async (m, { conn }) => {
 
         if (s.botHand.length === 0) {
             delete unoSession[chat]
-            return conn.sendMessage(chat, {
+            await conn.sendMessage(chat, {
                 text: `${report}\n\n🤡 *SCONFITTA!*`,
                 interactiveButtons: playAgainButtons()
             }, { quoted: m })
+            return true
         }
 
-        return conn.sendMessage(chat, {
+        await conn.sendMessage(chat, {
             text: generaStato(s, name, report),
             interactiveButtons: gameButtons()
         }, { quoted: m })
+        return true
     }
 }
 
