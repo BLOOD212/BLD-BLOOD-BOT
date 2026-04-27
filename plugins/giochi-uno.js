@@ -60,10 +60,9 @@ async function generaGrafica(s) {
 }
 
 let handler = async (m, { conn }) => {
+    let chat = m.chat
     try {
-        let chat = m.chat
         let name = conn.getName(m.sender)
-        
         let mazzo = []
         let cols = ['Rosso', 'Blu', 'Giallo', 'Verde']
         cols.forEach(c => {
@@ -83,7 +82,7 @@ let handler = async (m, { conn }) => {
         
         let imgBuffer = await generaGrafica(unoSession[chat])
 
-        // Usiamo sendMessage con la nuova struttura "viewOnce" per unire immagine e bottoni
+        // Proviamo a inviare con i bottoni
         await conn.sendMessage(chat, {
             interactiveMessage: {
                 header: {
@@ -91,7 +90,7 @@ let handler = async (m, { conn }) => {
                     hasMediaAttachment: true,
                     imageMessage: (await conn.prepareMessageMedia({ image: imgBuffer }, { upload: conn.waUploadToServer })).imageMessage
                 },
-                body: { text: "Tocca un bottone o invia il numero della carta!" },
+                body: { text: "Tocca un bottone o scrivi il numero della carta!" },
                 footer: { text: "Gemini Uno Engine" },
                 nativeFlowMessage: {
                     buttons: [
@@ -109,10 +108,15 @@ let handler = async (m, { conn }) => {
         }, { quoted: m })
 
     } catch (e) {
-        // Se prepareMessageMedia fallisce di nuovo, usiamo il metodo ignorante
-        console.error(e)
-        let imgBuffer = await generaGrafica(unoSession[chat])
-        await conn.sendMessage(chat, { image: imgBuffer, caption: "🃏 *UNO MATCH*\n\nScrivi *pesca* o il *numero* della carta!" }, { quoted: m })
+        console.error("Errore Bottoni:", e)
+        // Se i bottoni falliscono (TypeError), invia immagine classica
+        if (unoSession[chat]) {
+            let backupImg = await generaGrafica(unoSession[chat])
+            await conn.sendMessage(chat, { 
+                image: backupImg, 
+                caption: `🃏 *UNO MATCH*\n\n📥 Scrivi *pesca* per pescare\n🛑 Scrivi *enduno* per uscire\n\n🔢 Invia il *numero* della carta per giocare!` 
+            }, { quoted: m })
+        }
     }
 }
 
