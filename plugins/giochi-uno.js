@@ -114,7 +114,7 @@ handler.before = async function (m, { conn }) {
         if (puoGiocare(p, s.tableCard, s.currentColor)) {
             reportP += `\n✅ La carta è giocabile! Puoi usarla ora.`
         } else {
-            reportP += `\n❌ Non puoi giocare questa carta. Turno passato al Bot...`
+            reportP += `\n❌ Non giocabile. Turno passato al Bot...`
             
             let bIdx = s.botHand.findIndex(c => puoGiocare(c, s.tableCard, s.currentColor))
             if (bIdx !== -1) {
