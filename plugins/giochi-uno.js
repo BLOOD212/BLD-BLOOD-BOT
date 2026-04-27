@@ -10,7 +10,7 @@ const coloriHex = {
     'Jolly': '#1C1C1E' 
 }
 
-// STRUTTURA BOTTONI ORIGINALE CHE USAVI TU
+// BOTTONI RIPORTATI ALLA TUA STRUTTURA ORIGINALE
 const gameButtons = () => [{
     name: 'quick_reply',
     buttonParamsJson: JSON.stringify({ display_text: '📥 PESCA', id: 'pesca' })
@@ -23,26 +23,26 @@ async function generaGrafica(s) {
     const canvas = createCanvas(1000, 600)
     const ctx = canvas.getContext('2d')
     const gradiente = ctx.createRadialGradient(500, 300, 50, 500, 300, 600)
-    gradiente.addColorStop(0, '#2c3e50'); gradiente.addColorStop(1, '#000000')
+    gradiente.addColorStop(0, '#1a1a1d'); gradiente.addColorStop(1, '#000000')
     ctx.fillStyle = gradiente; ctx.fillRect(0, 0, 1000, 600)
 
     const drawCard = (x, y, label, color, isHidden = false, scale = 1) => {
         const w = 80 * scale, h = 120 * scale
+        ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10;
         ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(x, y, w, h, 8); ctx.fill()
+        ctx.shadowBlur = 0;
         if (isHidden) {
             ctx.fillStyle = '#2c2c2e'; ctx.beginPath(); ctx.roundRect(x + 4, y + 4, w - 8, h - 8, 5); ctx.fill()
         } else {
             ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(x + 4, y + 4, w - 8, h - 8, 5); ctx.fill()
             ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.font = `bold ${22 * scale}px Arial`
-            let val = label.includes('Jolly') ? label : label.split(' ')[1]
-            ctx.fillText(val || 'UNO', x + (w/2), y + (h/2) + 10)
+            ctx.fillText(label.split(' ')[1] || label, x + (w/2), y + (h/2) + 10)
         }
     }
 
     drawCard(50, 240, 'Mazzo', '#3a3a3c', true, 0.9)
-    let botHandLimit = s.botHand.slice(0, 12)
-    let botX = 500 - (botHandLimit.length * 15)
-    botHandLimit.forEach((_, i) => drawCard(botX + (i * 30), 40, '', '', true, 0.7))
+    let botX = 500 - (Math.min(s.botHand.length, 10) * 15)
+    s.botHand.slice(0, 12).forEach((_, i) => drawCard(botX + (i * 30), 40, '', '', true, 0.7))
     
     let tColore = coloriHex[s.currentColor] || coloriHex['Jolly']
     drawCard(460, 230, s.tableCard, tColore, false, 1.2)
@@ -60,8 +60,8 @@ async function generaGrafica(s) {
 function creaMazzo() {
     let colori = ['Rosso', 'Blu', 'Giallo', 'Verde'], mazzo = []
     colori.forEach(c => {
-        mazzo.push(`${c} 0`) // Solo uno 0 per colore
-        for (let v = 1; v <= 9; v++) { mazzo.push(`${c} ${v}`); mazzo.push(`${c} ${v}`) } // Due per numero
+        mazzo.push(`${c} 0`)
+        for (let v = 1; v <= 9; v++) { mazzo.push(`${c} ${v}`); mazzo.push(`${c} ${v}`) }
         for (let i = 0; i < 2; i++) mazzo.push(`${c} +2`)
     })
     for (let i = 0; i < 4; i++) { mazzo.push('Jolly'); mazzo.push('Jolly +4') }
@@ -75,7 +75,8 @@ function puoGiocare(carta, tavolo, coloreScelto) {
 }
 
 let handler = async (m, { conn }) => {
-    let chat = m.chat, mazzo = creaMazzo()
+    let chat = m.chat
+    let mazzo = creaMazzo()
     unoSession[chat] = {
         player: m.sender, mazzo,
         playerHand: mazzo.splice(0, 7),
@@ -99,17 +100,21 @@ handler.before = async (m, { conn }) => {
     
     let msgText = (m.text || m.body || '').trim().toLowerCase()
     
-    // LETTURA ID BOTTONI ORIGINALI
-    if (m.message?.interactiveResponseMessage) {
-        const params = JSON.parse(m.message.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson)
-        msgText = params.id.toLowerCase()
+    // LOGICA DI LETTURA BOTTONI SPECIFICA PER BLD-BLOOD-BOT
+    if (m.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson) {
+        try {
+            const params = JSON.parse(m.message.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson)
+            msgText = params.id.toLowerCase()
+        } catch (e) {}
     }
 
-    if (msgText === '.uno') return
-    if (msgText === 'enduno') { delete unoSession[chat]; return m.reply('🛑 Partita chiusa.') }
+    if (msgText === '.uno' || msgText === 'uno') return
+    if (msgText === 'enduno' || msgText === '🛑 abbandona') { 
+        delete unoSession[chat]; return m.reply('🛑 Partita terminata.') 
+    }
 
     let report = ""
-    if (msgText === 'pesca') {
+    if (msgText === 'pesca' || msgText === '📥 pesca') {
         if (s.mazzo.length === 0) s.mazzo = creaMazzo()
         let p = s.mazzo.shift(); s.playerHand.push(p)
         report = `📥 Hai pescato: ${p}`
@@ -127,12 +132,12 @@ handler.before = async (m, { conn }) => {
         s.currentColor = carta.includes('Jolly') ? s.currentColor : carta.split(' ')[0]
         report = `✅ Hai giocato ${carta}`
 
+        // Gestione colpi speciali del giocatore
         if (carta.includes('+2')) { 
-            for(let i=0; i<2; i++) s.botHand.push(s.mazzo.shift()); 
+            for(let i=0; i<2; i++) s.botHand.push(s.mazzo.shift())
             report += `\n⚠️ Bot subisce +2! Salta il turno.`
-            // Il bot non gioca perché ha saltato il turno, tocca di nuovo all'utente
         } else if (carta.includes('+4')) { 
-            for(let i=0; i<4; i++) s.botHand.push(s.mazzo.shift()); 
+            for(let i=0; i<4; i++) s.botHand.push(s.mazzo.shift())
             report += `\n🔥 Bot subisce +4! Salta il turno.`
         } else {
             report += botTurno(s)
@@ -140,7 +145,7 @@ handler.before = async (m, { conn }) => {
     }
 
     if (s.playerHand.length === 0) { delete unoSession[chat]; return m.reply('🏆 HAI VINTO!') }
-    if (s.botHand.length === 0) { delete unoSession[chat]; return m.reply('💀 HAI PERSO!') }
+    if (s.botHand.length === 0) { delete unoSession[chat]; return m.reply('💀 IL BOT HA VINTO!') }
 
     let img = await generaGrafica(s)
     await conn.sendMessage(chat, { 
@@ -153,7 +158,6 @@ handler.before = async (m, { conn }) => {
 function botTurno(s) {
     let mosse = s.botHand.filter(c => puoGiocare(c, s.tableCard, s.currentColor))
     if (mosse.length > 0) {
-        // Priorità carte normali
         let scelta = mosse.find(c => !c.includes('Jolly')) || mosse[0]
         s.botHand.splice(s.botHand.indexOf(scelta), 1); s.tableCard = scelta
         s.currentColor = scelta.includes('Jolly') ? ['Rosso','Blu','Verde','Giallo'][Math.floor(Math.random()*4)] : scelta.split(' ')[0]
