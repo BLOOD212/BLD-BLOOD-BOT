@@ -25,9 +25,15 @@ function formattaCarta(carta) {
 
 function puoGiocare(carta, tavolo, coloreScelto) {
     if (carta.includes('Jolly')) return true
-    let [c_c, c_v] = carta.split(' ')
-    let [t_c, t_v] = tavolo.split(' ')
-    return c_c === t_c || c_v === t_v || c_c === coloreScelto
+    
+    let [c_c, v_c] = carta.split(' ')
+    let [c_t, v_t] = tavolo.split(' ')
+    
+    if (tavolo.includes('Jolly')) {
+        return c_c === coloreScelto
+    }
+    
+    return c_c === c_t || v_c === v_t || c_c === coloreScelto
 }
 
 function generaStato(s, nomeUtente, extraMsg = '') {
@@ -86,14 +92,29 @@ handler.before = async function (m, { conn }) {
 
     if (msg === 'enduno') {
         delete unoSession[m.chat]
-        return m.reply('❌ Partita terminata. Alla prossima!')
+        return m.reply('❌ Partita terminata!')
     }
 
     if (msg === 'pesca') {
         if (s.mazzo.length === 0) s.mazzo = creaMazzo()
         let p = s.mazzo.shift()
         s.playerHand.push(p)
-        return m.reply(generaStato(s, name, `📥 Hai pescato: ${formattaCarta(p)}`))
+        
+        let reportPesca = `📥 Hai pescato: ${formattaCarta(p)}`
+        let bIdx = s.botHand.findIndex(c => puoGiocare(c, s.tableCard, s.currentColor))
+        
+        if (bIdx !== -1) {
+            let cBot = s.botHand.splice(bIdx, 1)[0]
+            s.tableCard = cBot
+            s.currentColor = cBot.includes('Jolly') ? s.currentColor : cBot.split(' ')[0]
+            reportPesca += `\n🤖 Il bot risponde con: ${formattaCarta(cBot)}`
+        } else {
+            if (s.mazzo.length === 0) s.mazzo = creaMazzo()
+            s.botHand.push(s.mazzo.shift())
+            reportPesca += `\n🤖 Il bot non ha mosse e pesca.`
+        }
+        
+        return m.reply(generaStato(s, name, reportPesca))
     }
 
     let index = parseInt(msg) - 1
@@ -101,7 +122,7 @@ handler.before = async function (m, { conn }) {
         let cartaScelta = s.playerHand[index]
 
         if (!puoGiocare(cartaScelta, s.tableCard, s.currentColor)) {
-            return m.reply(`🚫 *MOSSA NON VALIDA*\nNon puoi giocare ${formattaCarta(cartaScelta)} su ${formattaCarta(s.tableCard)}`)
+            return m.reply(`🚫 *MOSSA NON VALIDA*`)
         }
 
         s.playerHand.splice(index, 1)
@@ -117,7 +138,7 @@ handler.before = async function (m, { conn }) {
 
         if (s.playerHand.length === 0) {
             delete unoSession[m.chat]
-            return m.reply(`🏆 *CONGRATULAZIONI ${name.toUpperCase()}!*\n\nHai svuotato la mano e vinto la sfida!`)
+            return m.reply(`🏆 *HAI VINTO!*`)
         }
 
         let report = `✅ Hai giocato ${formattaCarta(cartaScelta)}.`
@@ -128,7 +149,7 @@ handler.before = async function (m, { conn }) {
                 if (s.mazzo.length === 0) s.mazzo = creaMazzo()
                 s.botHand.push(s.mazzo.shift())
             }
-            report += `\n🤖 Il bot pesca ${num} carte e salta il turno!\n👉 Tocca ancora a te!`
+            report += `\n🤖 Il bot pesca ${num} e salta il turno!`
             return m.reply(generaStato(s, name, report))
         }
 
@@ -151,18 +172,17 @@ handler.before = async function (m, { conn }) {
                     if (s.mazzo.length === 0) s.mazzo = creaMazzo()
                     s.playerHand.push(s.mazzo.shift())
                 }
-                report += `\n⚠️ *ATTENZIONE!* Peschi ${numB} carte e salti il turno.`
+                report += `\n⚠️ Peschi ${numB} e salti il turno!`
             }
         } else {
             if (s.mazzo.length === 0) s.mazzo = creaMazzo()
-            let pBot = s.mazzo.shift()
-            s.botHand.push(pBot)
-            report += `\n🤖 Il bot non ha mosse e pesca una carta.`
+            s.botHand.push(s.mazzo.shift())
+            report += `\n🤖 Il bot pesca una carta.`
         }
 
         if (s.botHand.length === 0) {
             delete unoSession[m.chat]
-            return m.reply(`${report}\n\n🤡 *SCONFITTA!*\nIl bot ha vinto la partita.`)
+            return m.reply(`${report}\n\n🤡 *SCONFITTA!*`)
         }
 
         return m.reply(generaStato(s, name, report))
