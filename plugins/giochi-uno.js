@@ -10,7 +10,6 @@ const coloriHex = {
     'Jolly': '#1C1C1E' 
 }
 
-// BOTTONI RIPORTATI ALLA TUA STRUTTURA ORIGINALE
 const gameButtons = () => [{
     name: 'quick_reply',
     buttonParamsJson: JSON.stringify({ display_text: '📥 PESCA', id: 'pesca' })
@@ -100,7 +99,6 @@ handler.before = async (m, { conn }) => {
     
     let msgText = (m.text || m.body || '').trim().toLowerCase()
     
-    // LOGICA DI LETTURA BOTTONI SPECIFICA PER BLD-BLOOD-BOT
     if (m.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson) {
         try {
             const params = JSON.parse(m.message.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson)
@@ -132,7 +130,6 @@ handler.before = async (m, { conn }) => {
         s.currentColor = carta.includes('Jolly') ? s.currentColor : carta.split(' ')[0]
         report = `✅ Hai giocato ${carta}`
 
-        // Gestione colpi speciali del giocatore
         if (carta.includes('+2')) { 
             for(let i=0; i<2; i++) s.botHand.push(s.mazzo.shift())
             report += `\n⚠️ Bot subisce +2! Salta il turno.`
