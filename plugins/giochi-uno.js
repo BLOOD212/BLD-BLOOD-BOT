@@ -1,4 +1,4 @@
-Import { createCanvas } from 'canvas'
+import { createCanvas } from 'canvas'
 
 let unoSession = {}
 
@@ -8,6 +8,21 @@ const coloriHex = {
     'Giallo': '#FFCC00', 
     'Verde': '#4CD964', 
     'Jolly': '#1C1C1E' 
+}
+
+// Funzione helper per disegnare rettangoli arrotondati (compatibile con versioni vecchie)
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
 }
 
 const gameButtons = () => [{
@@ -28,12 +43,16 @@ async function generaGrafica(s) {
     const drawCard = (x, y, label, color, isHidden = false, scale = 1) => {
         const w = 80 * scale, h = 120 * scale
         ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10;
-        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(x, y, w, h, 8); ctx.fill()
+        ctx.fillStyle = '#ffffff'; 
+        drawRoundedRect(ctx, x, y, w, h, 8); ctx.fill()
         ctx.shadowBlur = 0;
+        
         if (isHidden) {
-            ctx.fillStyle = '#2c2c2e'; ctx.beginPath(); ctx.roundRect(x + 4, y + 4, w - 8, h - 8, 5); ctx.fill()
+            ctx.fillStyle = '#2c2c2e'; 
+            drawRoundedRect(ctx, x + 4, y + 4, w - 8, h - 8, 5); ctx.fill()
         } else {
-            ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(x + 4, y + 4, w - 8, h - 8, 5); ctx.fill()
+            ctx.fillStyle = color; 
+            drawRoundedRect(ctx, x + 4, y + 4, w - 8, h - 8, 5); ctx.fill()
             ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.font = `bold ${22 * scale}px Arial`
             ctx.fillText(label.split(' ')[1] || label, x + (w/2), y + (h/2) + 10)
         }
@@ -89,7 +108,8 @@ let handler = async (m, { conn }) => {
     await conn.sendMessage(chat, { 
         image: img, 
         caption: `🃏 *UNO MATCH*\n🎨 Colore: *${unoSession[chat].currentColor}*`,
-        interactiveButtons: gameButtons() 
+        buttons: gameButtons(),
+        footer: 'Scegli una carta inviando il numero o usa i tasti'
     }, { quoted: m })
 }
 
@@ -99,6 +119,7 @@ handler.before = async (m, { conn }) => {
 
     let msgText = (m.text || m.body || '').trim().toLowerCase()
 
+    // Supporto per i bottoni interattivi
     if (m.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson) {
         try {
             const params = JSON.parse(m.message.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson)
@@ -148,7 +169,8 @@ handler.before = async (m, { conn }) => {
     await conn.sendMessage(chat, { 
         image: img, 
         caption: report, 
-        interactiveButtons: gameButtons() 
+        buttons: gameButtons(),
+        footer: `🎨 Colore attuale: ${s.currentColor}`
     }, { quoted: m })
 }
 
