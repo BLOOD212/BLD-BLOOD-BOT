@@ -73,36 +73,22 @@ function puoGiocare(carta, tavolo, coloreScelto) {
     return c_c === coloreScelto || v_c === v_t
 }
 
-function setAutoclose(chat) {
-    if (unoSession[chat]?.timeout) clearTimeout(unoSession[chat].timeout)
-    unoSession[chat].timeout = setTimeout(() => {
-        if (unoSession[chat]) {
-            delete unoSession[chat]
-        }
-    }, 300000) // 5 minuti
-}
-
 let handler = async (m, { conn }) => {
     let chat = m.chat
-    if (unoSession[chat]) return m.reply('❌ Hai già una partita in corso!')
-    
     let mazzo = creaMazzo()
     unoSession[chat] = {
         player: m.sender, mazzo,
         playerHand: mazzo.splice(0, 7),
         botHand: mazzo.splice(0, 7),
         tableCard: mazzo.find(c => !c.includes('Jolly') && !c.includes('+')),
-        currentColor: '',
-        timeout: null
+        currentColor: ''
     }
     unoSession[chat].currentColor = unoSession[chat].tableCard.split(' ')[0]
-    setAutoclose(chat)
 
     let img = await generaGrafica(unoSession[chat])
     await conn.sendMessage(chat, { 
         image: img, 
-        caption: `🃏 *UNO MATCH*\n🎨 Colore attuale: *${unoSession[chat].currentColor}*\n\nScrivi il *numero* della carta per giocare o usa i tasti sotto.`,
-        footer: 'La partita scadrà dopo 5 min di inattività',
+        caption: `🃏 *UNO MATCH*\n🎨 Colore: *${unoSession[chat].currentColor}*`,
         interactiveButtons: gameButtons() 
     }, { quoted: m })
 }
@@ -122,14 +108,10 @@ handler.before = async (m, { conn }) => {
 
     if (msgText === '.uno' || msgText === 'uno') return
     if (msgText === 'enduno' || msgText === '🛑 abbandona') { 
-        clearTimeout(s.timeout)
-        delete unoSession[chat]
-        return m.reply('🛑 Partita terminata. Memoria liberata.') 
+        delete unoSession[chat]; return m.reply('🛑 Partita terminata.') 
     }
 
-    setAutoclose(chat) // Reset timer inattività
     let report = ""
-    
     if (msgText === 'pesca' || msgText === '📥 pesca') {
         if (s.mazzo.length === 0) s.mazzo = creaMazzo()
         let p = s.mazzo.shift(); s.playerHand.push(p)
@@ -142,7 +124,7 @@ handler.before = async (m, { conn }) => {
         let idx = parseInt(msgText) - 1
         if (isNaN(idx) || idx < 0 || idx >= s.playerHand.length) return
         let carta = s.playerHand[idx]
-        if (!puoGiocare(carta, s.tableCard, s.currentColor)) return m.reply('❌ Mossa non valida per le regole di UNO!')
+        if (!puoGiocare(carta, s.tableCard, s.currentColor)) return m.reply('❌ Mossa non valida!')
 
         s.playerHand.splice(idx, 1); s.tableCard = carta
         s.currentColor = carta.includes('Jolly') ? s.currentColor : carta.split(' ')[0]
@@ -159,21 +141,13 @@ handler.before = async (m, { conn }) => {
         }
     }
 
-    if (s.playerHand.length === 0) { 
-        clearTimeout(s.timeout)
-        delete unoSession[chat]
-        return m.reply('🏆 HAI VINTO! Complimenti.') 
-    }
-    if (s.botHand.length === 0) { 
-        clearTimeout(s.timeout)
-        delete unoSession[chat]
-        return m.reply('💀 IL BOT HA VINTO! Ritenta sarai più fortunato.') 
-    }
+    if (s.playerHand.length === 0) { delete unoSession[chat]; return m.reply('🏆 HAI VINTO!') }
+    if (s.botHand.length === 0) { delete unoSession[chat]; return m.reply('💀 IL BOT HA VINTO!') }
 
     let img = await generaGrafica(s)
     await conn.sendMessage(chat, { 
         image: img, 
-        caption: `${report}\n\n🎨 Colore attuale: *${s.currentColor}*`, 
+        caption: report, 
         interactiveButtons: gameButtons() 
     }, { quoted: m })
 }
