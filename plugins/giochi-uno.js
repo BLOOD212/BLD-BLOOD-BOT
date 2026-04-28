@@ -1,4 +1,4 @@
-import { createCanvas } from 'canvas'
+Import { createCanvas } from 'canvas'
 
 let unoSession = {}
 
