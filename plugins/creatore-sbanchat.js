@@ -3,7 +3,7 @@ if (!(m.chat in global.db.data.chats)) return conn.reply(m.chat, '🎌 *Questo c
 let chat = global.db.data.chats[m.chat]
 if (!chat.isBanned) return conn.reply(m.chat, '《★》Il bot non è bannato in questa chat', m, fake)
 chat.isBanned = false
-await conn.reply(m.chat, `《★》varebot è stato sbannato in questa chat.`, m, fake)
+await conn.reply(m.chat, `《★》BloodBot è stato sbannato in questa chat.`, m, fake)
 }
 handler.help = ['sbanchat'];
 handler.tags = ['creatore'];
