@@ -4,9 +4,12 @@
 const handler = async (m, { conn, participants, groupMetadata, args }) => {
     const groupAdmins = participants.filter(p => p.admin);
     
-    // Usiamo replace per eliminare caratteri non numerici dall'ID
+    // Usiamo una logica più forte per estrarre solo il numero
     const listAdmin = groupAdmins
-        .map((v, i) => `✧👑 ${i + 1}. @${v.id.replace(/[^0-9]/g, '')}`)
+        .map((v, i) => {
+            const num = v.id.split('@')[0].replace(/[^\d]/g, '');
+            return `✧👑 ${i + 1}. @${num}`;
+        })
         .join('\n');
         
     const owner = groupMetadata.owner || 
