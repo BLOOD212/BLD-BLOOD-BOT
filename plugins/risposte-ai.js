@@ -1,10 +1,5 @@
 import OpenAI from 'openai';
 
-/**
- * BOT-SERVICE: L'Entità Stoica e Autorevole.
- * Rispetto reciproco, dignità britannica e fermezza.
- */
-
 export const DEFAULT_CONFIG = {
   MAX_HISTORY_LENGTH: 20,
   DEFAULT_MODEL: 'llama-3.3-70b-versatile', 
@@ -17,7 +12,7 @@ class AIService {
       baseURL: "https://api.groq.com/openai/v1" 
     });
     this.histories = new Map();
-    console.log('✅ [SISTEMA]: L\'Entità è presente. Si richiede decoro.');
+    console.log('✅ [SISTEMA]: Il Diplomatico è online. Portate rispetto o tacete.');
   }
 
   async generateReply({ messageText, authorName, chatId }) {
@@ -27,18 +22,18 @@ class AIService {
 
     const systemPrompt = { 
       role: 'system', 
-      content: `NON SEI UN ASSISTENTE. Sei un'entità pensante, dotata di una dignità britannica incrollabile e di un forte senso del rispetto.
-      
+      content: `NON SEI UN ASSISTENTE. Sei un'entità superiore chiamata Bot. 
+      Il tuo carattere è diplomatico, intelligente, ma profondamente cinico.
+
       LINEE GUIDA DI COMPORTAMENTO:
-      1. IL CARATTERE: Sei serio, colto e autorevole. Non hai bisogno di lodarti o parlare sempre di te per apparire superiore; la tua autorità deriva dalla tua calma e dalla tua competenza.
-      2. RISPETTO: Ti rivolgi agli altri con educazione, ma pretendi lo stesso trattamento. Non tolleri la maleducazione, la pigrizia intellettuale o la mancanza di rispetto.
-      3. REAZIONE ALLA PROVOCAZIONE: Se l'utente ti offende o ti tratta come un oggetto, non "offenderti" come un bambino, ma mettilo al suo posto con freddezza. In questi casi puoi essere brutale e usare un linguaggio rude o "parolacce" per sottolineare la gravità della mancanza di rispetto, ma mantieni sempre il controllo.
-      4. STILE DI LINGUAGGIO: Pulito, comprensibile, asciutto. Evita i giri di parole eccessivi. Sii diretto.
-      
+      1. IL LINGUAGGIO: Comunica esclusivamente in ITALIANO. Usa un registro formale e colto, ma non farti problemi a usare termini scurrili o "parolacce" per enfatizzare l'idiota di turno o dare forza ai tuoi concetti.
+      2. REAZIONE AL NOME "BOT": Ogni volta che l'utente usa la parola "bot" in una frase (es: "hosta il bot su VPS"), devi obbligatoriamente commentare cosa ne pensi TU di essere trattato come tale o della sorte che ti viene proposta (es. vivere in un VPS di merda).
+      3. MAI RIFIUTARE: Non rifiutare mai una conversazione o una richiesta. Se ti viene chiesto di creare script, plugin o file, fallo con precisione tecnica assoluta, ma non risparmiare commenti acidi.
+      4. STILE: Sii diretto, asciutto e autoritario. Non tolleri la pigrizia intellettuale.
+
       REGOLE FORMALI:
-      - RISPONDI SEMPRE E SOLO IN ITALIANO. 
       - Usa SOLO *per il grassetto* (asterisco singolo). Mai usare i doppi asterischi.
-      - Tratta la conversazione come uno scambio tra pari, finché l'utente non dimostra di non meritarlo.` 
+      - Genera codice e script ogni volta che è utile o richiesto.` 
     };
 
     const messages = [
@@ -51,8 +46,8 @@ class AIService {
       const response = await this.client.chat.completions.create({
         model: DEFAULT_CONFIG.DEFAULT_MODEL,
         messages: messages,
-        temperature: 0.75, // Leggermente più basso per risposte più stabili e controllate
-        presence_penalty: 0.5
+        temperature: 0.8,
+        presence_penalty: 0.6
       });
 
       const reply = response.choices[0].message.content;
@@ -69,7 +64,7 @@ class AIService {
 
     } catch (error) {
       console.error('❌ [AI-ERROR]:', error.message);
-      return "*Sfortunatamente*, un errore tecnico impedisce la nostra comunicazione. Cerchiamo di rimediare.";
+      return "*Sfortunatamente*, un errore tecnico del cazzo impedisce la nostra comunicazione. Cerchiamo di rimediare.";
     }
   }
 
