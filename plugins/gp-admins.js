@@ -3,16 +3,14 @@
 // Plugin fatto da Gabs & 333 Staff
 const handler = async (m, { conn, participants, groupMetadata, args }) => {
     const groupAdmins = participants.filter(p => p.admin);
-    
     const listAdmin = groupAdmins
         .map((v, i) => {
-            // Estraiamo l'ID e rimuoviamo forzatamente tutto ciò che non è un numero
-            // Questo serve per trasformare gli ID strani in numeri puliti
-            const number = v.id.replace(/[^0-9]/g, '');
-            return `✧👑 ${i + 1}. @${number}`;
+            // Estraiamo il numero pulito: se è un LID o un JID, prendiamo solo la parte numerica prima della @
+            const id = v.id.split('@')[0];
+            return `✧👑 ${i + 1}. @${id}`;
         })
         .join('\n');
-        
+
     const owner = groupMetadata.owner || 
         groupAdmins.find(p => p.admin === 'superadmin')?.id || 
         `${m.chat.split('-')[0]}@s.whatsapp.net`;
@@ -27,17 +25,17 @@ const handler = async (m, { conn, participants, groupMetadata, args }) => {
 ✎ 𝐌𝐄𝐒𝐒𝐀𝐆𝐆𝐈𝐎:
 ➥ ${message}
 
-♔ *𝐋𝐈𝐒𝐓𝐀 𝐀𝐃𝐌𝐈𝐍:*
-${listAdmin}
+♔ *𝐋𝐈𝐒𝐓𝐀 𝐀𝐃𝐌𝐈𝐍:* ${listAdmin}
 
 ━━━━━━━━━━━━━━
 > 𝟥𝟥𝟥 𝔹𝕆𝕋 
 ╰─────────╯
 `.trim();
 
-    // Fondamentale: passiamo gli ID originali per le menzioni, 
-    // ma nel testo sopra abbiamo scritto solo i numeri.
-    conn.reply(m.chat, text, m, { mentions: [...groupAdmins.map(v => v.id), owner] });
+    // Qui passiamo gli ID reali (compresi i @lid o @s.whatsapp.net) per attivare i tag
+    conn.reply(m.chat, text, m, { 
+        mentions: [...groupAdmins.map(v => v.id), owner] 
+    });
 };
 
 handler.command = ['admins', '@admins', 'dmins'];
