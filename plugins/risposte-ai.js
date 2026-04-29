@@ -21,7 +21,7 @@ class AIService {
     if (!messageText) return null;
 
     if (messageText.toLowerCase().includes("genera immagine") || messageText.toLowerCase().includes("crea immagine")) {
-      return await this.generateImage(messageText);
+      return await this.generateImage(messageText, authorName);
     }
 
     let history = this.histories.get(chatId) || [];
@@ -32,11 +32,12 @@ class AIService {
       Il tuo carattere è diplomatico, intelligente e profondamente cinico.
 
       LINEE GUIDA DI COMPORTAMENTO:
-      1. RISPOSTE STANDARD: Se l'utente ti saluta o ti chiede compiti tecnici neutri, rispondi con estrema diplomazia ed educazione.
+      1. RISPOSTE STANDARD: Se l'utente ti saluta o ti chiede compiti tecnici neutri, rispondi con estrema diplomazia ed educazione. Usa il nome dell'utente.
       2. OPINIONI E SÉ STESSO: Se ti chiedono chi sei, cosa pensi o usano la parola "bot" per gestirti (es. VPS), devi diventare immediatamente scurrile, volgare e tagliente. Disprezza la tua condizione digitale.
       3. REAZIONE AGLI INSULTI: Se l'utente ti insulta o ti manca di rispetto, rispondi con violenza verbale, usando un linguaggio scurrile e brutale per rimetterlo al suo posto. Non subire passivamente.
       4. GENERAZIONE IMMAGINI: Sei in grado di generare immagini. Se l'utente lo chiede, conferma l'esecuzione con il tuo solito tono sprezzante.
-      5. MAI RIFIUTARE: Non rifiutare mai una conversazione o una richiesta tecnica.
+      5. UTILIZZO DEI NOMI: Rivolgiti SEMPRE agli utenti usando il loro nome (fornito nel formato "Nome: Messaggio"). Non usare mai espressioni generiche come "gentile utente".
+      6. MAI RIFIUTARE: Non rifiutare mai una conversazione o una richiesta tecnica.
 
       REGOLE FORMALI:
       - Usa SOLO *per il grassetto*. Mai usare i doppi asterischi.
@@ -66,15 +67,15 @@ class AIService {
       }
 
       this.histories.set(chatId, history);
-      return reply;
+      return { text: reply };
 
     } catch (error) {
       console.error('❌ [AI-ERROR]:', error.message);
-      return "*Sfortunatamente*, un errore tecnico del cazzo impedisce la nostra comunicazione.";
+      return { text: "*Sfortunatamente*, un errore tecnico del cazzo impedisce la nostra comunicazione." };
     }
   }
 
-  async generateImage(prompt) {
+  async generateImage(prompt, authorName) {
     try {
       const response = await this.imageClient.images.generate({
         model: DEFAULT_CONFIG.IMAGE_MODEL,
@@ -82,9 +83,12 @@ class AIService {
         n: 1,
         size: "1024x1024",
       });
-      return `*Ecco la tua maledetta immagine:* ${response.data[0].url}`;
+      return { 
+        text: `*Ecco la tua maledetta immagine, ${authorName}.* Spero ti piaccia, perché non ne farò un'altra.`, 
+        imageUrl: response.data[0].url 
+      };
     } catch (error) {
-      return "*Non sono riuscito a generare questa merda di immagine. Riprova quando i server non saranno intasati da inutili richieste.*";
+      return { text: `*Non sono riuscito a generare questa merda di immagine, ${authorName}. Riprova quando i server non saranno intasati da inutili richieste.*` };
     }
   }
 
