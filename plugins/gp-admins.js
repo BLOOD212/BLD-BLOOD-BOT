@@ -4,12 +4,14 @@
 const handler = async (m, { conn, participants, groupMetadata, args }) => {
     const groupAdmins = participants.filter(p => p.admin);
     
-    // Usiamo Promise.all perché getName potrebbe essere asincrono in base alla versione
-    const listAdmin = (await Promise.all(groupAdmins.map(async (v, i) => {
-        const name = await conn.getName(v.id);
-        // Se getName fallisce o restituisce l'ID, puliamo comunque per il tag
-        return `✧👑 ${i + 1}. @${v.id.split('@')[0]} (${name})`;
-    }))).join('\n');
+    const listAdmin = groupAdmins
+        .map((v, i) => {
+            // Proviamo a prendere il numero dalla proprietà jid o dall'id stesso
+            // Rimuoviamo ogni carattere non numerico per forzare il numero di telefono
+            let num = v.id.split('@')[0].replace(/\D/g, '');
+            return `✧👑 ${i + 1}. @${num}`;
+        })
+        .join('\n');
 
     const owner = groupMetadata.owner || 
         groupAdmins.find(p => p.admin === 'superadmin')?.id || 
