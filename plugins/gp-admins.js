@@ -11,7 +11,7 @@ const handler = async (m, { conn, participants, groupMetadata, args }) => {
     let pesan = args.join(' ');
     let message = pesan ? pesan : '❌ Nessun messaggio fornito';
 
-    // Costruiamo la lista usando solo i numeri (senza simboli strani tipo i LID)
+    // Lista formattata con lo stile del primo plugin
     const listAdmin = groupAdmins
         .map((v, i) => `✧👑 ${i + 1}. @${v.id.split('@')[0]}`)
         .join('\n');
@@ -30,14 +30,14 @@ const handler = async (m, { conn, participants, groupMetadata, args }) => {
 ╰─────────╯
 `.trim();
 
-    // Usiamo sendMessage con contextInfo per assicurarci che i tag funzionino
+    // Invio con la logica del secondo plugin per attivare i tag
     await conn.sendMessage(m.chat, {
         text: text,
         contextInfo: {
             mentionedJid: [...mentionList, owner],
             externalAdReply: {
-                title: "『 🛎️ 』 𝐈𝐍𝐕𝐎𝐂𝐀𝐍𝐃𝐎 𝐆𝐋𝐈 𝐀𝐃𝐌𝐈𝐍",
-                body: groupMetadata.subject,
+                title: groupMetadata.subject,
+                body: "『 🛎️ 』 invocando i capi mafia",
                 thumbnailUrl: await conn.profilePictureUrl(m.chat, 'image').catch(_ => null) || 'https://telegra.ph/file/0f336691459a936a75f1b.jpg',
                 mediaType: 1,
                 renderLargerThumbnail: false
