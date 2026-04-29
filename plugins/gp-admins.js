@@ -1,33 +1,44 @@
-const handler = async (m, { conn, participants, groupMetadata, args, isOwner, isAdmin }) => {//non dimenticarti di pregare
-    const cooldownInMilliseconds = 18 * 60 * 60 * 1000;
-    if (!isOwner && !isAdmin) {
-        const lastUsed = handler.cooldowns.get(m.sender) || 0;
-        const now = Date.now();
-        if (now - lastUsed < cooldownInMilliseconds) {
-            const timeLeft = cooldownInMilliseconds - (now - lastUsed);
-            const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-            const timeString = `${hours > 0 ? `${hours} ore, ` : ''}${minutes > 0 ? `${minutes} minuti e ` : ''}${seconds} secondi`;
-            await m.reply(`Un altro ancora? sei un po' sospetto uh 🤨`);
-            return;
-        }
-        handler.cooldowns.set(m.sender, now);
-    }
-    const foto = await conn.profilePictureUrl(m.chat, 'image').catch((_) => null) || './media/menu/varebotcoc.jpg';
-    const adminGruppo = participants.filter((p) => p.admin);
-    const mentionList = adminGruppo.map(p => p.id);
-    const messaggioUtente = args.join` `;
-    const testo = `ㅤㅤ⋆｡˚『 🔔 ╭ \`ADMINS\` ╯ 』˚｡⋆\n\n${mentionList.map((jid, index) => `『 *${index + 1}.* 』@${jid.split('@')[0]}`).join('\n')}\n\n『 🍥 』 \`Messaggio:\` » ${messaggioUtente}\n\n> Questo comando può essere eseguito solo se hai qualche problema o è successo qualcosa, se lo usi con altre intenzioni verrai *rimosso* dal gruppo.`.trim();
+//Codice di ADMIN_admins.js
 
+// Plugin fatto da Gabs & 333 Staff
+const handler = async (m, { conn, participants, groupMetadata, args }) => {
+    const groupAdmins = participants.filter(p => p.admin);
+    const mentionList = groupAdmins.map(p => p.id);
+    const owner = groupMetadata.owner || 
+        groupAdmins.find(p => p.admin === 'superadmin')?.id || 
+        `${m.chat.split('-')[0]}@s.whatsapp.net`;
+
+    let pesan = args.join(' ');
+    let message = pesan ? pesan : '❌ Nessun messaggio fornito';
+
+    // Costruiamo la lista usando solo i numeri (senza simboli strani tipo i LID)
+    const listAdmin = groupAdmins
+        .map((v, i) => `✧👑 ${i + 1}. @${v.id.split('@')[0]}`)
+        .join('\n');
+
+    let text = `
+╭─────────╮
+│ ⚠️ 𝐒𝐕𝐄𝐆𝐋𝐈𝐀 𝐀𝐃𝐌𝐈𝐍! 
+━━━━━━━━━━━━━━
+✎ 𝐌𝐄𝐒𝐒𝐀𝐆𝐆𝐈𝐎:
+➥ ${message}
+
+♔ *𝐋𝐈𝐒𝐓𝐀 𝐀𝐃𝐌𝐈𝐍:* ${listAdmin}
+
+━━━━━━━━━━━━━━
+> 𝟥𝟥𝟥 𝔹𝕆𝕋 
+╰─────────╯
+`.trim();
+
+    // Usiamo sendMessage con contextInfo per assicurarci che i tag funzionino
     await conn.sendMessage(m.chat, {
-        text: testo,
+        text: text,
         contextInfo: {
-            mentionedJid: mentionList,
+            mentionedJid: [...mentionList, owner],
             externalAdReply: {
-                title: groupMetadata.subject,
-                body: "『 🛎️ 』 invocando i capi mafia",
-                thumbnailUrl: foto,
+                title: "『 🛎️ 』 𝐈𝐍𝐕𝐎𝐂𝐀𝐍𝐃𝐎 𝐆𝐋𝐈 𝐀𝐃𝐌𝐈𝐍",
+                body: groupMetadata.subject,
+                thumbnailUrl: await conn.profilePictureUrl(m.chat, 'image').catch(_ => null) || 'https://telegra.ph/file/0f336691459a936a75f1b.jpg',
                 mediaType: 1,
                 renderLargerThumbnail: false
             }
@@ -35,15 +46,10 @@ const handler = async (m, { conn, participants, groupMetadata, args, isOwner, is
     }, { quoted: m });
 };
 
-// Inizializza la mappa per i cooldown
-handler.cooldowns = new Map();
-
-handler.help = ['admins <testo>'];
-handler.tags = ['gruppo'];
-handler.command = /^(admins|@admins|admin)$/i;
+handler.command = ['admins', '@admins', 'dmins'];
+handler.tags = ['admin'];
+handler.help = ['admins <messaggio>'];
 handler.group = true;
-
-// Aggiungi la proprietà 'cooldown' al gestore
-handler.cooldown = 18 * 60 * 60 * 1000; // 18 ore
+handler.admin = true;
 
 export default handler;
