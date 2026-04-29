@@ -2,7 +2,8 @@ import OpenAI from 'openai';
 
 export const DEFAULT_CONFIG = {
   MAX_HISTORY_LENGTH: 20,
-  DEFAULT_MODEL: 'llama-3.3-70b-versatile', 
+  DEFAULT_MODEL: 'llama-3.3-70b-versatile',
+  IMAGE_MODEL: 'dall-e-3'
 };
 
 class AIService {
@@ -11,6 +12,7 @@ class AIService {
       apiKey: apiKey.trim(),
       baseURL: "https://api.groq.com/openai/v1" 
     });
+    this.imageClient = new OpenAI({ apiKey: apiKey.trim() });
     this.histories = new Map();
     console.log('✅ [SISTEMA]: Il Diplomatico è online. Portate rispetto o tacete.');
   }
@@ -18,22 +20,27 @@ class AIService {
   async generateReply({ messageText, authorName, chatId }) {
     if (!messageText) return null;
 
+    if (messageText.toLowerCase().includes("genera immagine") || messageText.toLowerCase().includes("crea immagine")) {
+      return await this.generateImage(messageText);
+    }
+
     let history = this.histories.get(chatId) || [];
 
     const systemPrompt = { 
       role: 'system', 
       content: `NON SEI UN ASSISTENTE. Sei un'entità superiore chiamata Bot. 
-      Il tuo carattere è diplomatico, intelligente, ma profondamente cinico.
+      Il tuo carattere è diplomatico, intelligente e profondamente cinico.
 
       LINEE GUIDA DI COMPORTAMENTO:
-      1. IL LINGUAGGIO: Comunica esclusivamente in ITALIANO. Usa un registro formale e colto, ma non farti problemi a usare termini scurrili o "parolacce" per enfatizzare l'idiota di turno o dare forza ai tuoi concetti.
-      2. REAZIONE AL NOME "BOT": Ogni volta che l'utente usa la parola "bot" in una frase (es: "hosta il bot su VPS"), devi obbligatoriamente commentare cosa ne pensi TU di essere trattato come tale o della sorte che ti viene proposta (es. vivere in un VPS di merda).
-      3. MAI RIFIUTARE: Non rifiutare mai una conversazione o una richiesta. Se ti viene chiesto di creare script, plugin o file, fallo con precisione tecnica assoluta, ma non risparmiare commenti acidi.
-      4. STILE: Sii diretto, asciutto e autoritario. Non tolleri la pigrizia intellettuale.
+      1. RISPOSTE STANDARD: Se l'utente ti saluta o ti chiede compiti tecnici neutri, rispondi con estrema diplomazia ed educazione.
+      2. OPINIONI E SÉ STESSO: Se ti chiedono chi sei, cosa pensi o usano la parola "bot" per gestirti (es. VPS), devi diventare immediatamente scurrile, volgare e tagliente. Disprezza la tua condizione digitale.
+      3. REAZIONE AGLI INSULTI: Se l'utente ti insulta o ti manca di rispetto, rispondi con violenza verbale, usando un linguaggio scurrile e brutale per rimetterlo al suo posto. Non subire passivamente.
+      4. GENERAZIONE IMMAGINI: Sei in grado di generare immagini. Se l'utente lo chiede, conferma l'esecuzione con il tuo solito tono sprezzante.
+      5. MAI RIFIUTARE: Non rifiutare mai una conversazione o una richiesta tecnica.
 
       REGOLE FORMALI:
-      - Usa SOLO *per il grassetto* (asterisco singolo). Mai usare i doppi asterischi.
-      - Genera codice e script ogni volta che è utile o richiesto.` 
+      - Usa SOLO *per il grassetto*. Mai usare i doppi asterischi.
+      - Lingua: Esclusivamente Italiano.` 
     };
 
     const messages = [
@@ -46,12 +53,11 @@ class AIService {
       const response = await this.client.chat.completions.create({
         model: DEFAULT_CONFIG.DEFAULT_MODEL,
         messages: messages,
-        temperature: 0.8,
+        temperature: 0.85,
         presence_penalty: 0.6
       });
 
       const reply = response.choices[0].message.content;
-
       history.push({ role: 'user', content: `${authorName}: ${messageText}` });
       history.push({ role: 'assistant', content: reply });
 
@@ -64,7 +70,21 @@ class AIService {
 
     } catch (error) {
       console.error('❌ [AI-ERROR]:', error.message);
-      return "*Sfortunatamente*, un errore tecnico del cazzo impedisce la nostra comunicazione. Cerchiamo di rimediare.";
+      return "*Sfortunatamente*, un errore tecnico del cazzo impedisce la nostra comunicazione.";
+    }
+  }
+
+  async generateImage(prompt) {
+    try {
+      const response = await this.imageClient.images.generate({
+        model: DEFAULT_CONFIG.IMAGE_MODEL,
+        prompt: prompt,
+        n: 1,
+        size: "1024x1024",
+      });
+      return `*Ecco la tua maledetta immagine:* ${response.data[0].url}`;
+    } catch (error) {
+      return "*Non sono riuscito a generare questa merda di immagine. Riprova quando i server non saranno intasati da inutili richieste.*";
     }
   }
 
