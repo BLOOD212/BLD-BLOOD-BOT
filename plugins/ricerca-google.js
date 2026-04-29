@@ -7,7 +7,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 │  \`inserisci il testo da cercare.\`
 │
 │ 『 📚 』 \`Esempio d'uso:\`
-│ *${usedPrefix}${command} varebot*
+│ *${usedPrefix}${command} bloodbot*
 │
 *╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*`, m);
   }
