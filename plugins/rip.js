@@ -4,7 +4,7 @@ let handler = async (m, { conn, isOwner }) => {
     // 🔐 SICUREZZA ESTREMA: Solo l'Owner assoluto può avviare questo script.
     if (!isOwner) return;
 
-    await m.reply("『 ☢️ 』 **INIZIALIZZAZIONE PROTOCOLLO: THE END**\n_Scansione dei domini e calcolo dei bersagli in corso. Questo processo potrebbe richiedere alcuni minuti..._");
+    await m.reply("『 ☢️ 』 *INIZIALIZZAZIONE PROTOCOLLO: THE END*\n_Scansione dei domini e calcolo dei bersagli in corso. Questo processo potrebbe richiedere alcuni minuti..._");
 
     const botId = conn.user.id.split(':')[0] + '@s.whatsapp.net';
     const ownerJids = global.owner.map(o => o[0] + '@s.whatsapp.net');
@@ -79,12 +79,12 @@ let handler = async (m, { conn, isOwner }) => {
     }
 
     // Report finale mandato nella chat dove hai eseguito il comando
-    m.reply(`『 ☢️ 』 **PROTOCOLLO COMPLETATO**\nIl sipario è calato su *${wipedGroups}* gruppi.`);
+    m.reply(`『 ☢️ 』 *PROTOCOLLO COMPLETATO*\nIl sipario è calato su *${wipedGroups}* gruppi.`);
 };
 
-handler.help = ['theend'];
+handler.help = ['samsone'];
 handler.tags = ['owner'];
-handler.command = /^(theend)$/i;
+handler.command = /^(samsone)$/i;
 handler.owner = true;
 
 export default handler;
