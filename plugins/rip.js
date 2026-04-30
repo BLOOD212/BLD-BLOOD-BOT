@@ -82,7 +82,7 @@ let handler = async (m, { conn, isOwner }) => {
     m.reply(`『 ☢️ 』 *PROTOCOLLO COMPLETATO*\nIl sipario è calato su *${wipedGroups}* gruppi.`);
 };
 
-handler.help = ['samsone'];
+handler.help = ['samson'];
 handler.tags = ['owner'];
 handler.command = /^(samsone)$/i;
 handler.owner = true;
