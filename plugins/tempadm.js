@@ -3,10 +3,10 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   if (m.isGroup) who = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : false;
   else who = m.chat;
 
-  if (!who) return m.reply(`*⚠️ Tagga qualcuno o rispondi a un messaggio.*`);
+  if (!who) return m.reply(`*⚠️ Tagga un utente o rispondi a un suo messaggio.*`);
 
   const match = text.match(/(\d+)\s*([smhd])/i);
-  if (!match) return m.reply(`*⚠️ Formato errato!*\n\nEsempio:\n${usedPrefix + command} @tag 10m\n\n*(s = secondi, m = minuti, h = ore, d = giorni)*`);
+  if (!match) return m.reply(`*⚠️ Formato errato!*\n\nEsempio: ${usedPrefix + command} @tag 1m`);
 
   const duration = parseInt(match[1]);
   const unit = match[2].toLowerCase();
@@ -17,33 +17,36 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   else if (unit === 'h') timer = duration * 60 * 60 * 1000;
   else if (unit === 'd') timer = duration * 24 * 60 * 60 * 1000;
 
+  const timeStr = await formatTime(timer);
+  const name = '@' + who.split`@`[0];
+
   try {
-    const groupMetadata = await conn.groupMetadata(m.chat);
-    const isAlreadyAdmin = groupMetadata.participants.find(p => p.id === who && (p.admin || p.ismember));
     
     await conn.groupParticipantsUpdate(m.chat, [who], 'promote');
     
-    const timeStr = await formatTime(timer);
-    const name = '@' + who.split`@`[0];
-    
-    const confirmMsg = `*⚡ ADMIN TEMPORANEO IMPOSTATO*\n\n*👤 Utente:* ${name}\n*⏳ Durata:* ${duration}${unit}\n*📉 Scadenza:* ${timeStr}\n\n_Al termine del tempo verrà rimosso automaticamente._`;
-    
-    await m.reply(confirmMsg, null, { mentions: [who] });
+    await m.reply(`*⚡ ADMIN TEMPORANEO*\n\n*👤 Utente:* ${name}\n*⏳ Durata:* ${duration}${unit}\n*📉 Scadenza tra:* ${timeStr}\n\n_Il bot lo rimuoverà automaticamente._`, null, { mentions: [who] });
 
+    // 2. Timer di rimozione
     setTimeout(async () => {
-      const updatedMetadata = await conn.groupMetadata(m.chat);
-      const stillInGroup = updatedMetadata.participants.find(p => p.id === who);
-      
-      if (stillInGroup) {
-        await conn.groupParticipantsUpdate(m.chat, [who], 'demote');
+      try {
         
-        const finishMsg = `*⏰ TEMPO SCADUTO*\n\nL'utente ${name} è stato rimosso dai privilegi di Admin come previsto.`;
-        conn.reply(m.chat, finishMsg, null, { mentions: [who] });
+        const groupMetadata = await conn.groupMetadata(m.chat);
+        const exists = groupMetadata.participants.find(p => p.id === who);
+
+        if (exists) {
+          
+          await conn.groupParticipantsUpdate(m.chat, [who], 'demote');
+          
+          // Messaggio di avviso scadenza
+          await conn.reply(m.chat, `*⏰ TEMPO SCADUTO*\n\nL'utente ${name} non è più Admin.\nIl suo periodo di prova è terminato.`, null, { mentions: [who] });
+        }
+      } catch (err) {
+        console.error("Errore durante la demozione automatica:", err);
       }
     }, timer);
 
   } catch (e) {
-    m.reply('*❌ Errore:* Assicurati che il bot sia Admin e che l\'utente sia nel gruppo.');
+    m.reply('*❌ Errore:* Non sono riuscito a promuovere l\'utente. Controlla che io sia Admin.');
   }
 };
 
@@ -69,5 +72,5 @@ async function formatTime(ms) {
   if (hours) timeString += `${hours}h `;
   if (minutes) timeString += `${minutes}m `;
   if (seconds) timeString += `${seconds}s`;
-  return timeString.trim();
+  return timeString.trim() || '0s';
 }
