@@ -21,7 +21,7 @@ export async function before(m, { conn, isAdmin, isBotAdmin, isOwner, isSam }) {
   const hasNormalMedia =
     !!m.message?.imageMessage ||
     !!m.message?.videoMessage
-  
+
   if (!hasNormalMedia) return false
 
   // Esecuzione eliminazione
@@ -39,7 +39,7 @@ export async function before(m, { conn, isAdmin, isBotAdmin, isOwner, isSam }) {
   // Messaggio estetico BLD-BLOOD
   const header = `⋆｡˚『 ╭ \`ANTIMEDIA SYSTEM\` ╯ 』˚｡⋆`
   const footer = `╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒`
-  
+
   const text = `${header}
 ╭
 ┃ 🛡️ \`Stato:\` *Protocollo Blood Attivo*
@@ -70,4 +70,4 @@ export async function before(m, { conn, isAdmin, isBotAdmin, isOwner, isSam }) {
   return true
 }
 
-export { before as handler }
+export const handler = { before }
