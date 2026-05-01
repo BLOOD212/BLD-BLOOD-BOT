@@ -7,7 +7,7 @@ const handler = m => m;
 handler.before = async function (m, { conn, isAdmin, isBotAdmin, isOwner, isSam }) {
     if (!m.isGroup) return;
     const chat = global.db.data.chats[m.chat] || {};
-    
+
     // Filtri di esclusione
     if (!chat.antispam || chat.modoadmin || isOwner || isSam || isAdmin || !isBotAdmin) return;
     if (m.message?.viewOnceMessage) return;
@@ -41,7 +41,7 @@ handler.before = async function (m, { conn, isAdmin, isBotAdmin, isOwner, isSam 
 
     const messageContent = getMessageContent(m);
     if (['unknown_message_type', 'error_parsing_message'].includes(messageContent)) return;
-    
+
     const contentHash = crypto.createHash('md5').update(messageContent).digest('hex');
 
     userData.timestamps.push(msgTimestamp);
@@ -71,7 +71,7 @@ handler.before = async function (m, { conn, isAdmin, isBotAdmin, isOwner, isSam 
             try {
                 uzer.delete(decodedSender);
                 const typeSanz = duplicateCount >= 4 ? `SPAM DUPLICATI (${duplicateCount + 1}x)` : `FLOOD RAPIDO (${averageTime.toFixed(0)}ms)`;
-                
+
                 const header = `⋆｡˚『 ╭ \`ANTISPAM SYSTEM\` ╯ 』˚｡⋆`;
                 const footer = `╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒`;
 
