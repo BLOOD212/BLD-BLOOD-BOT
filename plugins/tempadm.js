@@ -3,33 +3,22 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   if (m.isGroup) who = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : false;
   else who = m.chat;
 
-  const usage = `*⚠️ Utilizzo:* ${usedPrefix + command} @tag [tempo] [unità]\n\n*Esempio:* ${usedPrefix + command} @user 30 m\n*(s = secondi, m = minuti, h = ore, d = giorni)*`;
-  
-  if (!who || !text) return m.reply(usage);
+  if (!who) return m.reply(`*⚠️ Tagga qualcuno o rispondi a un messaggio.*`);
 
-  const args = text.trim().split(/\s+/);
-  let duration = parseInt(args[1]);
-  let unit = args[2] ? args[2].toLowerCase() : 'h';
+  const match = text.match(/(\d+)\s*([smhd])/i);
+  if (!match) return m.reply(`*⚠️ Formato errato!*\n\nEsempio:\n${usedPrefix + command} @tag 10m\n\n*(s = secondi, m = minuti, h = ore, d = giorni)*`);
 
-  if (isNaN(duration)) {
-    const match = text.match(/(\d+)([smhd])/i);
-    if (match) {
-      duration = parseInt(match[1]);
-      unit = match[2].toLowerCase();
-    } else {
-      return m.reply(usage);
-    }
-  }
-
-  const user = global.db.data.users[who];
-  if (!user) return m.reply(`*❌ Errore:* Utente non presente nel database.`);
+  const duration = parseInt(match[1]);
+  const unit = match[2].toLowerCase();
 
   let timer;
   if (unit === 's') timer = duration * 1000;
   else if (unit === 'm') timer = duration * 60 * 1000;
-  else if (unit === 'h') timer = duration * 3600 * 1000;
-  else if (unit === 'd') timer = duration * 86400 * 1000;
-  else timer = duration * 3600 * 1000;
+  else if (unit === 'h') timer = duration * 60 * 60 * 1000;
+  else if (unit === 'd') timer = duration * 24 * 60 * 60 * 1000;
+
+  const user = global.db.data.users[who];
+  if (!user) return m.reply(`*❌ Errore:* Utente non presente nel database.`);
 
   try {
     await conn.groupParticipantsUpdate(m.chat, [who], 'promote');
@@ -43,18 +32,20 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
     setTimeout(async () => {
       const groupMetadata = await conn.groupMetadata(m.chat);
-      const isStillAdmin = groupMetadata.participants.find(p => p.id === who && (p.admin || p.ismember));
+      const isStillAdmin = groupMetadata.participants.find(p => p.id === who && p.admin);
 
-      await conn.groupParticipantsUpdate(m.chat, [who], 'demote');
-      conn.reply(m.chat, `*⏰ Tempo scaduto!*\nL'utente ${name} è tornato un utente comune.`, null, { mentions: [who] });
+      if (isStillAdmin) {
+        await conn.groupParticipantsUpdate(m.chat, [who], 'demote');
+        conn.reply(m.chat, `*⏰ Tempo scaduto!*\nL'utente ${name} non è più admin.`, null, { mentions: [who] });
+      }
     }, timer);
 
   } catch (e) {
-    m.reply('*❌ Errore:* Verifica che il bot sia admin e che l\'utente sia nel gruppo.');
+    m.reply('*❌ Errore:* Assicurati che il bot sia admin.');
   }
 };
 
-handler.help = ['tempadm @user <tempo> <s/m/h/d>'];
+handler.help = ['tempadm @user <tempo>'];
 handler.tags = ['group'];
 handler.command = ['tempadm', 'tempadmin'];
 handler.group = true;
