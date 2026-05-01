@@ -1,35 +1,49 @@
 const handler = async (m, { conn, command }) => {
-  let groups = [];
+  m.reply('⏳ Recupero della lista completa...');
+
+  let groups;
   try {
-    const data = await conn.groupFetchAllParticipating();
-    groups = Object.values(data);
+    groups = await conn.groupFetchAllParticipating();
   } catch (e) {
-    groups = Object.values(conn.chats).filter(v => v.id.endsWith('@g.us') && v.read_only === false);
+    return m.reply('❌ Errore nel recupero dei gruppi.');
   }
 
-  if (!groups.length) return m.reply('⚠️ Nessun gruppo trovato.');
+  const jids = Object.keys(groups);
+  if (!jids.length) return m.reply('⚠️ Nessun gruppo trovato.');
 
   const isClose = command === 'chiusogp';
   const action = isClose ? 'announcement' : 'not_announcement';
   
-  m.reply(`⏳ Elaborazione di ${groups.length} gruppi...`);
+  m.reply(`🚀 Operazione su ${jids.length} gruppi in corso...`);
 
   let success = 0;
   let failed = 0;
 
-  for (let group of groups) {
-    const jid = group.id || group.jid;
+  for (let jid of jids) {
     try {
-      await conn.groupSettingUpdate(jid, action);
-      success++;
+      const metadata = groups[jid];
+      const participants = metadata.participants || [];
+      const botNumber = conn.user.jid || conn.user.id.split(':')[0] + '@s.whatsapp.net';
+      const isBotAdmin = participants.some(p => p.id === botNumber && (p.admin === 'admin' || p.admin === 'superadmin'));
+
+      if (isBotAdmin) {
+        await conn.groupSettingUpdate(jid, action);
+        success++;
+      } else {
+        failed++;
+      }
+      
+      await new Promise(res => setTimeout(res, 3500));
+
     } catch (e) {
       failed++;
-      console.error(`Errore su ${jid}:`, e.message);
+      if (e.message.includes('rate-overlimit')) {
+        await new Promise(res => setTimeout(res, 10000));
+      }
     }
-    await new Promise(res => setTimeout(res, 1000));
   }
 
-  m.reply(`✅ Fine.\n\n🟢 Riusciti: ${success}\n🔴 Falliti: ${failed}\n\nNota: Se sono falliti, controlla che il bot sia ADMIN.`);
+  m.reply(`✅ Operazione conclusa.\n\n🟢 Riusciti: ${success}\n🔴 Falliti: ${failed}`);
 };
 
 handler.help = ['chiusogp', 'apertogp'];
