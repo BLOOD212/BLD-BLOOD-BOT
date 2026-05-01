@@ -17,24 +17,12 @@ let handler = async (m, { text, usedPrefix, command, __dirname, conn }) => {
   let option = args[1] ? args[1].toLowerCase() : null
 
   if (!option) {
-    const buttons = [
-        {
-            name: 'quick_reply',
-            buttonParamsJson: JSON.stringify({ display_text: '📄 FILE', id: `${usedPrefix + command} ${fileArg} file` })
-        },
-        {
-            name: 'quick_reply',
-            buttonParamsJson: JSON.stringify({ display_text: '📝 SCRIPT', id: `${usedPrefix + command} ${fileArg} script` })
-        }
-    ];
-
-    return await conn.sendMessage(m.chat, {
-        text: `Come desideri ricevere il plugin: *${fileArg}*?`,
-        footer: '𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙',
-        buttons: buttons,
-        headerType: 1,
-        viewOnce: true
-    }, { quoted: m });
+    let messaggio = `Come desideri ricevere il plugin *${fileArg}*?\n\n`
+    messaggio += `Scrivi:\n`
+    messaggio += `*${usedPrefix + command} ${fileArg} file* (Documento)\n`
+    messaggio += `*${usedPrefix + command} ${fileArg} script* (Testo)`
+    
+    return m.reply(messaggio)
   }
 
   let isPlugin = /p(lugin)?/i.test(command)
@@ -90,7 +78,7 @@ let handler = async (m, { text, usedPrefix, command, __dirname, conn }) => {
       if (error) await m.reply(`⛔️ Errore sintassi in *${filename}*:\n\n${error}`)
     }
   } catch (err) {
-    await m.reply(`❌ Errore: Il file *${filename}* non esiste.`)
+    await m.reply(`❌ Errore: Il file *${filename}* non esiste o non può essere letto.`)
   }
 }
 
