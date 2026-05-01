@@ -5,21 +5,24 @@ import path from 'path'
 const _fs = fs.promises
 
 let handler = async (m, { text, usedPrefix, command, __dirname, conn }) => {
-  if (!text) throw `
-> Utilizzo: ${usedPrefix + command} <nome file/percorso> (file/script)
-Esempi:
-  ${usedPrefix}getplugin menu-gruppo file
-  ${usedPrefix}getplugin menu-gruppo script
-  ${usedPrefix}getfile config.js file
-  ${usedPrefix}getfile config.js script
-  `.trim()
+  // 1. Se non scrive nulla, mostra la lista dei plugin
+  if (!text) {
+    let files = await _fs.readdir(__dirname)
+    let plugins = files.filter(f => f.endsWith('.js'))
+    let list = plugins.map((v, i) => `${i + 1}. ${v.replace('.js', '')}`).join('\n')
+    return m.reply(`*LISTA PLUGIN DISPONIBILI*\n\n${list}\n\n> Scrivi *${usedPrefix + command} [nome]* per selezionarne uno.`)
+  }
 
   const args = text.split(' ')
-  if (args.length < 2) throw '❌ Devi specificare "file" o "script".'
-  const option = args[1].toLowerCase()
+  let fileArg = args[0]
+  let option = args[1] ? args[1].toLowerCase() : null
+
+  // 2. Se specifica il plugin ma non l'opzione (file/script)
+  if (!option) {
+    return m.reply(`Come desideri ricevere il plugin *${fileArg}*?\n\nScrivi:\n*${usedPrefix + command} ${fileArg} file* (Invia come documento)\n*${usedPrefix + command} ${fileArg} script* (Invia come testo in chat)`)
+  }
 
   let isPlugin = /p(lugin)?/i.test(command)
-  let fileArg = args[0]
   let filename, pathFile
 
   if (isPlugin) {
@@ -65,6 +68,7 @@ Esempi:
       throw '❌ Opzione non valida! Usa "file" o "script".'
     }
 
+    // Controllo errori di sintassi
     if (isJS) {
       const error = syntaxError(fileContent, filename, {
         sourceType: 'module',
@@ -72,15 +76,15 @@ Esempi:
         allowAwaitOutsideFunction: true
       })
       if (error) {
-        await m.reply(`⛔️ Errore in *${filename}*:\n\n${error}`.trim())
+        await m.reply(`⛔️ Errore di sintassi in *${filename}*:\n\n${error}`.trim())
       }
     }
   } catch (err) {
-    await m.reply(`❌ Errore: Il file *${filename}* non esiste o non può essere letto.\n${err}`)
+    await m.reply(`❌ Errore: Il file *${filename}* non esiste o non può essere letto.`)
   }
 }
 
-handler.help = ['getplugin <nome file> (file/script)', 'getfile <percorso file> (file/script)']
+handler.help = ['getplugin', 'getplugin <nome> (file/script)']
 handler.tags = ['owner']
 handler.command = /^g(et)?(p(lugin)?|f(ile)?)$/i
 handler.rowner = true
