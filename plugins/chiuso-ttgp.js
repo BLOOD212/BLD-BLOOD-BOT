@@ -1,35 +1,35 @@
 const handler = async (m, { conn, command }) => {
-  m.reply('⏳ Recupero della lista completa dei gruppi...');
-
-  let groups;
+  let groups = [];
   try {
-    groups = await conn.groupFetchAllParticipating();
+    const data = await conn.groupFetchAllParticipating();
+    groups = Object.values(data);
   } catch (e) {
-    return m.reply('❌ Errore nel recupero dei gruppi.');
+    groups = Object.values(conn.chats).filter(v => v.id.endsWith('@g.us') && v.read_only === false);
   }
 
-  const jids = Object.keys(groups);
-
-  if (!jids.length)
-    return m.reply('⚠️ Non sono stato trovato in nessun gruppo.');
+  if (!groups.length) return m.reply('⚠️ Nessun gruppo trovato.');
 
   const isClose = command === 'chiusogp';
   const action = isClose ? 'announcement' : 'not_announcement';
   
-  m.reply(`${isClose ? '🔒 Chiusura' : '🔓 Apertura'} di ${jids.length} gruppi in corso...`);
+  m.reply(`⏳ Elaborazione di ${groups.length} gruppi...`);
 
-  let count = 0;
-  for (let jid of jids) {
+  let success = 0;
+  let failed = 0;
+
+  for (let group of groups) {
+    const jid = group.id || group.jid;
     try {
       await conn.groupSettingUpdate(jid, action);
-      count++;
-      await new Promise(res => setTimeout(res, 1500));
+      success++;
     } catch (e) {
-      console.log(`Fallito su ${jid}: bot non admin o errore sessione.`);
+      failed++;
+      console.error(`Errore su ${jid}:`, e.message);
     }
+    await new Promise(res => setTimeout(res, 1000));
   }
 
-  m.reply(`✅ Operazione terminata.\nGruppi elaborati con successo: ${count}/${jids.length}`);
+  m.reply(`✅ Fine.\n\n🟢 Riusciti: ${success}\n🔴 Falliti: ${failed}\n\nNota: Se sono falliti, controlla che il bot sia ADMIN.`);
 };
 
 handler.help = ['chiusogp', 'apertogp'];
