@@ -11,9 +11,8 @@ let handler = async (m, { conn }) => {
     .sort(([, a], [, b]) => b.conteggio - a.conteggio)
     .slice(0, 5);
 
-  let report = `╔════════════════════╗\n`;
-  report += `║  📊 *STATS IN TEMPO REALE* ║\n`;
-  report += `╚════════════════════╝\n\n`;
+  let report = `📊 *STATISTICHE IN TEMPO REALE* 📊\n`;
+  report += `──────────────────\n\n`;
   report += `💬 Messaggi totali: *${dati.totali}*\n\n`;
   report += `🏆 *TOP PARLATORI:* \n`;
 
@@ -30,16 +29,18 @@ let handler = async (m, { conn }) => {
 
 // --- REGISTRAZIONE MESSAGGI (OTTIMIZZATA PER SPAM E STICKER) ---
 handler.before = async function (m) {
+  // Rimosso il controllo m.text per permettere il conteggio di sticker, immagini e spam
   if (!m.chat || m.isBaileys || !m.isGroup) return; 
 
   if (!global.db.data.chats[m.chat]) global.db.data.chats[m.chat] = {};
   if (!global.db.data.chats[m.chat].statsGiornaliere) {
-    global.db.data.chats[m.chat].statsGiornaliere = { totali: 0, utenti: {}, data: new Date().toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' }) };
+    global.db.data.chats[m.chat].statsGiornaliere = { totali: 0, utenti: {}, data: new Date().toLocaleDateString('it-IT') };
   }
 
   let stats = global.db.data.chats[m.chat].statsGiornaliere;
-  let oggi = new Date().toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' });
+  let oggi = new Date().toLocaleDateString('it-IT');
 
+  // Se la data è diversa, il reset avverrà tramite l'intervallo, ma evitiamo di scrivere dati sporchi
   if (stats.data !== oggi) {
       stats.data = oggi;
       stats.totali = 0;
@@ -57,11 +58,10 @@ handler.before = async function (m) {
 // --- AUTOMAZIONE MEZZANOTTE CON TAG E PREMI ---
 let isResetting = false; 
 setInterval(async () => {
-    let d = new Date();
-    let oraItaliana = parseInt(d.toLocaleString('it-IT', { hour: '2-digit', hour12: false, timeZone: 'Europe/Rome' }));
-    let minutiItaliani = parseInt(d.toLocaleString('it-IT', { minute: '2-digit', timeZone: 'Europe/Rome' }));
+    let ora = new Date().getHours();
+    let minuti = new Date().getMinutes();
 
-    if (oraItaliana === 0 && minutiItaliani === 0 && !isResetting) {
+    if (ora === 0 && minuti === 0 && !isResetting) {
         isResetting = true; 
         let chats = global.db.data.chats;
 
@@ -75,12 +75,10 @@ setInterval(async () => {
 
             if (classifica.length === 0) continue;
 
-            let reportFinal = `╔════════════════════╗\n`;
-            reportFinal += `║  🕒 *RESOCONTO GIORNALIERO* ║\n`;
-            reportFinal += `╚════════════════════╝\n\n`;
-            reportFinal += `📊 *Attività Totale:* \`${dati.totali}\` messaggi\n`;
-            reportFinal += `📅 *Data:* ${dati.data}\n\n`;
-            reportFinal += `┏━━━ *🏆 IL PODIO DI OGGI* ━━━┓\n\n`;
+            let reportFinal = `🌙 *RESOCONTO FINALE DELLA GIORNATA* 🌙\n`;
+            reportFinal += `──────────────────\n\n`;
+            reportFinal += `📊 Totale messaggi: *${dati.totali}*\n\n`;
+            reportFinal += `🏆 *PODIO E PREMI:* \n`;
 
             const medaglie = ['🥇', '🥈', '🥉'];
             const premi = [1000, 500, 250]; 
@@ -91,16 +89,14 @@ setInterval(async () => {
                 mentions.push(jid);
 
                 if (!global.db.data.users[jid]) global.db.data.users[jid] = { money: 0 };
-                global.db.data.users[jid].money += premio;
+                global.db.data.users[jid].money += (global.db.data.users[jid].money || 0) + premio;
 
-                reportFinal += `${medaglie[i]} *@${jid.split('@')[0]}*\n`;
-                reportFinal += `┇ 💬 *Msgs:* ${u.conteggio}\n`;
-                reportFinal += `┇ 💰 *Premio:* +$${premio}\n`;
-                reportFinal += `┗━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+                reportFinal += `${medaglie[i]} @${jid.split('@')[0]}\n`;
+                reportFinal += `   └─ 💬 ${u.conteggio} messaggi | 💰 +$${premio}\n\n`;
             });
 
-            reportFinal += `✨ *I premi sono stati accreditati!*\n`;
-            reportFinal += `🔄 _Statistiche resettate per il nuovo giorno._`;
+            reportFinal += `──────────────────\n`;
+            reportFinal += `✨ *Premi accreditati. Il database è stato resettato!*`;
 
             try {
                 if (global.conn) {
@@ -116,10 +112,10 @@ setInterval(async () => {
             chats[gid].statsGiornaliere = { 
                 totali: 0, 
                 utenti: {}, 
-                data: new Date().toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' }) 
+                data: new Date().toLocaleDateString('it-IT') 
             };
         }
-    } else if (minutiItaliani !== 0) {
+    } else if (minuti !== 0) {
         isResetting = false; 
     }
 }, 30000); 
