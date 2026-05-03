@@ -1,5 +1,5 @@
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
-process.setMaxListeners(0); 
+Process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
+process.setMaxListeners(0); // FIX: Memory Leak warning
 
 import './config.js';
 import { createRequire } from 'module';
@@ -73,7 +73,6 @@ global.__require = function require(dir = import.meta.url) {
 global.API = (name, path = '/', query = {}, apikeyqueryname) => (name in global.APIs ? global.APIs[name] : name) + path + (query || apikeyqueryname ? '?' + new URLSearchParams(Object.entries({ ...query, ...(apikeyqueryname ? { [apikeyqueryname]: global.APIKeys[name in global.APIs ? global.APIs[name] : name] } : {}) })) : '');
 global.timestamp = { start: new Date };
 const __dirname = global.__dirname(import.meta.url);
-
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
 global.prefix = new RegExp('^[' + (opts['prefix'] || '*/!#$%+£¢€¥^°=¶∆×÷π√✓©®&.\\-.@').replace(/[|\\{}()[\]^$+*.\-\^]/g, '\\$&') + ']');
 global.db = new Low(/https?:\/\//.test(opts['db'] || '') ? new JSONFile('database.json') : new JSONFile('database.json'));
@@ -141,7 +140,7 @@ if (!methodCodeQR && !methodCode && !fs.existsSync(`./${authFile}/creds.json`)) 
         const codice = chalk.bold.white(' └─⭓ 2. Codice di 8 cifre');
         
         opzione = await question(`\n${color1('╭━━━━━━━━━━━━━• ✧˚💎 𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙 💠˚✧ •━━━━━━━━━━━━━')}\n          ${sm}\n${linea}\n${qr}\n${codice}\n${linea}\n⌯ Inserisci scelta: `);
-    } while (opzione !== '1' && opzione !== '2');
+    } while ((opzione !== '1' && opzione !== '2') || fs.existsSync(`./${authFile}/creds.json`));
 }
 
 const filterStrings = ["Q2xvc2luZyBzdGFsZSBvcGVu", "Q2xvc2luZyBvcGVuIHNlc3Npb24=", "RmFpbGVkIHRvIGRlY3J5cHQ="];
@@ -158,17 +157,18 @@ global.store = makeInMemoryStore({ logger });
 const connectionOptions = {
     logger: logger,
     mobile: MethodMobile,
-    browser: opzione === '1' ? Browsers.windows('Chrome') : Browsers.macOS('Safari'),
+    browser: opzione === '1' ? Browsers.windows('Chrome') : methodCodeQR ? Browsers.windows('Chrome') : Browsers.macOS('Safari'),
     auth: {
         creds: state.creds,
         keys: makeCacheableSignalKeyStore(state.keys, logger),
     },
     connectTimeoutMs: 90000, 
     defaultQueryTimeoutMs: 0,
-    keepAliveIntervalMs: 30000, 
+    keepAliveIntervalMs: 30000, // FIX: Heartbeat interno Baileys
     markOnlineOnConnect: true,
     generateHighQualityLinkPreview: true,
     syncFullHistory: false,
+
     decodeJid: (jid) => {
         if (!jid) return jid;
         const cached = global.jidCache.get(jid);
@@ -190,10 +190,10 @@ const connectionOptions = {
     },
     getMessage: async (key) => {
         try {
-            const jid = jidNormalizedUser(key.remoteJid);
+            const jid = global.conn.decodeJid(key.remoteJid);
             const msg = await global.store.loadMessage(jid, key.id);
             return msg?.message || undefined;
-        } catch { return undefined; }
+        } catch (error) { return undefined; }
     },
     msgRetryCounterCache,
     msgRetryCounterMap,
@@ -203,7 +203,7 @@ const connectionOptions = {
 
 global.conn = makeWASocket(connectionOptions);
 
-// HEARTBEAT SYSTEM ATTIVO OGNI 30 SECONDI
+// FIX: HEARTBEAT SYSTEM (Mantiene il bot sveglio ogni 30 secondi)
 setInterval(async () => {
     if (global.conn && global.conn.user) {
         try {
@@ -216,54 +216,92 @@ global.store.bind(global.conn.ev);
 
 if (!fs.existsSync(`./${authFile}/creds.json`)) {
     if (opzione === '2' || methodCode) {
+        opzione = '2';
         if (!conn.authState.creds.registered) {
-            let addNumber = phoneNumber ? phoneNumber.replace(/[^0-9]/g, '') : (await question(chalk.cyan('Inserisci numero WhatsApp: '))).replace(/\D/g, '');
+            let addNumber;
+            if (phoneNumber) {
+                addNumber = phoneNumber.replace(/[^0-9]/g, '');
+            } else {
+                phoneNumber = await question(chalk.bgCyan(chalk.bold.black(` Inserisci il numero di WhatsApp (+39...) `)) + chalk.bold.cyan('\n ━━► '));
+                addNumber = phoneNumber.replace(/\D/g, '');
+            }
             setTimeout(async () => {
                 let codeBot = await conn.requestPairingCode(addNumber, 'BLOODBOT');
-                console.log(chalk.bold.black(chalk.bgCyan(' CODICE DI ABBINAMENTO: ')), chalk.bold.cyanBright(codeBot?.match(/.{1,4}/g)?.join("-") || codeBot));
+                codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
+                console.log(chalk.bold.black(chalk.bgCyan(' CODICE DI ABBINAMENTO: ')), chalk.bold.cyanBright(codeBot));
             }, 3000);
         }
     }
 }
 
 conn.isInit = false;
+conn.well = false;
+
 async function bysamakavare() {
-    try { await global.conn.newsletterFollow('120363418582531215@newsletter'); } catch (e) {}
+    try {
+        const mainChannelId = global.IdCanale?.[0] || '120363418582531215@newsletter';
+        await global.conn.newsletterFollow(mainChannelId);
+    } catch (error) {}
 }
 
 if (!opts['test']) {
     if (global.db) setInterval(async () => {
         if (global.db.data) await global.db.write();
         if (opts['autocleartmp']) {
-            const tmp = [tmpdir(), 'tmp'];
+            const tmp = [tmpdir(), 'tmp', "varebot-sub"];
             tmp.forEach(filename => spawn('find', [filename, '-amin', '2', '-type', 'f', '-delete']));
         }
     }, 30 * 1000);
 }
 
+if (opts['server']) (await import('./server.js')).default(global.conn, PORT);
+
 async function connectionUpdate(update) {
     const { connection, lastDisconnect, isNewLogin, qr } = update;
     global.stopped = connection;
     if (isNewLogin) conn.isInit = true;
+    
+    const code = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode;
+    if (code && code !== DisconnectReason.loggedOut) {
+        await global.reloadHandler(true).catch(console.error);
+        global.timestamp.connect = new Date;
+    }
+    
+    if (global.db.data == null) loadDatabase();
+    
     if (qr && (opzione === '1' || methodCodeQR) && !global.qrGenerated) {
         console.log(chalk.bold.cyan(`\n 🌀 SCANSIONA IL CODICE QR 🌀`));
         global.qrGenerated = true;
     }
+    
     if (connection === 'open') {
         global.qrGenerated = false;
+        global.connectionMessagesPrinted = {};
         if (!global.isLogoPrinted) {
-            console.log(chalk.bold.cyan('\n[SISTEMA]: Connessione stabilita. Blood-Bot è Online.'));
+            const logoColors = ['#00F2FE', '#00E3FE', '#00D4FE', '#00C5FE', '#00B6FE'];
+            const varebot = [
+                `██████╗ ██╗      ██████╗  ██████╗ ██████╗ `,
+                `██╔══██╗██║     ██╔═══██╗██╔═══██╗██╔══██╗`,
+                `██████╔╝██║     ██║   ██║██║   ██║██║  ██║`,
+                `██╔══██╗██║     ██║   ██║██║   ██║██║  ██║`,
+                `██████╔╝███████╗╚██████╔╝╚██████╔╝██████╔╝`,
+                `╚═════╝ ╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝ `
+            ];
+            varebot.forEach((line, i) => console.log(chalk.hex(logoColors[i] || '#005CFE').bold(line)));
             global.isLogoPrinted = true;
             await bysamakavare();
         }
     }
+
     if (connection === 'close') {
         const reason = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode;
-        if (reason !== DisconnectReason.loggedOut) {
-            await global.reloadHandler(true).catch(console.error);
-        } else {
-            console.log(chalk.red('\n⚠️ DISCONNESSO. Elimina la sessione e riavvia.'));
+        if (reason === DisconnectReason.loggedOut) {
+            console.log(chalk.bold.redBright(`\n⚠️ DISCONNESSO. Sessione eliminata.`));
+            if (fs.existsSync(global.authFile)) fs.rmSync(global.authFile, { recursive: true, force: true });
             process.exit(1);
+        } else {
+            console.log(chalk.yellow(`\n[CONNESSIONE]: Chiusa (${reason}). Riconnessione...`));
+            await global.reloadHandler(true).catch(console.error);
         }
     }
 }
@@ -272,14 +310,23 @@ process.on('uncaughtException', console.error);
 
 async function connectSubBots() {
     const subBotDirectory = './varebot-sub';
-    if (!existsSync(subBotDirectory)) return;
+    if (!existsSync(subBotDirectory)) {
+        try { mkdirSync(subBotDirectory, { recursive: true }); } catch (err) {}
+        return;
+    }
     try {
         const subBotFolders = readdirSync(subBotDirectory).filter(file => statSync(join(subBotDirectory, file)).isDirectory());
         for (const folder of subBotFolders) {
             const subAuthFile = join(subBotDirectory, folder);
             if (existsSync(join(subAuthFile, 'creds.json'))) {
                 const { state: subState, saveCreds: subSaveCreds } = await useMultiFileAuthState(subAuthFile);
-                const subConn = makeWASocket({ ...connectionOptions, auth: subState });
+                const subConn = makeWASocket({
+                    ...connectionOptions,
+                    auth: {
+                        creds: subState.creds,
+                        keys: makeCacheableSignalKeyStore(subState.keys, logger),
+                    },
+                });
                 subConn.ev.on('creds.update', subSaveCreds);
                 subConn.ev.on('connection.update', connectionUpdate);
                 global.conns.push(subConn);
@@ -289,8 +336,10 @@ async function connectSubBots() {
 }
 
 (async () => {
+    global.conns = [];
     conn.ev.on('connection.update', connectionUpdate);
     conn.ev.on('creds.update', saveCreds);
+    console.log(chalk.bold.hex('#00F2FE')(`\n⭑⭒━━━✦❘༻☾⋆⁺₊✧ 𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙 ONLINE ✧₊⁺⋆☽༺❘✦━━━⭒⭑\n`));
     await connectSubBots();
 })();
 
@@ -298,7 +347,7 @@ let isInit = true;
 let handler = await import('./handler.js');
 global.reloadHandler = async function (restatConn) {
     try {
-        const Handler = await import(`./handler.js?update=${Date.now()}`);
+        const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error);
         if (Object.keys(Handler || {}).length) handler = Handler;
     } catch (e) { console.error(e); }
     if (restatConn) {
@@ -330,14 +379,16 @@ async function filesInit() {
         } catch (e) { delete global.plugins[filename]; }
     }
 }
-filesInit().then(() => console.log(chalk.green('✓ Plugin caricati.')));
+filesInit().then(() => console.log(chalk.green('✓ Plugin caricati.'))).catch(console.error);
 
 global.reload = async (_ev, filename) => {
     if (pluginFilter(filename)) {
         const dir = global.__filename(join(pluginFolder, filename), true);
         if (existsSync(dir)) {
-            const module = await import(`${pathToFileURL(dir).href}?update=${Date.now()}`);
-            global.plugins[filename] = module.default || module;
+            try {
+                const module = (await import(`${pathToFileURL(dir).href}?update=${Date.now()}`));
+                global.plugins[filename] = module.default || module;
+            } catch (e) { console.error(`Errore ricaricando ${filename}`); }
         } else {
             delete global.plugins[filename];
         }
@@ -345,16 +396,51 @@ global.reload = async (_ev, filename) => {
 };
 
 const pluginWatcher = watch(pluginFolder, global.reload);
-pluginWatcher.setMaxListeners(0);
+pluginWatcher.setMaxListeners(0); // FIX: Memory leak sul watcher
 
 await global.reloadHandler();
 
-setInterval(async () => {
-    if (!global.conn || !global.conn.user) return;
-    const tmpDir = join(__dirname, 'tmp');
-    if (existsSync(tmpDir)) readdirSync(tmpDir).forEach(f => unlinkSync(join(tmpDir, f)));
-}, 1000 * 60 * 60);
+async function _quickTest() {
+    const test = await Promise.all([
+        spawn('ffmpeg'), spawn('ffprobe'), spawn('convert'), spawn('magick'), spawn('gm'), spawn('find', ['--version']),
+    ].map((p) => {
+        return Promise.race([
+            new Promise((resolve) => { p.on('close', (code) => resolve(code !== 127)); }),
+            new Promise((resolve) => { p.on('error', (_) => resolve(false)); })
+        ]);
+    }));
+    const [ffmpeg, ffprobe, convert, magick, gm, find] = test;
+    global.support = { ffmpeg, ffprobe, convert, magick, gm, find };
+}
 
-conn.ev.on('connection.update', (update) => {
+function clearDirectory(dirPath) {
+    if (!existsSync(dirPath)) return;
+    readdirSync(dirPath).forEach(file => {
+        try { rmSync(join(dirPath, file), { recursive: true, force: true }); } catch (e) {}
+    });
+}
+
+function purgeSession(sessionDir) {
+    if (!existsSync(sessionDir)) return;
+    readdirSync(sessionDir).forEach(file => {
+        if (file !== 'creds.json') {
+            try { unlinkSync(join(sessionDir, file)); } catch (e) {}
+        }
+    });
+}
+
+setInterval(async () => {
+    clearDirectory(join(__dirname, 'tmp'));
+}, 3600000);
+
+_quickTest();
+
+let filePath = fileURLToPath(import.meta.url);
+const mainWatcher = watch(filePath, async () => {
+  await global.reloadHandler(true).catch(console.error);
+});
+mainWatcher.setMaxListeners(0);
+
+conn.ev.on('connection.update', async (update) => {
     if (update.connection === 'open') ripristinaTimer(conn);
 });
