@@ -1,4 +1,4 @@
-Process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
+process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
 process.setMaxListeners(0); // FIX: Memory Leak warning
 
 import './config.js';
