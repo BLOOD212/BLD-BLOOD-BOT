@@ -1,69 +1,68 @@
 import { downloadContentFromMessage } from '@realvare/based'
+import { fileTypeFromBuffer } from 'file-type'
 
-let handler = async (m, { conn }) => {
+const isViewOnceQuoted = (quoted) => {
+    return quoted?.viewOnce === true ||
+           quoted?.message?.viewOnceMessage ||
+           quoted?.message?.viewOnceMessageV2 ||
+           quoted?.message?.viewOnceMessageV2Extension ||
+           quoted?.msg?.viewOnceMessage ||
+           quoted?.msg?.viewOnceMessageV2 ||
+           quoted?.msg?.viewOnceMessageV2Extension ||
+           quoted?.key?.isViewOnce === true;
+};
+
+const handler = async (m, { conn }) => {
     try {
         if (!m.quoted) {
             throw '『 ⚠️ 』- `Rispondi a un contenuto visualizzabile una volta`'
         }
-        if (!m.quoted?.viewOnce) {
+        if (!isViewOnceQuoted(m.quoted)) {
             throw '『 ⚠️ 』- `Questo non è un contenuto visualizzabile una volta`'
         }
 
         const mtype = m.quoted.mtype
+        const messageContent = m.quoted[mtype]
+
+        let messageType
+        if (mtype === 'videoMessage') messageType = 'video'
+        else if (mtype === 'imageMessage') messageType = 'image'
+        else if (mtype === 'audioMessage') messageType = 'audio'
+        else throw '❌ Formato non supportato. Sono supportati solo video, immagini e audio.'
+
         let buffer
-        const downloadFromStream = async (stream) => {
-            let buffer = Buffer.from([])
+        try {
+            const stream = await downloadContentFromMessage(messageContent, messageType)
+            const chunks = []
             for await (const chunk of stream) {
-                buffer = Buffer.concat([buffer, chunk])
+                chunks.push(chunk)
             }
-            return buffer
-        }
-        if (/videoMessage/.test(mtype)) {
-            try {
-                const stream = await downloadContentFromMessage(m.quoted.videoMessage, 'video')
-                buffer = await downloadFromStream(stream)
-            } catch (err) {
-                console.warn('Fallback al metodo download() per video:', err.message)
-                buffer = await m.quoted.download()
-            }
-        } else if (/imageMessage/.test(mtype)) {
-            try {
-                const stream = await downloadContentFromMessage(m.quoted.imageMessage, 'image')
-                buffer = await downloadFromStream(stream)
-            } catch (err) {
-                console.warn('Fallback al metodo download() per immagine:', err.message)
-                buffer = await m.quoted.download()
-            }
-        } else if (/audioMessage/.test(mtype)) {
-            try {
-                const stream = await downloadContentFromMessage(m.quoted.audioMessage, 'audio')
-                buffer = await downloadFromStream(stream)
-            } catch (err) {
-                console.warn('Fallback al metodo download() per audio:', err.message)
-                buffer = await m.quoted.download()
-            }
-        } else {
-            throw '❌ Formato non supportato'
-        }
-        if (!buffer || buffer.length === 0) {
-            throw '❌ Impossibile scaricare il contenuto'
+            buffer = Buffer.concat(chunks)
+        } catch (err) {
+            console.warn(`Fallback al metodo download() per ${messageType}:`, err.message)
+            buffer = await m.quoted.download()
         }
 
-        const caption = m.quoted?.caption || ''
-        if (/videoMessage/.test(mtype)) {
-            await conn.sendFile(m.chat, buffer, 'video.mp4', caption, m)
-        } else if (/imageMessage/.test(mtype)) {
-            await conn.sendFile(m.chat, buffer, 'image.jpg', caption, m)
-        } else if (/audioMessage/.test(mtype)) {
-            await conn.sendFile(m.chat, buffer, 'audio.mp3', '', m, false, {
-                mimetype: 'audio/mp4',
-                ptt: m.quoted.ptt || false
-            })
+        if (!buffer || buffer.length === 0) {
+            throw '❌ Impossibile scaricare il contenuto del messaggio.'
         }
-        
+
+        const fileDetails = await fileTypeFromBuffer(buffer)
+        const caption = m.quoted?.caption || ''
+
+        if (messageType === 'audio') {
+            await conn.sendFile(m.chat, buffer, `audio.${fileDetails?.ext || 'mp3'}`, '', m, false, {
+                mimetype: fileDetails?.mime || 'audio/mp4',
+                ptt: m.quoted.ptt || false,
+            })
+        } else {
+            const filename = `${messageType}.${fileDetails?.ext || (messageType === 'image' ? 'jpg' : 'mp4')}`
+            await conn.sendFile(m.chat, buffer, filename, caption, m)
+        }
+
     } catch (e) {
         console.error('Errore nel rivelare view once:', e)
-        const errorMessage = typeof e === 'string' ? e : global.errore || '❌ Si è verificato un errore'
+        const errorMessage = typeof e === 'string' ? e : (global.errore || '❌ Si è verificato un errore durante lelaborazione.')
         await m.reply(errorMessage)
     }
 }
