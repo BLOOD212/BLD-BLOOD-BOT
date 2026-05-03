@@ -6,47 +6,55 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     who = text ? text.replace(/[^0-9]/g, '') + '@s.whatsapp.net' : m.quoted ? m.quoted.sender : false;
   }
 
-  if (!who) return m.reply(`⚠️ Chi devo espellere?\n\nEsempio:\n${usedPrefix + command} @utente`);
+  if (!who) return m.reply(`⚠️ Chi devo espellere globalmente?\n\nEsempio:\n${usedPrefix + command} @utente`);
 
-  const chats = Object.entries(conn.chats)
-    .filter(([jid, chat]) => jid.endsWith('@g.us') && chat.isChats);
+  m.reply(`🔍 Recupero lista gruppi in corso...`);
 
-  if (!chats.length) return m.reply('⚠️ Il bot non è presente in nessun gruppo.');
+  try {
+    // Ottiene tutti i gruppi in modo forzato e aggiornato
+    const groups = await conn.groupFetchAllParticipating();
+    const groupIds = Object.keys(groups);
 
-  m.reply(`🚀 Analisi in corso su ${chats.length} gruppi per @${who.split('@')[0]}...`, null, { mentions: [who] });
+    if (!groupIds.length) return m.reply('⚠️ Il bot non è in nessun gruppo.');
 
-  let successCount = 0;
-  let failCount = 0;
+    m.reply(`🚀 Analisi avviata su ${groupIds.length} gruppi per @${who.split('@')[0]}...`, null, { mentions: [who] });
 
-  for (let [jid] of chats) {
-    try {
-      // Usiamo conn.groupMetadata con cautela
-      const metadata = await conn.groupMetadata(jid).catch(() => null);
-      
-      // Se il metadata è null, saltiamo il gruppo
-      if (!metadata) continue;
+    let successCount = 0;
+    let failCount = 0;
 
-      const participants = metadata.participants || [];
-      const isParticipant = participants.some(p => p.id === who);
-      
-      const bot = participants.find(p => p.id === conn.user.jid);
-      const isBotAdmin = bot?.admin || bot?.isSAdmin || false;
+    for (let jid of groupIds) {
+      try {
+        const group = groups[jid];
+        const participants = group.participants || [];
+        
+        // Verifica se l'utente è nel gruppo
+        const isParticipant = participants.some(p => p.id === who);
+        
+        // Verifica se il bot è admin
+        const bot = participants.find(p => p.id === (conn.user.id.split(':')[0] + '@s.whatsapp.net'));
+        const isBotAdmin = bot?.admin || bot?.isSAdmin || false;
 
-      if (isParticipant) {
-        if (isBotAdmin) {
-          await conn.groupParticipantsUpdate(jid, [who], 'remove');
-          successCount++;
-          await new Promise(res => setTimeout(res, 1000)); // Delay per evitare ban
-        } else {
-          failCount++;
+        if (isParticipant) {
+          if (isBotAdmin) {
+            await conn.groupParticipantsUpdate(jid, [who], 'remove');
+            successCount++;
+            // Delay per evitare il rilevamento spam
+            await new Promise(res => setTimeout(res, 1200));
+          } else {
+            failCount++;
+          }
         }
+      } catch (err) {
+        console.error(`Errore nel gruppo ${jid}:`, err.message);
       }
-    } catch (e) {
-      console.log(`Errore nel gruppo ${jid}:`, e.message);
     }
-  }
 
-  m.reply(`✅ Operazione completata.\n\n🏆 Espulso da: ${successCount} gruppi.\n❌ Fallito (non admin): ${failCount} gruppi.`);
+    m.reply(`✅ Operazione conclusa.\n\n🏆 Espulso da: ${successCount} gruppi.\n❌ Fallito (Bot non admin): ${failCount} gruppi.`);
+
+  } catch (e) {
+    console.error('Errore fatale recupero gruppi:', e);
+    m.reply('❌ Errore durante il recupero della lista gruppi.');
+  }
 };
 
 handler.help = ['kickgp <@tag/risposta>'];
