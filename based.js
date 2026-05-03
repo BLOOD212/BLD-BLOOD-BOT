@@ -1,6 +1,4 @@
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
-process.setMaxListeners(0); // FIX: Risolve il MaxListenersExceededWarning
-
 import './config.js';
 import { createRequire } from 'module';
 import path, { join } from 'path';
@@ -31,14 +29,11 @@ const DisconnectReason = {
     forbidden: 403,
     unavailableService: 503
 };
-
 const { useMultiFileAuthState, makeCacheableSignalKeyStore, Browsers, jidNormalizedUser, getPerformanceConfig, setPerformanceConfig, Logger, makeInMemoryStore } = await import('@realvare/based');
 const { chain } = lodash;
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
-
 protoType();
 serialize();
-
 global.isLogoPrinted = false;
 global.qrGenerated = false;
 global.connectionMessagesPrinted = {};
@@ -77,7 +72,6 @@ global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse()
 global.prefix = new RegExp('^[' + (opts['prefix'] || '*/!#$%+£¢€¥^°=¶∆×÷π√✓©®&.\\-.@').replace(/[|\\{}()[\]^$+*.\-\^]/g, '\\$&') + ']');
 global.db = new Low(/https?:\/\//.test(opts['db'] || '') ? new JSONFile('database.json') : new JSONFile('database.json'));
 global.DATABASE = global.db;
-
 global.loadDatabase = async function loadDatabase() {
     if (global.db.READ) {
         return new Promise((resolve) => setInterval(async function () {
@@ -113,8 +107,14 @@ global.authFile = 'varesession';
 global.authFileJB = 'varebot-sub';
 
 setPerformanceConfig({
-    performance: { enableCache: true, enableMetrics: true },
-    debug: { enableLidLogging: true, logLevel: 'debug' }
+    performance: {
+        enableCache: true,
+        enableMetrics: true
+    },
+    debug: {
+        enableLidLogging: true,
+        logLevel: 'debug'
+    }
 });
 
 const { state, saveCreds } = await useMultiFileAuthState(global.authFile);
@@ -134,15 +134,48 @@ if (!methodCodeQR && !methodCode && !fs.existsSync(`./${authFile}/creds.json`)) 
     do {
         const color1 = chalk.hex('#00D2FF'); 
         const color2 = chalk.hex('#3A7BD5'); 
+        const color3 = chalk.hex('#6A11CB'); 
+        const color4 = chalk.hex('#2575FC'); 
+        const softText = chalk.hex('#AED6F1');
+
+        const a = color1('╭━━━━━━━━━━━━━• ✧˚💎 𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙 💠˚✧ •━━━━━━━━━━━━━');
+        const b = color1('╰━━━━━━━━━━━━━• ☾⋆₊✧ 𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙 ✧₊⋆☽ •━━━━━━━━━━━━━');
         const linea = color2('   ✦━━━━━━✦✦━━━━━━༺💧༻━━━━━━༺💧༻━━━━━━✦✦━━━━━━✦');
         const sm = chalk.bold.hex('#FFFFFF')('SELEZIONE METODO DI ACCESSO ✦');
-        const qr = color1(' ┌─⭓') + ' ' + chalk.bold.white('1. Scansione con QR Code');
-        const codice = color1(' └─⭓') + ' ' + chalk.bold.white('2. Codice di 8 cifre');
-        
-        opzione = await question(`\n${color1('╭━━━━━━━━━━━━━• ✧˚💎 𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙 💠˚✧ •━━━━━━━━━━━━━')}\n\n          ${sm}\n${linea}\n\n${qr}\n${codice}\n\n${linea}\n⌯ Inserisci la tua scelta ---> `);
+        const qr = color4(' ┌─⭓') + ' ' + chalk.bold.white('1. Scansione con QR Code');
+        const codice = color4(' └─⭓') + ' ' + chalk.bold.white('2. Codice di 8 cifre');
+        const istruzioni = [
+            color4(' ┌─⭓') + softText.italic(' Digita solo il numero corrispondente.'),
+            color4(' └─⭓') + softText.italic(' Premi Invio per confermare.'),
+            softText.italic(''),
+            color1.italic('                   by blood'),
+        ];
+        const prompt = chalk.hex('#00FFCC').bold('\n⌯ Inserisci la tua scelta ---> ');
+
+        opzione = await question(`\n
+${a}
+
+          ${sm}
+${linea}
+
+${qr}
+${codice}
+
+${linea}
+${istruzioni.join('\n')}
+
+${b}
+${prompt}`);
 
         if (!/^[1-2]$/.test(opzione)) {
-            console.log(chalk.bgRed.white.bold(' ✖ INPUT NON VALIDO - Usa 1 o 2 '));
+            console.log(`\n${chalk.bgRed.white.bold(' ✖ INPUT NON VALIDO ')}
+
+${chalk.hex('#34495E')('   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
+${chalk.hex('#FF5E62').bold('⚠️  Sono ammessi solo i numeri')} ${chalk.bold.cyan('1')} ${chalk.hex('#FF5E62').bold('o')} ${chalk.bold.cyan('2')}
+${chalk.hex('#FF9966')('┌─⭓ Nessuna lettera o simbolo')}
+${chalk.hex('#FF9966')('└─⭓ Copia il numero dell\'opzione desiderata e incollalo')}
+${chalk.cyan.italic('\n✧ Suggerimento: Se hai dubbi, scrivi al creatore +393701330693')}
+`);
         }
     } while ((opzione !== '1' && opzione !== '2') || fs.existsSync(`./${authFile}/creds.json`));
 }
@@ -158,13 +191,15 @@ const filterStrings = [
 console.info = () => {};
 console.debug = () => {};
 ['log', 'warn', 'error'].forEach(methodName => redefineConsoleMethod(methodName, filterStrings));
-
 const groupMetadataCache = new NodeCache();
 global.groupCache = groupMetadataCache;
-const logger = pino({ level: 'silent' });
+const logger = pino({
+    level: 'silent',
+});
 global.jidCache = new NodeCache({ stdTTL: 600, useClones: false });
 global.store = makeInMemoryStore({ logger });
 
+// --- CONFIGURAZIONE OTTIMIZZATA PER KEEP-ALIVE ---
 const connectionOptions = {
     logger: logger,
     mobile: MethodMobile,
@@ -173,9 +208,10 @@ const connectionOptions = {
         creds: state.creds,
         keys: makeCacheableSignalKeyStore(state.keys, logger),
     },
+    // Parametri per evitare il timeout (Soluzione B)
     connectTimeoutMs: 60000, 
     defaultQueryTimeoutMs: 0,
-    keepAliveIntervalMs: 30000, // FIX: Heartbeat più frequente per stabilità
+    keepAliveIntervalMs: 30000, 
     markOnlineOnConnect: true,
     generateHighQualityLinkPreview: true,
     syncFullHistory: false,
@@ -185,13 +221,19 @@ const connectionOptions = {
         const cached = global.jidCache.get(jid);
         if (cached) return cached;
         let decoded = jid;
-        if (/:\d+@/gi.test(jid)) decoded = jidNormalizedUser(jid);
-        if (typeof decoded === 'object' && decoded.user && decoded.server) decoded = `${decoded.user}@${decoded.server}`;
-        if (typeof decoded === 'string' && decoded.endsWith('@lid')) decoded = decoded.replace('@lid', '@s.whatsapp.net');
+        if (/:\d+@/gi.test(jid)) {
+            decoded = jidNormalizedUser(jid);
+        }
+        if (typeof decoded === 'object' && decoded.user && decoded.server) {
+            decoded = `${decoded.user}@${decoded.server}`;
+        }
+        if (typeof decoded === 'string' && decoded.endsWith('@lid')) {
+            decoded = decoded.replace('@lid', '@s.whatsapp.net');
+        }
         global.jidCache.set(jid, decoded);
         return decoded;
     },
-    printQRInTerminal: (opzione === '1' || methodCodeQR),
+    printQRInTerminal: opzione === '1' || methodCodeQR ? true : false,
     cachedGroupMetadata: async (jid) => {
         const cached = global.groupCache.get(jid);
         if (cached) return cached;
@@ -199,14 +241,19 @@ const connectionOptions = {
             const metadata = await global.conn.groupMetadata(global.conn.decodeJid(jid));
             global.groupCache.set(jid, metadata, { ttl: 300 });
             return metadata;
-        } catch (err) { return {}; }
+        } catch (err) {
+            // Gestione errore 403 forbidden
+            return {};
+        }
     },
     getMessage: async (key) => {
         try {
             const jid = global.conn.decodeJid(key.remoteJid);
             const msg = await global.store.loadMessage(jid, key.id);
             return msg?.message || undefined;
-        } catch (error) { return undefined; }
+        } catch (error) {
+            return undefined;
+        }
     },
     msgRetryCounterCache,
     msgRetryCounterMap,
@@ -217,15 +264,21 @@ const connectionOptions = {
 
 global.conn = makeWASocket(connectionOptions);
 
-// FIX: HEARTBEAT SYSTEM (Mantiene il bot sveglio ogni 30 secondi)
+// --- HEARTBEAT SYSTEM (Mantiene il bot sveglio) ---
 setInterval(async () => {
     if (global.conn && global.conn.user) {
         try {
-            await global.conn.sendPresenceUpdate('available');
-            // console.log(chalk.grey(' [Keep-Alive] Heartbeat inviato.'));
-        } catch (e) {}
+            await global.conn.query({
+                tag: 'iq',
+                attrs: { to: '@s.whatsapp.net', type: 'get', xmlns: 'w:p' },
+                content: [{ tag: 'ping', attrs: {} }]
+            });
+            console.log(chalk.grey(' [Keep-Alive] Heartbeat inviato.'));
+        } catch (e) {
+            console.log(chalk.red(' [Keep-Alive] Errore heartbeat.'));
+        }
     }
-}, 30000);
+}, 180000); // Ogni 3 minuti
 
 global.store.bind(global.conn.ev);
 
@@ -249,17 +302,14 @@ if (!fs.existsSync(`./${authFile}/creds.json`)) {
         }
     }
 }
-
 conn.isInit = false;
 conn.well = false;
-
 async function bysamakavare() {
     try {
         const mainChannelId = global.IdCanale?.[0] || '120363418582531215@newsletter';
         await global.conn.newsletterFollow(mainChannelId);
     } catch (error) {}
 }
-
 if (!opts['test']) {
     if (global.db) setInterval(async () => {
         if (global.db.data) await global.db.write();
@@ -269,39 +319,43 @@ if (!opts['test']) {
         }
     }, 30 * 1000);
 }
-
 if (opts['server']) (await import('./server.js')).default(global.conn, PORT);
-
 async function connectionUpdate(update) {
     const { connection, lastDisconnect, isNewLogin, qr } = update;
     global.stopped = connection;
     if (isNewLogin) conn.isInit = true;
-    
     const code = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode;
     if (code && code !== DisconnectReason.loggedOut) {
         await global.reloadHandler(true).catch(console.error);
         global.timestamp.connect = new Date;
     }
-    
     if (global.db.data == null) loadDatabase();
-    
     if (qr && (opzione === '1' || methodCodeQR) && !global.qrGenerated) {
         console.log(chalk.bold.cyan(`\n 🌀 SCANSIONA IL CODICE QR - SCADE TRA 45 SECONDI 🌀`));
         global.qrGenerated = true;
     }
-    
     if (connection === 'open') {
         global.qrGenerated = false;
         global.connectionMessagesPrinted = {};
         if (!global.isLogoPrinted) {
-            const logoColors = ['#00F2FE', '#00E3FE', '#00D4FE', '#00C5FE', '#00B6FE', '#00A7FE', '#0098FE', '#0089FE', '#007AFE', '#006BFE', '#005CFE'];
+            const logoColors = [
+                '#00F2FE', '#00E3FE', '#00D4FE', '#00C5FE', '#00B6FE',
+                '#00A7FE', '#0098FE', '#0089FE', '#007AFE', '#006BFE', '#005CFE'
+            ];
             const varebot = [
                `██████╗ ██╗      ██████╗  ██████╗ ██████╗ `,
-               `██╔══██╗██║     ██╔═══██╗██╔═══██╗██╔══██╗`,
-               `██████╔╝██║     ██║   ██║██║   ██║██║  ██║`,
-               `██╔══██╗██║     ██║   ██║██║   ██║██║  ██║`,
-               `██████╔╝███████╗╚██████╔╝╚██████╔╝██████╔╝`,
-               `╚═════╝ ╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝ `
+    `██╔══██╗██║     ██╔═══██╗██╔═══██╗██╔══██╗`,
+    `██████╔╝██║     ██║   ██║██║   ██║██║  ██║`,
+    `██╔══██╗██║     ██║   ██║██║   ██║██║  ██║`,
+    `██████╔╝███████╗╚██████╔╝╚██████╔╝██████╔╝`,
+    `╚═════╝ ╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝ `,
+    `                                          `,
+    `         ██████╗  ██████╗ ████████╗       `,
+    `         ██╔══██╗██╔═══██╗╚══██╔══╝       `,
+    `         ██████╔╝██║   ██║   ██║          `,
+    `         ██╔══██╗██║   ██║   ██║          `,
+    `         ██████╔╝╚██████╔╝   ██║          `,
+    `         ╚═════╝  ╚═════╝    ╚═╝          `
             ];
             varebot.forEach((line, i) => {
                 const color = logoColors[i] || logoColors[logoColors.length - 1];
@@ -311,70 +365,117 @@ async function connectionUpdate(update) {
             await bysamakavare();
         }
     }
-
     if (connection === 'close') {
         const reason = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode;
-        if (reason === DisconnectReason.badSession) {
-            console.log(chalk.bold.redBright(`\n⚠️❗ SESSIONE NON VALIDA, ELIMINA ${global.authFile} ⚠️`));
-        } else if (reason === DisconnectReason.connectionLost) {
-            console.log(chalk.bold.hex('#3498DB')(`\n📡 CONNESSIONE PERSA... RICONNESSIONE...`));
+        if (reason === DisconnectReason.badSession && !global.connectionMessagesPrinted.badSession) {
+            console.log(chalk.bold.redBright(`\n⚠️❗ SESSIONE NON VALIDA, ELIMINA LA CARTELLA ${global.authFile} E RIAVVIA ⚠️`));
+            global.connectionMessagesPrinted.badSession = true;
             await global.reloadHandler(true).catch(console.error);
-        } else if (reason === DisconnectReason.loggedOut) {
-            console.log(chalk.bold.redBright(`\n⚠️ DISCONNESSO. RIAVVIA IL BOT. ⚠️`));
-            if (fs.existsSync(global.authFile)) fs.rmSync(global.authFile, { recursive: true, force: true });
+        } else if (reason === DisconnectReason.connectionLost && !global.connectionMessagesPrinted.connectionLost) {
+            console.log(chalk.bold.hex('#3498DB')(`\n╭⭑⭒━━━✦❘༻ 📡 CONNESSIONE PERSA ༺❘✦━━━⭒⭑\n┃ 🔄 RICONNESSIONE IN CORSO... \n╰⭑⭒━━━✦❘༻☾⋆₊✧ 𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙 ✧₊⁺⋆☽༺❘✦━━━⭒⭑`));
+            global.connectionMessagesPrinted.connectionLost = true;
+            await global.reloadHandler(true).catch(console.error);
+        } else if (reason === DisconnectReason.connectionReplaced && !global.connectionMessagesPrinted.connectionReplaced) {
+            console.log(chalk.bold.hex('#F1C40F')(`╭⭑⭒━━━✦❘༻ ⚠️ CONNESSIONE SOSTITUITA ༺❘✦━━━⭒⭑\n┃ È stata aperta un'altra sessione. \n╰⭑⭒━━━✦❘༻☾⋆⁺₊✧ 𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙 ✧₊⁺⋆☽༺❘✦━━━⭒⭑`));
+            global.connectionMessagesPrinted.connectionReplaced = true;
+        } else if (reason === DisconnectReason.loggedOut && !global.connectionMessagesPrinted.loggedOut) {
+            console.log(chalk.bold.redBright(`\n⚠️ DISCONNESSO. CARTELLA ${global.authFile} ELIMINATA. RIAVVIA IL BOT. ⚠️`));
+            global.connectionMessagesPrinted.loggedOut = true;
+            try {
+                if (fs.existsSync(global.authFile)) {
+                    fs.rmSync(global.authFile, { recursive: true, force: true });
+                }
+            } catch (e) {
+                console.error('Errore nell\'eliminazione della cartella sessione:', e);
+            }
             process.exit(1);
-        } else {
+        } else if (reason === DisconnectReason.restartRequired && !global.connectionMessagesPrinted.restartRequired) {
+            console.log(chalk.bold.hex('#9B59B6')(`\n⭑⭒━━━✦❘༻ ✨ RIPRISTINO CONNESSIONE ༺❘✦━━━⭒⭑`));
+            global.connectionMessagesPrinted.restartRequired = true;
             await global.reloadHandler(true).catch(console.error);
+        } else if (reason === DisconnectReason.timedOut && !global.connectionMessagesPrinted.timedOut) {
+            console.log(chalk.bold.hex('#E67E22')(`\n╭⭑⭒━━━✦❘༻ ⌛ TIMEOUT CONNESSIONE ༺❘✦━━━⭒⭑\n┃ 🔄 RICONNESSIONE IN CORSO...\n╰⭑⭒━━━✦❘༻☾⋆⁺₊✧ 𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙 ✧₊⁺⋆☽༺❘✦━━━⭒⭑`));
+            global.connectionMessagesPrinted.timedOut = true;
+            await global.reloadHandler(true).catch(console.error);
+        } else if (reason === 401) {
+            console.log(chalk.bold.redBright(`\n⚠️❗ ERRORE 401: RIAVVIA E RISCANSIONA IL QR ⚠️`));
+            try {
+                if (fs.existsSync(global.authFile)) {
+                    fs.rmSync(global.authFile, { recursive: true, force: true });
+                }
+            } catch (e) {
+                console.error('Errore nell\'eliminazione della cartella sessione:', e);
+            }
+            process.exit(1);
         }
     }
 }
-
 process.on('uncaughtException', console.error);
-
 async function connectSubBots() {
     const subBotDirectory = './varebot-sub';
     if (!existsSync(subBotDirectory)) {
-        try { mkdirSync(subBotDirectory, { recursive: true }); } catch (err) {}
+        try {
+            mkdirSync(subBotDirectory, { recursive: true });
+        } catch (err) {
+            return;
+        }
         return;
     }
     try {
-        const subBotFolders = readdirSync(subBotDirectory).filter(file => statSync(join(subBotDirectory, file)).isDirectory());
-        for (const folder of subBotFolders) {
+        const subBotFolders = readdirSync(subBotDirectory).filter(file =>
+            statSync(join(subBotDirectory, file)).isDirectory()
+        );
+        if (subBotFolders.length === 0) {
+            return;
+        }
+        const botPromises = subBotFolders.map(async (folder) => {
             const subAuthFile = join(subBotDirectory, folder);
             if (existsSync(join(subAuthFile, 'creds.json'))) {
-                const { state: subState, saveCreds: subSaveCreds } = await useMultiFileAuthState(subAuthFile);
-                const subConn = makeWASocket({
-                    ...connectionOptions,
-                    auth: {
-                        creds: subState.creds,
-                        keys: makeCacheableSignalKeyStore(subState.keys, logger),
-                    },
-                });
-                subConn.ev.on('creds.update', subSaveCreds);
-                subConn.ev.on('connection.update', connectionUpdate);
-                global.conns.push(subConn);
+                try {
+                    const { state: subState, saveCreds: subSaveCreds } = await useMultiFileAuthState(subAuthFile);
+                    const subConn = makeWASocket({
+                        ...connectionOptions,
+                        auth: {
+                            creds: subState.creds,
+                            keys: makeCacheableSignalKeyStore(subState.keys, logger),
+                        },
+                    });
+
+                    subConn.ev.on('creds.update', subSaveCreds);
+                    subConn.ev.on('connection.update', connectionUpdate);
+                    return subConn;
+                } catch (err) {
+                    return null;
+                }
             }
-        }
+            return null;
+        });
+        const bots = await Promise.all(botPromises);
+        global.conns = bots.filter(Boolean);
     } catch (err) {}
 }
-
 (async () => {
     global.conns = [];
-    conn.ev.on('connection.update', connectionUpdate);
-    conn.ev.on('creds.update', saveCreds);
-    console.log(chalk.bold.hex('#00F2FE')(`\n⭑⭒━━━✦❘༻☾⋆⁺₊✧ 𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙 ONLINE ✧₊⁺⋆☽༺❘✦━━━⭒⭑\n`));
-    await connectSubBots();
+    try {
+        conn.ev.on('connection.update', connectionUpdate);
+        conn.ev.on('creds.update', saveCreds);
+        console.log(chalk.bold.hex('#00F2FE')(`\n⭑⭒━━━✦❘༻☾⋆⁺₊✧ 𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙 ONLINE ✧₊⁺⋆☽༺❘✦━━━⭒⭑\n`));
+        await connectSubBots();
+    } catch (error) {}
 })();
-
 let isInit = true;
 let handler = await import('./handler.js');
 global.reloadHandler = async function (restatConn) {
     try {
         const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error);
         if (Object.keys(Handler || {}).length) handler = Handler;
-    } catch (e) { console.error(e); }
+    } catch (e) {
+        console.error(e);
+    }
     if (restatConn) {
-        try { global.conn.ws.close(); } catch { }
+        try {
+            global.conn.ws.close();
+        } catch { }
         conn.ev.removeAllListeners();
         global.conn = makeWASocket(connectionOptions);
         global.store.bind(global.conn.ev);
@@ -394,8 +495,7 @@ global.reloadHandler = async function (restatConn) {
     isInit = false;
     return true;
 };
-
-const pluginFolder = global.__dirname(join(__dirname, './plugins'));
+const pluginFolder = global.__dirname(join(__dirname, './plugins/index'));
 const pluginFilter = (filename) => /\.js$/.test(filename);
 global.plugins = {};
 async function filesInit() {
@@ -404,64 +504,97 @@ async function filesInit() {
             const file = global.__filename(join(pluginFolder, filename));
             const module = await import(file);
             global.plugins[filename] = module.default || module;
-        } catch (e) { delete global.plugins[filename]; }
-    }
-}
-filesInit().then(() => console.log(chalk.green('✓ Plugin caricati.'))).catch(console.error);
-
-global.reload = async (_ev, filename) => {
-    if (pluginFilter(filename)) {
-        const dir = global.__filename(join(pluginFolder, filename), true);
-        if (existsSync(dir)) {
-            try {
-                const module = (await import(`${pathToFileURL(dir).href}?update=${Date.now()}`));
-                global.plugins[filename] = module.default || module;
-            } catch (e) { console.error(`Errore ricaricando ${filename}`); }
-        } else {
+        } catch (e) {
             delete global.plugins[filename];
         }
     }
+}
+filesInit().then((_) => Object.keys(global.plugins)).catch(console.error);
+global.reload = async (_ev, filename) => {
+    if (pluginFilter(filename)) {
+        const dir = global.__filename(join(pluginFolder, filename), true);
+        if (filename in global.plugins) {
+            if (!existsSync(dir)) return delete global.plugins[filename];
+        }
+
+        try {
+            const module = (await import(`${global.__filename(dir)}?update=${Date.now()}`));
+            global.plugins[filename] = module.default || module;
+        } catch (e) {
+        } finally {
+            global.plugins = Object.fromEntries(Object.entries(global.plugins).sort(([a], [b]) => a.localeCompare(b)));
+        }
+    }
 };
-
+Object.freeze(global.reload);
 const pluginWatcher = watch(pluginFolder, global.reload);
-pluginWatcher.setMaxListeners(0); // FIX: Memory leak watcher
-
+pluginWatcher.setMaxListeners(20);
 await global.reloadHandler();
-
 async function _quickTest() {
     const test = await Promise.all([
-        spawn('ffmpeg'), spawn('ffprobe'),
+        spawn('ffmpeg'),
+        spawn('ffprobe'),
         spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-filter_complex', 'color', '-frames:v', '1', '-f', 'webp', '-']),
-        spawn('convert'), spawn('magick'), spawn('gm'), spawn('find', ['--version']),
+        spawn('convert'),
+        spawn('magick'),
+        spawn('gm'),
+        spawn('find', ['--version']),
     ].map((p) => {
         return Promise.race([
-            new Promise((resolve) => { p.on('close', (code) => resolve(code !== 127)); }),
-            new Promise((resolve) => { p.on('error', (_) => resolve(false)); })
+            new Promise((resolve) => {
+                p.on('close', (code) => {
+                    resolve(code !== 127);
+                });
+            }),
+            new Promise((resolve) => {
+                p.on('error', (_) => resolve(false));
+            })
         ]);
     }));
     const [ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find] = test;
     global.support = { ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find };
+    Object.freeze(global.support);
 }
-
 function clearDirectory(dirPath) {
-    if (!existsSync(dirPath)) return;
-    readdirSync(dirPath).forEach(file => {
-        try { rmSync(join(dirPath, file), { recursive: true, force: true }); } catch (e) {}
+    if (!existsSync(dirPath)) {
+        try {
+            mkdirSync(dirPath, { recursive: true });
+        } catch (e) {}
+        return;
+    }
+    const filenames = readdirSync(dirPath);
+    filenames.forEach(file => {
+        const filePath = join(dirPath, file);
+        try {
+            const stats = statSync(filePath);
+            if (stats.isFile()) unlinkSync(filePath);
+            else if (stats.isDirectory()) rmSync(filePath, { recursive: true, force: true });
+        } catch (e) {}
     });
 }
-
-function purgeSession(sessionDir) {
-    if (!existsSync(sessionDir)) return;
-    readdirSync(sessionDir).forEach(file => {
-        if (file !== 'creds.json') {
-            try { unlinkSync(join(sessionDir, file)); } catch (e) {}
-        }
-    });
+function purgeSession(sessionDir, cleanPreKeys = false) {
+    try {
+        if (!existsSync(sessionDir)) return;
+        const files = readdirSync(sessionDir);
+        files.forEach(file => {
+            const filePath = path.join(sessionDir, file);
+            const stats = statSync(filePath);
+            const fileAge = (Date.now() - stats.mtimeMs) / (1000 * 60 * 60 * 24);
+            if (file === 'creds.json') return;
+            if (file.startsWith('pre-key') && cleanPreKeys) {
+                if (fileAge > 1) unlinkSync(filePath);
+            } else if (!file.startsWith('pre-key')) {
+                if (stats.isDirectory()) rmSync(filePath, { recursive: true, force: true });
+                else unlinkSync(filePath);
+            }
+        });
+    } catch (dirErr) {}
 }
 
 setInterval(async () => {
     if (global.stopped === 'close' || !global.conn || !global.conn.user) return;
     clearDirectory(join(__dirname, 'tmp'));
+    clearDirectory(join(__dirname, 'temp'));
 }, 1000 * 60 * 60);
 
 setInterval(async () => {
@@ -475,8 +608,10 @@ let filePath = fileURLToPath(import.meta.url);
 const mainWatcher = watch(filePath, async () => {
   await global.reloadHandler(true).catch(console.error);
 });
-mainWatcher.setMaxListeners(0);
+mainWatcher.setMaxListeners(20);
 
 conn.ev.on('connection.update', async (update) => {
-    if (update.connection === 'open') ripristinaTimer(conn);
+    if (update.connection === 'open') {
+        ripristinaTimer(conn);
+    }
 });
