@@ -1,23 +1,45 @@
-var handler = async (m, { conn, participants }) => {
+var handler = async (m, { conn, participants, isOwner, isAdmin }) => {
     try {
-        // 1. Identificazione dell'utente da rimuovere (menzionato o quotato)
+        const chat = global.db.data.chats[m.chat]
+        const isAntinukeOn = chat?.antinuke || false
+        const sender = m.sender
+
+        // Recupera la lista dei moderatori dal database
+        const mods = chat?.moderatori || []
+        const isMod = mods.includes(sender)
+
+        // --- 1. CONTROLLO AUTORIZZAZIONE (Logica Moderatori) ---
+        
+        // Se è un moderatore (ma non owner), gli vietiamo specificamente il kick
+        if (isMod && !isOwner) {
+            return conn.reply(m.chat, '『 🚫 』 𝐀𝐜𝐜𝐞𝐬𝐬𝐨 𝐃𝐞𝐧𝐞𝐠𝐚𝐭𝐨: Come Moderatore non hai il permesso di rimuovere membri (Kick).', m)
+        }
+
+        // Controllo standard per gli altri utenti (non admin e non owner)
+        if (!isAdmin && !isOwner) {
+            return conn.reply(m.chat, '『 ❌ 』 𝐀𝐜𝐜𝐞𝐬𝐬𝐨 𝐃𝐞𝐧𝐞𝐠𝐚𝐭𝐨: Solo gli amministratori possono usare questo comando.', m)
+        }
+
+        // --- 2. CONTROLLO ANTINUKE ---
+        if (isAntinukeOn && !isOwner) {
+            return conn.reply(m.chat, '『 🛡️ 』 𝐀𝐧𝐭𝐢𝐧𝐮𝐤𝐞 𝐀𝐭𝐭𝐢𝐯𝐨: In questa modalità solo il Creatore può rimuovere membri per sicurezza.', m)
+        }
+
+        // --- 3. IDENTIFICAZIONE UTENTE TARGET ---
         let user = m.mentionedJid[0] ? m.mentionedJid[0] : (m.quoted ? m.quoted.sender : null)
 
         if (!user) {
-            return m.reply('*Chi vuoi rimuovere? Menziona qualcuno o rispondi a un suo messaggio.*')
+            return m.reply('『 👤 』 *Chi vuoi rimuovere? Menziona qualcuno o rispondi a un suo messaggio.*')
         }
 
-        // 2. Recupero info gruppo e ruoli
+        // --- 4. CONTROLLI DI SICUREZZA (Gerarchia) ---
         const groupInfo = await conn.groupMetadata(m.chat)
         const groupAdmins = participants.filter(p => p.admin).map(p => p.id)
         
-        // Definiamo i "protetti"
         const ownerGroup = groupInfo.owner || m.chat.split`-`[0] + '@s.whatsapp.net'
         const ownerBot = global.owner[0] && global.owner[0][0] ? global.owner[0][0] + '@s.whatsapp.net' : ''
         const isTargetAdmin = groupAdmins.includes(user)
 
-        // 3. Controlli di sicurezza (Gerarchia)
-        
         // Impedisce al bot di auto-eliminarsi
         if (user === conn.user.jid) {
             return conn.reply(m.chat, '『 🤨 』 `Non posso rimuovermi da solo`', m);
@@ -38,9 +60,9 @@ var handler = async (m, { conn, participants }) => {
             return conn.reply(m.chat, '『 🤒 』 `Non posso rimuovere un altro admin. Devi prima togliergli i privilegi.`', m);
         }
 
-        // 4. Esecuzione della rimozione
+        // --- 5. ESECUZIONE DELLA RIMOZIONE ---
         await conn.groupParticipantsUpdate(m.chat, [user], 'remove');
-        
+
         // Invio dello sticker di conferma
         await conn.sendMessage(m.chat, { 
             sticker: { url: './media/sticker/bann.webp' } 
@@ -54,9 +76,9 @@ var handler = async (m, { conn, participants }) => {
 
 handler.help = ['rimuovi']
 handler.tags = ['gruppo']
-handler.command = /^(kick|rimuovi|paki|ban|abdul)$/i // Aggiunto 'abdul' qui per pulizia
+handler.command = /^(kick|rimuovi|paki|ban|abdul)$/i
 handler.group = true
-handler.admin = true
+handler.admin = true // Lasciamo true per il middleware, ma il controllo interno gestisce i Moderatori
 handler.botAdmin = true
 
 export default handler
