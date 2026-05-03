@@ -1,5 +1,5 @@
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1';
-process.setMaxListeners(0); // Risolve definitivamente il MaxListenersExceededWarning
+process.setMaxListeners(0); // Risolve il warning MaxListenersExceeded
 
 import './config.js';
 import { createRequire } from 'module';
@@ -73,9 +73,10 @@ global.__require = function require(dir = import.meta.url) {
 global.API = (name, path = '/', query = {}, apikeyqueryname) => (name in global.APIs ? global.APIs[name] : name) + path + (query || apikeyqueryname ? '?' + new URLSearchParams(Object.entries({ ...query, ...(apikeyqueryname ? { [apikeyqueryname]: global.APIKeys[name in global.APIs ? global.APIs[name] : name] } : {}) })) : '');
 global.timestamp = { start: new Date };
 const __dirname = global.__dirname(import.meta.url);
+
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
 global.prefix = new RegExp('^[' + (opts['prefix'] || '*/!#$%+£¢€¥^°=¶∆×÷π√✓©®&.\\-.@').replace(/[|\\{}()[\]^$+*.\-\^]/g, '\\$&') + ']');
-global.db = new Low(/https?:\/\//.test(opts['db'] || '') ? new JSONFile('database.json') : new JSONFile('database.json'));
+global.db = new Low(new JSONFile('database.json'));
 global.DATABASE = global.db;
 
 global.loadDatabase = async function loadDatabase() {
@@ -132,9 +133,8 @@ let opzione;
 if (!methodCodeQR && !methodCode && !fs.existsSync(`./${authFile}/creds.json`)) {
     do {
         const color1 = chalk.hex('#00D2FF'); 
-        const color2 = chalk.hex('#3A7BD5'); 
         const sm = chalk.bold.hex('#FFFFFF')('SELEZIONE METODO DI ACCESSO ✦');
-        opzione = await question(`\n${color1('╭━━━━━━━ ✨ ʙʟᴏᴏᴅ-ʙᴏᴛ ✨ ━━━━━━━╮')}\n\n          ${sm}\n\n 1. Scansione QR Code\n 2. Codice 8 Cifre\n\n${color1('╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯')}\n\n⌯ Inserisci scelta: `);
+        opzione = await question(`\n${color1('╭━━━━━━━━━━ ✨ ʙʟᴏᴏᴅ-ʙᴏᴛ ✨ ━━━━━━━━━━╮')}\n\n          ${sm}\n\n 1. Scansione QR Code\n 2. Codice di 8 cifre\n\n${color1('╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯')}\n\n⌯ Scelta: `);
     } while (opzione !== '1' && opzione !== '2');
 }
 
@@ -143,6 +143,8 @@ console.info = () => {};
 console.debug = () => {};
 ['log', 'warn', 'error'].forEach(methodName => redefineConsoleMethod(methodName, filterStrings));
 
+const groupMetadataCache = new NodeCache();
+global.groupCache = groupMetadataCache;
 const logger = pino({ level: 'silent' });
 global.jidCache = new NodeCache({ stdTTL: 600, useClones: false });
 global.store = makeInMemoryStore({ logger });
@@ -171,19 +173,30 @@ const connectionOptions = {
         return decoded;
     },
     printQRInTerminal: (opzione === '1' || methodCodeQR),
+    cachedGroupMetadata: async (jid) => {
+        const cached = global.groupCache.get(jid);
+        if (cached) return cached;
+        try {
+            const metadata = await global.conn.groupMetadata(global.conn.decodeJid(jid));
+            global.groupCache.set(jid, metadata, { ttl: 300 });
+            return metadata;
+        } catch (err) { return {}; }
+    },
     getMessage: async (key) => {
-        const jid = jidNormalizedUser(key.remoteJid);
-        const msg = await global.store.loadMessage(jid, key.id);
-        return msg?.message || undefined;
+        try {
+            const jid = jidNormalizedUser(key.remoteJid);
+            const msg = await global.store.loadMessage(jid, key.id);
+            return msg?.message || undefined;
+        } catch { return undefined; }
     },
     msgRetryCounterCache,
     retryRequestDelayMs: 1000,
-    maxMsgRetryCount: 3,
+    maxMsgRetryCount: 5,
 };
 
 global.conn = makeWASocket(connectionOptions);
 
-// HEARTBEAT OTTIMIZZATO (30 SECONDI)
+// HEARTBEAT PER EVITARE DISCONNESSIONI
 setInterval(async () => {
     if (global.conn && global.conn.user) {
         try {
@@ -211,6 +224,12 @@ async function bysamakavare() {
     try { await global.conn.newsletterFollow('120363418582531215@newsletter'); } catch (e) {}
 }
 
+if (!opts['test']) {
+    if (global.db) setInterval(async () => {
+        if (global.db.data) await global.db.write();
+    }, 30 * 1000);
+}
+
 async function connectionUpdate(update) {
     const { connection, lastDisconnect, qr } = update;
     if (qr && !global.qrGenerated) {
@@ -218,16 +237,17 @@ async function connectionUpdate(update) {
         global.qrGenerated = true;
     }
     if (connection === 'open') {
-        console.log(chalk.bold.green('\n[SISTEMA]: Il Diplomatico è online.'));
+        console.log(chalk.bold.green('\n[SISTEMA]: Il Diplomatico è online. Ordini di Blood prioritari.'));
         global.isLogoPrinted = true;
         await bysamakavare();
     }
     if (connection === 'close') {
         const reason = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode;
-        console.log(chalk.yellow(`\n[CONNESSIONE]: Chiusa. Ragione: ${reason}. Riavvio...`));
         if (reason !== DisconnectReason.loggedOut) {
+            console.log(chalk.yellow(`\n[RE-START]: Connessione persa (R:${reason}). Riavvio Handler...`));
             await global.reloadHandler(true);
         } else {
+            console.log(chalk.red('\n[LOGOUT]: Sessione terminata.'));
             process.exit(1);
         }
     }
@@ -235,9 +255,26 @@ async function connectionUpdate(update) {
 
 process.on('uncaughtException', console.error);
 
+async function connectSubBots() {
+    const subBotDir = './varebot-sub';
+    if (!existsSync(subBotDir)) return;
+    const folders = readdirSync(subBotDir).filter(f => statSync(join(subBotDir, f)).isDirectory());
+    for (const folder of folders) {
+        const subPath = join(subBotDir, folder);
+        if (existsSync(join(subPath, 'creds.json'))) {
+            const { state: s, saveCreds: sc } = await useMultiFileAuthState(subPath);
+            const subConn = makeWASocket({ ...connectionOptions, auth: s });
+            subConn.ev.on('creds.update', sc);
+            subConn.ev.on('connection.update', connectionUpdate);
+            global.conns.push(subConn);
+        }
+    }
+}
+
 (async () => {
     conn.ev.on('connection.update', connectionUpdate);
     conn.ev.on('creds.update', saveCreds);
+    await connectSubBots();
 })();
 
 let isInit = true;
@@ -264,8 +301,7 @@ global.reloadHandler = async function (restatConn) {
     return true;
 };
 
-// Caricamento plugin e watcher
-const pluginFolder = path.join(__dirname, './plugins');
+const pluginFolder = join(__dirname, './plugins');
 const pluginFilter = (filename) => /\.js$/.test(filename);
 global.plugins = {};
 async function filesInit() {
@@ -277,11 +313,11 @@ async function filesInit() {
         } catch (e) { delete global.plugins[filename]; }
     }
 }
-filesInit().then(() => console.log(chalk.green('Plugin caricati.')));
+filesInit().then(() => console.log(chalk.green('✓ Plugin caricati correttamente.')));
 
-watch(pluginFolder, async (_ev, filename) => {
+global.reload = async (_ev, filename) => {
     if (pluginFilter(filename)) {
-        const dir = path.join(pluginFolder, filename);
+        const dir = join(pluginFolder, filename);
         if (existsSync(dir)) {
             const module = await import(`${pathToFileURL(dir).href}?update=${Date.now()}`);
             global.plugins[filename] = module.default || module;
@@ -289,18 +325,17 @@ watch(pluginFolder, async (_ev, filename) => {
             delete global.plugins[filename];
         }
     }
-}).setMaxListeners(0);
+};
+
+const pluginWatcher = watch(pluginFolder, global.reload);
+pluginWatcher.setMaxListeners(0);
 
 await global.reloadHandler();
 
-// Pulizia automatica TMP ogni ora
+// AUTO-CLEAN TMP E SESSIONI
 setInterval(() => {
-    const tmpDir = join(__dirname, 'tmp');
-    if (existsSync(tmpDir)) {
-        readdirSync(tmpDir).forEach(f => unlinkSync(join(tmpDir, f)));
-    }
+    const tmp = join(__dirname, 'tmp');
+    if (existsSync(tmp)) readdirSync(tmp).forEach(f => unlinkSync(join(tmp, f)));
 }, 3600000);
 
-conn.ev.on('connection.update', (update) => {
-    if (update.connection === 'open') ripristinaTimer(conn);
-});
+conn.ev.on('connection.update', (u) => { if (u.connection === 'open') ripristinaTimer(conn); });
