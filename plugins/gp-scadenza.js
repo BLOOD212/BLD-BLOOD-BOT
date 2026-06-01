@@ -3,7 +3,11 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         let errorMsg = `ㅤㅤ⋆｡˚『╭ \`ERRORE\` ╯』˚｡⋆\n╭\n`
         errorMsg += `│ 『⚠️』 \`Questo comando funziona solo nei gruppi!\`\n`
         errorMsg += `*╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*\n\n`
+<<<<<<< HEAD
         errorMsg += `> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
+=======
+        errorMsg += `> BLD-BOT`
+>>>>>>> 937a2eb2f873caf51fb280f0269b0825e3e7b1eb
         return m.reply(errorMsg)
     }
 
@@ -18,7 +22,11 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 │ 『⏱️』 \`Stato:\` *Nessuna scadenza impostata*
 *╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
 
+<<<<<<< HEAD
 > 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`)
+=======
+> BLD-BOT`)
+>>>>>>> 937a2eb2f873caf51fb280f0269b0825e3e7b1eb
         }
 
         const now = new Date() * 1
@@ -32,7 +40,11 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 │ 『📤』 \`Azione:\` *Uscita automatica*
 *╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
 
+<<<<<<< HEAD
 > 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`)
+=======
+> BLD-BOT`)
+>>>>>>> 937a2eb2f873caf51fb280f0269b0825e3e7b1eb
             await conn.sendMessage(m.chat, { delete: m.key })
             return await conn.groupLeave(m.chat)
         }
@@ -58,7 +70,11 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 │             *Usa il comando .creatore per avere info*`
         }
 
+<<<<<<< HEAD
         message += `\n*╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*\n\n> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
+=======
+        message += `\n*╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*\n\n> BLD-BOT`
+>>>>>>> 937a2eb2f873caf51fb280f0269b0825e3e7b1eb
 
         return conn.sendMessage(m.chat, {
             text: message,

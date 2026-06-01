@@ -60,7 +60,11 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         let foundList = results.map(([num]) => `✅ wa.me/${num}`).join('\n');
         let notFoundList = notFound.map(num => `❌ ${num}`).join('\n');
 
+<<<<<<< HEAD
         let finalMsg = `✅ *Ricerca completata!*\n┌───────────\n⁉️ *Trovati:* ${found}\n❌ *Non trovati:* ${notFound.length}\n└───────────\n\n*Numeri esistenti:*\n${foundList}\n\n*Numeri non esistenti:*\n${notFoundList}\n\n> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`;
+=======
+        let finalMsg = `✅ *Ricerca completata!*\n┌───────────\n⁉️ *Trovati:* ${found}\n❌ *Non trovati:* ${notFound.length}\n└───────────\n\n*Numeri esistenti:*\n${foundList}\n\n*Numeri non esistenti:*\n${notFoundList}\n\n> BLD-BOT`;
+>>>>>>> 937a2eb2f873caf51fb280f0269b0825e3e7b1eb
 
         await conn.sendMessage(m.chat, {
             text: finalMsg,
