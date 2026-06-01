@@ -3,7 +3,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         let errorMsg = `ㅤㅤ⋆｡˚『╭ \`ERRORE\` ╯』˚｡⋆\n╭\n`
         errorMsg += `│ 『⚠️』 \`Questo comando funziona solo nei gruppi!\`\n`
         errorMsg += `*╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*\n\n`
-        errorMsg += `> vare ✧ bot`
+        errorMsg += `> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
         return m.reply(errorMsg)
     }
 
@@ -18,7 +18,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 │ 『⏱️』 \`Stato:\` *Nessuna scadenza impostata*
 *╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
 
-> vare ✧ bot`)
+> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`)
         }
 
         const now = new Date() * 1
@@ -32,7 +32,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 │ 『📤』 \`Azione:\` *Uscita automatica*
 *╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
 
-> vare ✧ bot`)
+> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`)
             await conn.sendMessage(m.chat, { delete: m.key })
             return await conn.groupLeave(m.chat)
         }
@@ -58,7 +58,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 │             *Usa il comando .creatore per avere info*`
         }
 
-        message += `\n*╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*\n\n> vare ✧ bot`
+        message += `\n*╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*\n\n> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
 
         return conn.sendMessage(m.chat, {
             text: message,

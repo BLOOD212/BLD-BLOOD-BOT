@@ -29,7 +29,7 @@ export async function before(m, { conn, isAdmin, isBotAdmin, isOwner, isSam }) {
       .catch(() => {})
   }
 
-  // Messaggio estetico BLD-BLOOD
+  // Messaggio estetico 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓
   const header = `⋆｡˚『 ╭ \`ANTISONDAGGI SYSTEM\` ╯ 』˚｡⋆`
   const footer = `╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒`
   

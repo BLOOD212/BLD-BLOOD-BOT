@@ -143,7 +143,7 @@ async function handleGameTimeout(conn, chat, gameId, usedPrefix, targetWord, pla
 
         await conn.sendMessage(chat, {
             text: timeoutText,
-            footer: '𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙',
+            footer: '𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓',
             interactiveButtons: buttons
         });
         
@@ -186,7 +186,7 @@ async function startGame(conn, m, usedPrefix) {
         let msg = await conn.sendMessage(chat, { 
             image: boardImage, 
             caption: startCaption,
-            footer: '𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙'
+            footer: '𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓'
         }, { quoted: m });
 
         global.wordleGame[chat] = newGame;
@@ -234,7 +234,7 @@ let handler = async (m, { conn, command, usedPrefix }) => {
         await conn.sendMessage(m.chat, {
             image: boardImage,
             caption: skipCaption,
-            footer: '𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙',
+            footer: '𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓',
             interactiveButtons: buttons
         }, { quoted: m });
         delete global.wordleGame[m.chat];
@@ -297,7 +297,7 @@ handler.before = async (m, { conn, usedPrefix }) => {
         await conn.sendMessage(chat, {
             image: boardImage,
             caption: winCaption,
-            footer: '𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙',
+            footer: '𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓',
             interactiveButtons: buttons
         }, { quoted: m });
         delete global.wordleGame[chat];
@@ -311,7 +311,7 @@ handler.before = async (m, { conn, usedPrefix }) => {
         await conn.sendMessage(chat, {
             image: boardImage,
             caption: loseCaption,
-            footer: '𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙',
+            footer: '𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓',
             interactiveButtons: buttons
         }, { quoted: m });
         delete global.wordleGame[chat];
@@ -326,7 +326,7 @@ handler.before = async (m, { conn, usedPrefix }) => {
         let newMsg = await conn.sendMessage(chat, {
             image: boardImage,
             caption: continueCaption,
-            footer: '𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙'
+            footer: '𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓'
         }, { quoted: m });
         
         game.id = newMsg.key.id;

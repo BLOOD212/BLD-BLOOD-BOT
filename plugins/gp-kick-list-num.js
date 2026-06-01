@@ -7,7 +7,7 @@ const handler = async (m, { conn, args, groupMetadata, participants, usedPrefix,
       errorMsg += `*⚠️ Inserisci un prefisso paese*\n\n`
       errorMsg += `*📝 Esempio:*\n`
       errorMsg += `└─⭓ ${usedPrefix + command} 39\n\n`
-      errorMsg += `> vare ✧ bot`
+      errorMsg += `> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
       return m.reply(errorMsg)
     }
 
@@ -17,7 +17,7 @@ const handler = async (m, { conn, args, groupMetadata, participants, usedPrefix,
       errorMsg += `*⚠️ Il prefisso deve essere numerico*\n\n`
       errorMsg += `*📝 Esempio:*\n`
       errorMsg += `└─⭓ ${usedPrefix + command} 39\n\n`
-      errorMsg += `> vare ✧ bot`
+      errorMsg += `> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
       return m.reply(errorMsg)
     }
 
@@ -96,7 +96,7 @@ const handler = async (m, { conn, args, groupMetadata, participants, usedPrefix,
       msg += `└─⭓ Totale membri: ${groupParticipants.length}\n`
       msg += `└─⭓ Admin: ${adminJids.length}\n`
       msg += `└─⭓ Con prefisso +${prefix}: 0\n\n`
-      msg += `> vare ✧ bot`
+      msg += `> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
       
       return m.reply(msg)
     }
@@ -118,7 +118,7 @@ const handler = async (m, { conn, args, groupMetadata, participants, usedPrefix,
         msg += `\n\n*📊 Totale:* ${allWithPrefix.length} numeri\n`
         msg += `*⚡ Admin:* ${allWithPrefix.filter(p => adminJids.includes(p.id)).length}\n`
         msg += `*👤 Utenti:* ${kickableUsers.length}\n\n`
-        msg += `> vare ✧ bot`
+        msg += `> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
         
         return conn.reply(m.chat, msg, m, { 
           mentions: allWithPrefix.map(p => p.id) 
@@ -150,7 +150,7 @@ const handler = async (m, { conn, args, groupMetadata, participants, usedPrefix,
           msg += `*📊 Statistiche:*\n`
           msg += `└─⭓ Totale con +${prefix}: ${allWithPrefix.length}\n`
           msg += `└─⭓ Kickabili: 0\n\n`
-          msg += `> vare ✧ bot`
+          msg += `> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
           
           return conn.reply(m.chat, msg, m, { 
             mentions: allWithPrefix.map(p => p.id) 
@@ -225,7 +225,7 @@ const handler = async (m, { conn, args, groupMetadata, participants, usedPrefix,
         report += `└─⭓ Falliti: ${failed.length}\n`
         report += `└─⭓ Protetti: ${protectedCount}\n`
         report += `└─⭓ Totale +${prefix}: ${allWithPrefix.length}\n\n`
-        report += `> vare ✧ bot`
+        report += `> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
 
         const allMentions = [...kicked, ...failed, ...allWithPrefix.filter(p => !kickableUsers.includes(p.id)).map(p => p.id)]
         await conn.reply(m.chat, report, m, { mentions: allMentions })

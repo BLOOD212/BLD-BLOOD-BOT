@@ -109,7 +109,7 @@ const WelcomeCard = ({ backgroundUrl, pfpUrl, isGoodbye, username, groupName }) 
                     React.createElement('h1', { className: 'title' }, isGoodbye ? 'ADDIO!' : 'BENVENUTO!'),
                     React.createElement('h2', { className: 'username' }, username),
                     React.createElement('p', { className: 'group-name' }, groupName),
-                    React.createElement('div', { className: 'footer' }, '✦ ⋆ ✧ ⭒ BLD-BLOOD⭒ ✧ ⋆ ✦')
+                    React.createElement('div', { className: 'footer' }, '✦ ⋆ ✧ ⭒ 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓⭒ ✧ ⋆ ✦')
                 )
             )
         )

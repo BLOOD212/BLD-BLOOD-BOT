@@ -136,7 +136,7 @@ let handler = async (m, { conn, usedPrefix, command, args, text }) => {
       await conn.sendMessage(m.chat, {
         image: screenshotBuffer,
         caption: `ㅤ⋆｡˚『 ╭ \`SS AGGIORNATO\` ╯ 』˚｡⋆\n╭\n${siteInfo}\n│ 『 🔗 』 \`URL:\` *${url}*\n\n*╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*`,
-        footer: '𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙',
+        footer: '𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓',
         interactiveButtons: buttons
       }, { quoted: loadingMsg });
 
@@ -300,7 +300,7 @@ let handler = async (m, { conn, usedPrefix, command, args, text }) => {
     await conn.sendMessage(m.chat, {
       image: cached.buffer,
       caption: `ㅤ⋆｡˚『 ╭ \`SS DA CACHE\` ╯ 』˚｡⋆\n╭\n${siteInfo}\n│ 『 🔗 』 \`URL:\` *${url}*\n\n*╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*`,
-      footer: 'vare ✧ bot',
+      footer: '𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓',
       interactiveButtons: buttons
     }, { quoted: m });
     return;
@@ -478,7 +478,7 @@ let handler = async (m, { conn, usedPrefix, command, args, text }) => {
     await conn.sendMessage(m.chat, {
       image: screenshotBuffer,
       caption: `ㅤ⋆｡˚『 ╭ \`SS COMPLETATO\` ╯ 』˚｡⋆\n╭\n${siteInfo}\n│ 『 🔗 』 \`URL:\` *${url}*\n\n*╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*`,
-      footer: 'vare ✧ bot',
+      footer: '𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓',
       interactiveButtons: buttons
     }, { quoted: loadingMsg });
 

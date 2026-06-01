@@ -136,7 +136,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     const newsChannel = channels[Math.floor(Math.random() * channels.length)]
     
     await conn.sendFile(m.chat, uploadData.data.url, 'tg.jpg',
-      `*🔴 LIVE - ${newsChannel} 📺*\n*🕐 ${newsTime}*\n\n- *${newsTitle}*\n\n> vare ✧ bot`, m)
+      `*🔴 LIVE - ${newsChannel} 📺*\n*🕐 ${newsTime}*\n\n- *${newsTitle}*\n\n> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`, m)
     
     await deleteFromImgbb(uploadData.data.delete_url)
     

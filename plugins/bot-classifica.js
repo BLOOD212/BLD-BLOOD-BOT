@@ -189,7 +189,7 @@ let handler = async (m, { conn, args, participants, isOwner }) => {
 • ⭐ *Exp:* ${playerPos.exp}/${users.length}
 • 📈 *Livello:* ${playerPos.level}/${users.length}
 
-${isOwner ? '> vare ✧ bot' : '> vare ❀ bot'}`
+${isOwner ? '> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓' : '> vare ❀ bot'}`
 
         await conn.sendMessage(m.chat, {
             image: Buffer.from(responseImg.data),

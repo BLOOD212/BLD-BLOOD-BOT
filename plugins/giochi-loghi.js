@@ -172,7 +172,7 @@ let handler = async (m, { conn, args, participants, isAdmin, isBotAdmin, usedPre
     try {
         let msg = await conn.sendMessage(m.chat, {
             image: { url: scelta.url },
-            caption: `${frase}\n\n 🏢 *Rispondi con il nome dell'azienda!*\n⏱️ *Tempo disponibile:* 30 secondi\n\n> \`vare ✧ bot\``,
+            caption: `${frase}\n\n 🏢 *Rispondi con il nome dell'azienda!*\n⏱️ *Tempo disponibile:* 30 secondi\n\n> \`𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓\``,
             quoted: m
         });
 
@@ -187,7 +187,7 @@ let handler = async (m, { conn, args, participants, isAdmin, isBotAdmin, usedPre
             timeout: setTimeout(async () => {
                 if (global.loghiGame?.[m.chat]) {
                     await conn.sendMessage(m.chat, {
-                        text: `⏳ *Tempo scaduto!*\n\n🏢 *La risposta era:* *${scelta.nome}*\n\n> \`vare ✧ bot\``,
+                        text: `⏳ *Tempo scaduto!*\n\n🏢 *La risposta era:* *${scelta.nome}*\n\n> \`𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓\``,
                         ...playAgainQuickReply(usedPrefix)
                     }, { quoted: msg });
                     delete global.loghiGame[m.chat];

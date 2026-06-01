@@ -48,7 +48,7 @@ let handler = async (m, { conn, args }) => {
   messaggio += '\n*Rispondi con i numeri dei condimenti separati da virgola (es. 1, 2, 3)*\n*Scrivi "fine" per terminare la tua pizza*';
 
   try {
-    const msg = await conn.sendMessage(m.chat, { text: messaggio, footer: '🍕 𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙 🍕' }, { quoted: m });
+    const msg = await conn.sendMessage(m.chat, { text: messaggio, footer: '🍕 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓 🍕' }, { quoted: m });
     global.pizzaGame = global.pizzaGame || {};
     global.pizzaGame[m.chat] = {
       id: msg.key.id,
@@ -59,7 +59,7 @@ let handler = async (m, { conn, args }) => {
         const pizza = global.pizzaGame[m.chat].condimenti.join(', ');
         const utente = `@${global.pizzaGame[m.chat].utente.split('@')[0]}`;
         const randomReply = pizzaBotReplies[Math.floor(Math.random() * pizzaBotReplies.length)];
-        await conn.sendMessage(m.chat, { text: `*PIZZA CREATA DA* ${utente}\n\n*Questa è la tua pizza:* ${pizza}\n\n${randomReply}`, footer: '🍕 𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙 🍕', interactiveButtons: playAgainButtons() }, { quoted: msg });
+        await conn.sendMessage(m.chat, { text: `*PIZZA CREATA DA* ${utente}\n\n*Questa è la tua pizza:* ${pizza}\n\n${randomReply}`, footer: '🍕 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓 🍕', interactiveButtons: playAgainButtons() }, { quoted: msg });
         delete global.pizzaGame[m.chat];
       }, 120000)
     };
@@ -81,7 +81,7 @@ handler.before = async (m, { conn }) => {
       const pizza = game.condimenti.join(', ');
       const utente = `@${game.utente.split('@')[0]}`;
       const randomReply = pizzaBotReplies[Math.floor(Math.random() * pizzaBotReplies.length)];
-      await conn.sendMessage(m.chat, { text: `*PIZZA CREATA DA* ${utente}\n\n*Questa è la tua pizza:* ${pizza}\n\n${randomReply}`, footer: '🍕 𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙 🍕', interactiveButtons: playAgainButtons() }, { quoted: m });
+      await conn.sendMessage(m.chat, { text: `*PIZZA CREATA DA* ${utente}\n\n*Questa è la tua pizza:* ${pizza}\n\n${randomReply}`, footer: '🍕 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓 🍕', interactiveButtons: playAgainButtons() }, { quoted: m });
       delete global.pizzaGame[m.chat];
       return;
     }

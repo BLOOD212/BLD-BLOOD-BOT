@@ -143,7 +143,7 @@ let handler = async (m, { conn, args, participants, isAdmin, isBotAdmin, usedPre
     try {
         let msg = await conn.sendMessage(m.chat, {
             image: { url: scelta.url },
-            caption: `${frase}\n\n🌍 *Paese:* ${scelta.paese}\n\n🏛️ *Rispondi con il nome della capitale!*\n⏱️ *Tempo disponibile:* 30 secondi\n\n> \`𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙\``,
+            caption: `${frase}\n\n🌍 *Paese:* ${scelta.paese}\n\n🏛️ *Rispondi con il nome della capitale!*\n⏱️ *Tempo disponibile:* 30 secondi\n\n> \`𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓\``,
             quoted: m
         });
         global.capitaliGame = global.capitaliGame || {};
@@ -158,7 +158,7 @@ let handler = async (m, { conn, args, participants, isAdmin, isBotAdmin, usedPre
             timeout: setTimeout(async () => {
                 if (global.capitaliGame?.[m.chat]) {
                     await conn.sendMessage(m.chat, {
-                        text: `⏳ *Tempo scaduto!*\n\n🏛️ *La capitale di ${scelta.paese} è:* *${scelta.capitale}*\n\n> \`𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙\``,
+                        text: `⏳ *Tempo scaduto!*\n\n🏛️ *La capitale di ${scelta.paese} è:* *${scelta.capitale}*\n\n> \`𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓\``,
                         buttons: playAgainButtons(usedPrefix),
                         headerType: 1
                     }, { quoted: msg });

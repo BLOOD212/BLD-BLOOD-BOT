@@ -4,7 +4,7 @@ let handler = async (m, { conn, args, isOwner }) => {
         errorMsg += `━━━━━━━━━━━━━━━━\n\n`
         errorMsg += `*⚠️ Motivo:*\n`
         errorMsg += `└─⭓ Comando riservato al proprietario\n\n`
-        errorMsg += `> vare ✧ bot`
+        errorMsg += `> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
         return m.reply(errorMsg)
     }
 
@@ -13,7 +13,7 @@ let handler = async (m, { conn, args, isOwner }) => {
         errorMsg += `━━━━━━━━━━━━━━━━\n\n`
         errorMsg += `*⚠️ Motivo:*\n`
         errorMsg += `└─⭓ Utilizzabile solo nei gruppi\n\n`
-        errorMsg += `> vare ✧ bot`
+        errorMsg += `> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
         return m.reply(errorMsg)
     }
 
@@ -23,7 +23,7 @@ let handler = async (m, { conn, args, isOwner }) => {
         errorMsg += `━━━━━━━━━━━━━━━━\n\n`
         errorMsg += `*⚠️ Motivo:*\n`
         errorMsg += `└─⭓ Questo gruppo non è bannato\n\n`
-        errorMsg += `> vare ✧ bot`
+        errorMsg += `> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
         return m.reply(errorMsg)
     }
 
@@ -36,7 +36,7 @@ let handler = async (m, { conn, args, isOwner }) => {
 *🔓 Azione:* Unban accesso bot
 *📅 Data:* ${new Date().toLocaleString('it-IT')}
 
-> vare ✧ bot`)
+> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`)
 }
 
 handler.help = ['unbangp']

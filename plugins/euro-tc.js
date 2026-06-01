@@ -139,7 +139,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         await conn.sendMessage(m.chat, {
             text: finalText,
             buttons: buttons.length ? buttons : undefined,
-            footer: 'vare ✧ bot'
+            footer: '𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓'
         }, { quoted: resGif })
     } catch (err) {
         console.error('Errore invio messaggio finale tc:', err)

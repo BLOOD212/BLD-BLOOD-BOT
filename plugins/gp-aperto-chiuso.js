@@ -9,7 +9,7 @@ let handler = async (m, { conn, command }) => {
             forwardedNewsletterMessageInfo: {
                 newsletterJid: '',
                 serverMessageId: '',
-                newsletterName: global.db.data.nomedelbot || `𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙`
+                newsletterName: global.db.data.nomedelbot || `𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
             }
         }
     }, { quoted: m })

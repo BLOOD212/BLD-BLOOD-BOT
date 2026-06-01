@@ -49,7 +49,7 @@ let handler = async (m, { conn, command, usedPrefix }) => {
                     vcard: `BEGIN:VCARD
 VERSION:3.0
 FN:blood
-ORG:BloodBot - Creatore
+ORG:𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓 - Creatore
 TEL;type=CELL;type=VOICE;waid=393476686131:+393476686131
 END:VCARD`
                 },
@@ -57,7 +57,7 @@ END:VCARD`
                     vcard: `BEGIN:VCARD
 VERSION:3.0
 FN: DEATH 
-ORG:BloodBot - Moderatore
+ORG:𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓 - Moderatore
 TEL;type=CELL;type=VOICE;waid=67078163216:+67078163216
 END:VCARD`
                 },

@@ -320,7 +320,7 @@ ${streamingText}
     await conn.sendMessage(m.chat, {
       image: { url: posterUrl },
       caption: message.trim(),
-      footer: `vare ✧ bot`,
+      footer: `𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`,
       interactiveButtons: buttons
     }, { quoted: m });
 
@@ -400,7 +400,7 @@ async function handleAnimeSearch(conn, m, query, geminiKey, usedPrefix) {
     await conn.sendMessage(m.chat, {
       image: { url: imageUrl },
       caption: animeMessage.trim(),
-      footer: `vare ✧ bot`,
+      footer: `𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`,
       interactiveButtons: buttons
     }, { quoted: m });
 
@@ -523,7 +523,7 @@ ${streamingText}
     await conn.sendMessage(m.chat, {
       image: { url: posterUrl },
       caption: message.trim(),
-      footer: `vare ✧ bot`,
+      footer: `𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`,
       interactiveButtons: buttons
     }, { quoted: m });
 

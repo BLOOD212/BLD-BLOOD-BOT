@@ -5,7 +5,7 @@ let handler = async (m, { conn, args, isOwner }) => {
             errorMsg += `━━━━━━━━━━━━━━━━\n\n`
             errorMsg += `*⚠️ Motivo:*\n`
             errorMsg += `└─⭓ Comando riservato al proprietario\n\n`
-            errorMsg += `> vare ✧ bot`
+            errorMsg += `> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
             return m.reply(errorMsg)
         }
         if (!m.isGroup) {
@@ -13,7 +13,7 @@ let handler = async (m, { conn, args, isOwner }) => {
             errorMsg += `━━━━━━━━━━━━━━━━\n\n`
             errorMsg += `*⚠️ Motivo:*\n`
             errorMsg += `└─⭓ Utilizzabile solo nei gruppi\n\n`
-            errorMsg += `> vare ✧ bot`
+            errorMsg += `> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
             return m.reply(errorMsg)
         }
         if (!global.db.data) {
@@ -49,7 +49,7 @@ let handler = async (m, { conn, args, isOwner }) => {
             errorMsg += `━━━━━━━━━━━━━━━━\n\n`
             errorMsg += `*⚠️ Motivo:*\n`
             errorMsg += `└─⭓ Questo gruppo è già bannato\n\n`
-            errorMsg += `> vare ✧ bot`
+            errorMsg += `> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
             return m.reply(errorMsg)
         }
 
@@ -73,7 +73,7 @@ let handler = async (m, { conn, args, isOwner }) => {
 ├─⭓ Solo owner possono usare il bot
 └─⭓ Ban attivo fino a revoca
 
-> vare ✧ bot`)
+> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`)
         let admins = groupInfo.participants.filter(p => p.admin)
         let adminMsg = `*⚠️ NOTIFICA ADMIN*\n`
         adminMsg += `━━━━━━━━━━━━━━━━\n\n`
@@ -81,7 +81,7 @@ let handler = async (m, { conn, args, isOwner }) => {
         adminMsg += `└─⭓ Questo gruppo è stato bannato\n\n`
         adminMsg += `*📌 Note:*\n`
         adminMsg += `└─⭓ Il bot non risponderà ai comandi\n\n`
-        adminMsg += `> vare ✧ bot`
+        adminMsg += `> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`
 
         for (let admin of admins) {
             await conn.sendMessage(admin.id, { text: adminMsg })
@@ -92,7 +92,7 @@ let handler = async (m, { conn, args, isOwner }) => {
                       `━━━━━━━━━━━━━━━━\n\n` +
                       `*⚠️ Si è verificato un errore*\n` +
                       `*📝 Tipo:* ${e.message}\n\n` +
-                      `> vare ✧ bot`)
+                      `> 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓`)
     }
 }
 

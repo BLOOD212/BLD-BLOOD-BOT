@@ -247,7 +247,7 @@ ${Object.entries(languages).map(([code, name]) => `*├─⭓* *${code}: ${name}
 ┌─⭓ \`Traduzione:\`
 └─⭓ ${fullTranslation}
                 `,
-                footer: 'vare ✧ bot',
+                footer: '𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓',
                 buttons: buttons,
                 headerType: 1
             };

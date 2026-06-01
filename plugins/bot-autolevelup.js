@@ -115,7 +115,7 @@ export async function before(m, { conn }) {
             ctx.font = '30px Arial, sans-serif'
             ctx.fillStyle = '#9f7aea'
             ctx.textAlign = 'center'
-            ctx.fillText('✧ ⋆ ┈ ┈ ⋆ ☾⋆⁺₊✧ *BloodBot* ✧₊⁺⋆☽ ⋆ ┈ ┈ ⋆ ✧', width/2, height - 40)
+            ctx.fillText('✧ ⋆ ┈ ┈ ⋆ ☾⋆⁺₊✧ *𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓* ✧₊⁺⋆☽ ⋆ ┈ ┈ ⋆ ✧', width/2, height - 40)
 
             const buffer = canvas.toBuffer('image/jpeg')
             const caption = `ㅤㅤ⋆｡˚『 ╭ \`LIVELLO\` ╯ 』˚｡⋆\n╭\n│ 🎋 *Nome:* ${name}\n│ ✧ *Livello:* ${before} ➯ ${user.level}\n│ ❈ *Ruolo:* ${user.role}\n│ ✦ *EXP:* ${user.exp}/${range.max}\n*╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*`

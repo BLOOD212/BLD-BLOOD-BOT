@@ -89,7 +89,7 @@ let handler = async (m, { conn }) => {
                     title: 'indovina la canzone',
                     body: `Artista: ${track.artist}`,
                     thumbnailUrl: track.artwork,
-                    sourceUrl: 'vare ✧ bot',
+                    sourceUrl: '𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓',
                     mediaType: 1,
                     renderLargerThumbnail: true
                 }

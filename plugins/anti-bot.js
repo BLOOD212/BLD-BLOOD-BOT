@@ -40,7 +40,7 @@ export async function before(m, { conn, isAdmin, isOwner, isSam }) {
   // Esecuzione sanzione
   await conn.groupParticipantsUpdate(m.chat, [m.sender], 'remove');
 
-  // Messaggio estetico BLD-BLOOD
+  // Messaggio estetico 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓
   const text = `
 ⋆｡˚『 ╭ \`SISTEMA ANTIBOT\` ╯ 』˚｡⋆
 ╭
@@ -58,7 +58,7 @@ export async function before(m, { conn, isAdmin, isOwner, isSam }) {
     mentions: [m.sender],
     contextInfo: {
       externalAdReply: {
-        title: 'BLD-BLOOD SECURITY',
+        title: '𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓 SECURITY',
         body: 'Rilevamento connessione non sicura',
         thumbnailUrl: 'https://qu.ax/TfUj.jpg', // Usa la tua immagine se ne hai una specifica
         mediaType: 1,

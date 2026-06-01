@@ -600,7 +600,7 @@ const createBankCard = (props) => {
                             margin: '0',
                             fontWeight: 'bold'
                         }
-                    }, '*─ׄ✦⋆⁺₊✧ 𝖇𝖑𝖔𝖔𝖉𝖇𝖔𝖙 ✧₊⁺⋆✦─ׅ⭒*')
+                    }, '*─ׄ✦⋆⁺₊✧ 𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓 ✧₊⁺⋆✦─ׅ⭒*')
                 ),
                 React.createElement('p', {
                     style: {

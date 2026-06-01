@@ -100,7 +100,7 @@ let handler = async (m, { conn, text, quoted }) => {
 
     await conn.sendMessage(m.chat, {
       image: { url: quoteApi },
-      caption: `> \`vare ✧ bot\``
+      caption: `> \`𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓\``
     }, { quoted: m })
 
   } catch (e) {
