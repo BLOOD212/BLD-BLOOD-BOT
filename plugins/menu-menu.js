@@ -2,36 +2,29 @@ import { promises as fs } from 'fs'
 import { join } from 'path'
 
 const emojicategoria = {
-  info: 'ℹ️',
-  main: '💠',
+  info: '⚡',
+  main: '🌩️',
   sicurezza: '🛡️'
 }
 
 let tags = {
-  main: '╭ *`SYSTEM MAIN`* ╯',
-  sicurezza: '╭ *`SECURITY SYSTEM`* ╯',
-  info: '╭ *`DATABASE INFO`* ╯'
+  main: '⚡ 𝙱𝙻𝙳 𝙼𝙰𝙸𝙽 𝚂𝚈𝚂𝚃𝙴𝙼 ⚡',
+  info: '⚡ 𝙱𝙻𝙳 𝙸𝙽𝙵𝙾 𝙱𝙰𝚂𝙴 ⚡'
 }
 
-// CAMBIATO: "before" diventa "testoInizio", "after" diventa "testoFine"
 const defaultMenu = {
   testoInizio: `
-┏━━━━━━━━━━━━━━━━━━━━┓
-   💠  *B L D  -  B O T* 💠
-┗━━━━━━━━━━━━━━━━━━━━┛
- ┌───────────────────
- │ 👤 *User:* %name
- │ 🕒 *Uptime:* %uptime
- │ 👥 *Total Users:* %totalreg
- └───────────────────
- 
- *PANNELLO DI CONTROLLO:*
+⚡  〔 𝐁 𝐋 𝐃  •  𝐁 𝐎 𝐓 〕  ⚡
+
+┃ 👤 𝚄𝚝𝚎𝚗𝚝𝚎 ⭔ @%user
+┃ ⏳ 𝚄𝚙𝚝𝚒𝚖𝚎 ⭔ %uptime
+┃ 👥 𝚄𝚝𝚎𝚗𝚝𝚒 ⭔ %totalreg
 `.trimStart(),
 
-  header: '      ⋆｡˚『 %category 』˚｡⋆\n╭',
-  body: '*│ ➢* 『%emoji』 %cmd',
-  footer: '*╰━━━━━━━──────━━━━━━━*\n',
-  testoFine: `_Powered by BLD-BOT Interface_`,
+  header: '\n〔 %category 〕',
+  body: '┃ ⌲ %emoji %cmd',
+  footer: '',
+  testoFine: `\n_Powered by BLD-BOT Interface_`,
 }
 
 const localImg = './menu-principale.jpeg'
@@ -51,7 +44,7 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
   try {
     await conn.sendPresenceUpdate('composing', m.chat)
 
-    let name = await conn.getName(m.sender) || 'User'
+    let who = m.sender
     let uptime = clockString(process.uptime() * 1000)
     let totalreg = Object.keys(global.db.data.users).length
 
@@ -63,25 +56,26 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
 
     let menuTags = Object.keys(tags)
 
-    // CAMBIATO: uso testoInizio e testoFine qui sotto
     let _text = [
       defaultMenu.testoInizio,
       ...menuTags.map(tag => {
-        return defaultMenu.header.replace(/%category/g, tags[tag]) + '\n' + [
-          ...help
-            .filter(menu => menu.tags.includes(tag))
-            .map(menu => menu.help.map(h => 
-              defaultMenu.body
-                .replace(/%cmd/g, menu.prefix ? h : _p + h)
-                .replace(/%emoji/g, emojicategoria[tag])
-            ).join('\n')),
-          defaultMenu.footer
-        ].join('\n')
+        let commands = help
+          .filter(menu => menu.tags.includes(tag))
+          .flatMap(menu => menu.help.map(h => {
+            let rawCmd = menu.prefix ? h : _p + h
+            let styledCmd = toTypewriter(rawCmd)
+            return defaultMenu.body
+              .replace(/%cmd/g, styledCmd)
+              .replace(/%emoji/g, emojicategoria[tag])
+          })).join('\n')
+
+        return defaultMenu.header.replace(/%category/g, tags[tag]) + '\n' + commands
       }),
       defaultMenu.testoFine
     ].join('\n')
 
-    let text = _text.replace(/%name/g, name)
+    let userJid = who.split('@')[0]
+    let text = _text.replace(/%user/g, userJid)
                     .replace(/%uptime/g, uptime)
                     .replace(/%totalreg/g, totalreg)
 
@@ -101,13 +95,14 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
     await conn.sendMessage(m.chat, {
       ...(imageBuffer ? { image: imageBuffer } : {}),
       caption: text.trim(),
-      footer: "B L D - B O T  S Y S T E M",
+      footer: "⚡ BLD-BOT Core System",
       buttons: buttons,
       headerType: 4,
-      viewOnce: true
+      viewOnce: true,
+      mentions: [who]
     }, { quoted: m })
 
-    await m.react('💠')
+    await m.react('⚡')
 
   } catch (e) {
     console.error(e)
@@ -125,4 +120,13 @@ function clockString(ms) {
   let m = Math.floor(ms / 60000) % 60
   let s = Math.floor(ms / 1000) % 60
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
+}
+
+function toTypewriter(str) {
+  const normal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+  const typewriter = "𝚊𝚋𝚌𝚍𝚎𝚏𝚐𝚑𝚒𝚓𝚔𝚕𝚖𝚗𝚘𝚙𝚚𝚛𝚜𝚝𝚞𝚟𝚠𝚡𝚢𝚣𝙰𝙱𝙲𝙳𝙴𝙵𝙶𝙷𝙸𝙹𝙺𝙻𝙼𝙽𝙾𝙿𝚀𝚁𝚂𝚃𝚄𝚅𝚆𝚇𝚈𝚉𝟶𝟷𝟸𝟹𝟺𝟻𝟼𝟽𝟾𝟿"
+  return str.split('').map(char => {
+    const index = normal.indexOf(char)
+    return index !== -1 ? typewriter.substr(index * 2, 2) : char
+  }).join('')
 }
