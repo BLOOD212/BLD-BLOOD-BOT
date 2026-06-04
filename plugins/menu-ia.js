@@ -1,7 +1,6 @@
 import { xpRange } from '../lib/levelling.js'
 import { join } from 'path'
 
-// --- PERCORSO IMMAGINE ---
 const localImg = join(process.cwd(), 'menu-ia.jpeg');
 
 const emojicategoria = {
@@ -11,29 +10,25 @@ const emojicategoria = {
 }
 
 let tags = {
-  'iatesto': '𝐈𝐀 𝐓𝐄𝐒𝐓𝐎',
-  'iaaudio': '𝐈𝐀 𝐀𝐔𝐃𝐈𝐎',
-  'iaimmagini': '𝐈𝐀 𝐈𝐌𝐌𝐀𝐆𝐈𝐍𝐈'
+  'iatesto': '⚡ 𝙱𝙻𝙳 𝙸𝙰 𝚃𝙴𝚂𝚃𝙾 ⚡',
+  'iaaudio': '⚡ 𝙱𝙻𝙳 𝙸𝙰 𝙰𝚄𝙳𝙸𝙾 ⚡',
+  'iaimmagini': '⚡ 𝙱𝙻𝙳 𝙸𝙰 𝙸𝙼𝙼𝙰𝙶𝙸𝙽𝙸 ⚡'
 }
 
 const defaultMenu = {
-  before: `
-┎━━━━━━━━━━━━━━━━━━━┑
-┃   ✧  𝐁𝐋𝐃 - 𝐈𝐍𝐓𝐄𝐋𝐋𝐈𝐆𝐄𝐍𝐂𝐄  ✧   ┃
-┖━━━━━━━━━━━━━━━━━━━┙
-┌───────────────────┐
-  👤 𝚄𝚜𝚎𝚛: %name
-  🏆 𝙻𝚟𝚕: %level
-  🪐 𝚄𝚙𝚝𝚒𝚖𝚎: %uptime
-  👥 𝚄𝚜𝚎𝚛𝚜: %totalreg
-└───────────────────┘
+  testoInizio: `
+⚡  〔 𝐁 𝐋 𝐃  •  𝐈 𝐀 〕  ⚡
 
-*〘 ᴀᴄᴄᴇssɪɴɢ ɴᴇᴜʀᴀʟ ɴᴇᴛᴡᴏʀᴋ... 〙*
+┃ 👤 𝚄𝚝𝚎𝚗𝚝𝚎 ⭔ @%user
+┃ 🏆 𝙻𝚒𝚟𝚎𝚕𝚕𝚘 ⭔ %level
+┃ ⏳ 𝚄𝚙𝚝𝚒𝚖𝚎 ⭔ %uptime
+┃ 👥 𝚄𝚝𝚎𝚗𝚝𝚒 ⭔ %totalreg
 `.trimStart(),
-  header: '┍━━━〔 %category 〕━━━┑',
-  body: '┇ %emoji  *%cmd*',
-  footer: '┕━━━━━──ׄ──ׅ──ׄ──━━━━━┙\n',
-  after: `_ꜱʏꜱᴛᴇᴍ ɪᴀ ᴏᴘᴇʀᴀᴛɪᴏɴᴀʟ_`
+
+  header: '\n〔 %category 〕',
+  body: '┃ ⌲ %emoji %cmd',
+  footer: '',
+  testoFine: `\n_SYSTEM IA OPERATIONAL_`
 }
 
 let handler = async (m, { conn, usedPrefix: _p, __dirname }) => {
@@ -41,7 +36,6 @@ let handler = async (m, { conn, usedPrefix: _p, __dirname }) => {
     await conn.sendPresenceUpdate('composing', m.chat)
     
     let { level = 0, role = 'User' } = global.db.data.users[m.sender] || {}
-    let name = await conn.getName(m.sender) || 'Utente'
     let uptime = clockString(process.uptime() * 1000)
     let totalreg = Object.keys(global.db.data.users).length
 
@@ -56,34 +50,31 @@ let handler = async (m, { conn, usedPrefix: _p, __dirname }) => {
 
     let menuTags = Object.keys(tags)
     let _text = [
-      defaultMenu.before,
+      defaultMenu.testoInizio,
       ...menuTags.map(tag => {
-        return defaultMenu.header.replace(/%category/g, tags[tag]) + '\n' + [
-          ...help.filter(menu => menu.tags.includes(tag) && menu.help).map(menu => {
-            return menu.help.map(cmd => {
-              return defaultMenu.body
-                .replace(/%cmd/g, menu.prefix ? cmd : _p + cmd)
-                .replace(/%emoji/g, emojicategoria[tag] || '🧠')
-                .trim()
-            }).join('\n')
-          }),
-          defaultMenu.footer
-        ].join('\n')
+        let commands = help
+          .filter(menu => menu.tags.includes(tag) && menu.help)
+          .flatMap(menu => menu.help.map(cmd => {
+            let rawCmd = menu.prefix ? cmd : _p + cmd
+            let styledCmd = toTypewriter(rawCmd)
+            return defaultMenu.body
+              .replace(/%cmd/g, styledCmd)
+              .replace(/%emoji/g, emojicategoria[tag] || '🧠')
+          })).join('\n')
+
+        return defaultMenu.header.replace(/%category/g, tags[tag]) + '\n' + commands
       }),
-      defaultMenu.after
+      defaultMenu.testoFine
     ].join('\n')
 
-    let replace = {
-      '%': '%',
-      p: _p,
-      name, level, uptime, totalreg
-    }
-
-    let text = _text.replace(new RegExp(`%(${Object.keys(replace).sort((a, b) => b.length - a.length).join('|')})`, 'g'), (_, name) => '' + replace[name])
+    let userJid = m.sender.split('@')[0]
+    let text = _text.replace(/%user/g, userJid)
+                    .replace(/%level/g, level)
+                    .replace(/%uptime/g, uptime)
+                    .replace(/%totalreg/g, totalreg)
 
     await m.react('🧠')
 
-    // --- INVIO CON IMMAGINE E CONTEXT GRUPPO ---
     await conn.sendMessage(m.chat, {
       image: { url: localImg },
       caption: text.trim(),
@@ -91,7 +82,7 @@ let handler = async (m, { conn, usedPrefix: _p, __dirname }) => {
         mentionedJid: [m.sender],
         forwardedNewsletterMessageInfo: {
           newsletterJid: '120363232743845068@newsletter',
-          newsletterName: "✧ 𝙱𝙻𝙳-𝙱𝙾𝚃 𝙸𝙽𝚃𝙴𝙻𝙻𝙸𝙶𝙴𝙽𝙲𝙴 ✧"
+          newsletterName: "✧ 𝙱𝙻𝙳-𝙱𝙾𝚃 𝙸format𝙸format ✧"
         }
       }
     }, { quoted: m })
@@ -113,4 +104,13 @@ function clockString(ms) {
   let m = isNaN(ms) ? '00' : (Math.floor(ms / 60000) % 60).toString().padStart(2, '0')
   let s = isNaN(ms) ? '00' : (Math.floor(ms / 1000) % 60).toString().padStart(2, '0')
   return `${h}:${m}:${s}`
+}
+
+function toTypewriter(str) {
+  const normal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+  const typewriter = "𝚊𝚋𝚌𝚍𝚎𝚏𝚐𝚑𝚒𝚓𝚔𝚕𝚖𝚗𝚘𝚙𝚚𝚛𝚜𝚝𝚞𝚟𝚠𝚡𝚢𝚣𝙰𝙱𝙲𝙳𝙴𝙵𝙶𝙷𝙸𝙹𝙺𝙻𝙼𝙽𝙾𝙿𝚀𝚁𝚂𝚃𝚄𝚅𝚆𝚇𝚈𝚉𝟶𝟷𝟸𝟹𝟺𝟻𝟼𝟽𝟾𝟿"
+  return str.split('').map(char => {
+    const index = normal.indexOf(char)
+    return index !== -1 ? typewriter.substr(index * 2, 2) : char
+  }).join('')
 }
