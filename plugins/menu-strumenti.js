@@ -5,31 +5,27 @@ import { join } from 'path'
 const localImg = join(process.cwd(), 'menu-strumenti.jpeg');
 
 const defmenu = {
-  before: `
-┏━━━━━━━━━━━━━━━━━━━━┓
-   💉  *B L O O D  -  T O O L S* 💉
-┗━━━━━━━━━━━━━━━━━━━━┛
- ┌───────────────────
- │ 🧪 *Soggetto:* %name
- │ ⚙️ *Moduli:* Strumenti
- │ ⚠️ *Status:* Deep Scan
- └───────────────────
+  testoInizio: `
+⚡  〔 𝐁 𝐋 𝐃  •  𝐓 𝐎 𝐎 𝐋 𝐒 〕  ⚡
+
+┃ 👤 𝚄ﺘ𝚎𝚗𝚝𝚎 ⭔ @%user
+┃ ⚙️ 𝙼𝚘𝚍𝚞𝚕𝚒 ⭔ 𝚂𝚝𝚛𝚞𝚖𝚎𝚗𝚝𝚒
+┃ ⚠️ 𝚂𝚝𝚊𝚝𝚞𝚜 ⭔ 𝙳𝚎𝚎𝚙 𝚂𝚌𝚊𝚗
 `.trimStart(),
-  header: '      ⋆｡˚『 %category 』˚｡⋆\n╭',
-  body: '│ ⚡  %cmd',
-  footer: '*╰━━━━━──ׄ──ׅ──ׄ──━━━━━*\n',
-  after: `_☣️ Estrazione dati completata._`.trimEnd()
+
+  header: '\n〔 %category 〕',
+  body: '┃ ⌲ %emoji %cmd',
+  footer: '',
+  testoFine: `\n_☣️ Estrazione dati completata._`
 }
 
 let handler = async (m, { conn, usedPrefix: _p }) => {
   let tags = {
-    'strumenti': 'LABORATORIO BLOOD'
+    'strumenti': '⚡ 𝙱𝙻𝙳 𝙻𝙰𝙱𝙾𝚁𝙰𝚃𝙾𝚁𝙸𝙾 ⚡'
   }
 
   try {
     await conn.sendPresenceUpdate('composing', m.chat)
-    
-    let name = await conn.getName(m.sender) || 'Soggetto Ignoto'
     
     // Filtro plugin per la categoria strumenti
     let help = Object.values(global.plugins)
@@ -40,24 +36,32 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
       }))
 
     // Costruzione del testo
+    let commands = help.flatMap(menu => 
+      menu.help.map(cmd => {
+        let rawCmd = menu.prefix ? cmd : _p + cmd
+        let styledCmd = toTypewriter(rawCmd)
+        return defmenu.body
+          .replace(/%cmd/g, styledCmd)
+          .replace(/%emoji/g, '🧪')
+      })
+    ).join('\n')
+
     let _text = [
-      defmenu.before.replace(/%name/g, name),
-      defmenu.header.replace(/%category/g, tags['strumenti']),
-      help.map(menu => menu.help.map(cmd => 
-        defmenu.body.replace(/%cmd/g, menu.prefix ? cmd : _p + cmd)
-      ).join('\n')).join('\n'),
-      defmenu.footer,
-      defmenu.after
+      defmenu.testoInizio,
+      defmenu.header.replace(/%category/g, tags['strumenti']) + '\n' + commands,
+      defmenu.testoFine
     ].join('\n')
+
+    let userJid = m.sender.split('@')[0]
+    let text = _text.replace(/%user/g, userJid)
 
     let fake = global.fake || {};
 
     await m.react('🧪')
 
-    // --- INVIO COME IMMAGINE (SOSTITUITO VIDEO) ---
     await conn.sendMessage(m.chat, {
       image: { url: localImg },
-      caption: _text.trim(),
+      caption: text.trim(),
       contextInfo: {
         ...fake.contextInfo,
         mentionedJid: [m.sender],
@@ -80,3 +84,12 @@ handler.tags = ['menu']
 handler.command = ['menutools', 'menustrumenti']
 
 export default handler
+
+function toTypewriter(str) {
+  const normal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+  const typewriter = "𝚊𝚋𝚌𝚍𝚎𝚏𝚐𝚑𝚒𝚓𝚔𝚕𝚖𝚗𝚘𝚙𝚚𝚛𝚜𝚝𝚞𝚟𝚠𝚡𝚢𝚣𝙰𝙱𝙲𝙳𝙴𝙵𝙶𝙷𝙸𝙹𝙺𝙻𝙼𝙽𝙾𝙿𝚀𝚁𝚂𝚃𝚄𝚅𝚆𝚇𝚈𝚉𝟶𝟷𝟸𝟹𝟺𝟻𝟼𝟽𝟾𝟿"
+  return str.split('').map(char => {
+    const index = normal.indexOf(char)
+    return index !== -1 ? typewriter.substr(index * 2, 2) : char
+  }).join('')
+}
