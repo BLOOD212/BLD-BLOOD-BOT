@@ -1,10 +1,7 @@
-import fetch from 'node-fetch'
+import { promises as fs } from 'fs'
 import { join } from 'path'
 
 let handler = async (m, { conn, usedPrefix: _p, command, args, isOwner, isAdmin }) => {
-  const userName = m.pushName || 'Utente'
-  
-  // --- PERCORSO IMMAGINE LOCALE ---
   const localImg = join(process.cwd(), 'menu-sicurezza.jpeg')
 
   global.db.data.chats[m.chat] = global.db.data.chats[m.chat] || {}
@@ -12,9 +9,7 @@ let handler = async (m, { conn, usedPrefix: _p, command, args, isOwner, isAdmin 
   let chat = global.db.data.chats[m.chat]
   let bot = global.db.data.settings[conn.user.jid]
 
-  // --- CONFIGURAZIONE MODULI ---
   const securityFeatures = [
-    { key: 'antigore', name: '🚫 Antigore', desc: 'Blocca contenuti splatter/gore' },
     { key: 'modoadmin', name: '🛡️ Soloadmin', desc: 'Solo gli admin usano il bot' },
     { key: 'antivoip', name: '📞 Antivoip', desc: 'Rifiuta chiamate nel gruppo' },
     { key: 'antilink', name: '🔗 Antilink', desc: 'Elimina link gruppi WhatsApp' },
@@ -33,42 +28,49 @@ let handler = async (m, { conn, usedPrefix: _p, command, args, isOwner, isAdmin 
     { key: 'welcome', name: '👋 Welcome', desc: 'Messaggio di benvenuto' }
   ]
 
-  const ownerFeatures = [
-    { key: 'anticall', name: '📵 Antichiamate', desc: 'Blocca chiamate al bot (Global)' },
-    { key: 'antiprivate', name: '🔒 Antiprivato', desc: 'Blocca uso del bot in privato' },
-    { key: 'solocreatore', name: '👑 Solo Creatore', desc: 'Bot risponde solo all\'owner' }
-  ]
+  const defaultMenu = {
+    testoInizio: `
+⚡  〔 𝐁 𝐋 𝐃  •  𝐒 𝐄 𝐂 𝐔 𝐑 𝐈 𝐓 𝐘 〕  ⚡
 
-  // --- GENERAZIONE MENU ---
+┃ 👤 𝚄𝚝𝚎𝚗𝚝𝚎 ⭔ @%user
+┃ 📡 𝚂𝚝𝚊𝚝𝚞𝚜 ⭔ 𝙾𝚗𝚕𝚒𝚗𝚎
+`,
+    header: '\n〔 %category 〕',
+    body: '┃ ⌲ %emoji %cmd',
+    testoFine: `\n_Powered by BLD-BOT Interface_`
+  }
+
   if (!args.length || /menu|help/i.test(args[0])) {
-    let text = `
-┎━━━━━━━━━━━━━━━━━━━━┑
-┃   ✧  𝐁𝐋𝐃 - 𝐌𝐀𝐒𝐓𝐄𝐑 𝐂𝐎𝐍𝐓𝐑𝐎𝐋  ✧   ┃
-┖━━━━━━━━━━━━━━━━━━━━┙
-┌────────────────────┐
-  👤 𝚄𝚜𝚎𝚛: ${userName}
-  📡 𝚂𝚝𝚊𝚝𝚞𝚜: 𝙾𝚗𝚕𝚒𝚗𝚎
-└────────────────────┘
+    let commandsSec = securityFeatures.map(f => {
+        let styledCmd = toTypewriter(_p + 'attiva ' + f.key)
+        return defaultMenu.body.replace(/%cmd/g, styledCmd).replace(/%emoji/g, '🛡️')
+    }).join('\n')
 
-*〘 ɪɴsᴛʀᴜᴢɪᴏɴɪ ᴏᴘᴇʀᴀᴛɪᴠᴇ 〙*
-> Attiva o disattiva i moduli:
-*│ ➤* ${_p}*attiva* <nome>
-*│ ➤* ${_p}*disattiva* <nome>
+    let commandsAuto = automationFeatures.map(f => {
+        let styledCmd = toTypewriter(_p + 'attiva ' + f.key)
+        return defaultMenu.body.replace(/%cmd/g, styledCmd).replace(/%emoji/g, '🤖')
+    }).join('\n')
 
-*┍━━━━━〔 🛡️ sɪᴄᴜʀᴇᴢᴢᴀ 〕━━━━━┑*
-${securityFeatures.map(f => `┇ ${f.name}\n┇ _${f.desc}_\n┇ ➤ *${f.key}*\n┇`).join('\n')}
-*┕━━━━━━━──ׄ──ׅ──ׄ──━━━━━━━┙*
+    let text = [
+      defaultMenu.testoInizio,
+      defaultMenu.header.replace(/%category/g, '⚡ 𝙱𝙻𝙳 𝚂𝙴𝙲𝚄𝚁𝙸𝚃𝚈 ⚡') + '\n' + commandsSec,
+      defaultMenu.header.replace(/%category/g, '⚡ 𝙱𝙻𝙳 𝙰𝚄𝚃𝙾𝙼𝙰𝚉𝙸𝙾𝙽𝙴 ⚡') + '\n' + commandsAuto,
+      defaultMenu.testoFine
+    ].join('\n')
 
-*┍━━━━━〔 🤖 ᴀᴜᴛᴏᴍᴀᴢɪᴏɴᴇ 〕━━━━━┑*
-${automationFeatures.map(f => `┇ ${f.name}\n┇ _${f.desc}_\n┇ ➤ *${f.key}*\n┇`).join('\n')}
-*┕━━━━━━━──ׄ──ׅ──ׄ──━━━━━━━┙*
+    let userJid = m.sender.split('@')[0]
+    let formattedText = text.replace(/%user/g, userJid)
 
-_ʙʟᴅ-ʙᴏᴛ sᴇᴄᴜʀɪᴛʏ ɪɴᴛᴇʀꜰᴀᴄᴇ_`
+    let imageBuffer = null
+    try {
+      imageBuffer = await fs.readFile(localImg)
+    } catch (e) {
+      console.log("Immagine menu-sicurezza.jpeg non trovata")
+    }
 
-    // Invio con immagine locale
     await conn.sendMessage(m.chat, { 
-      image: { url: localImg }, 
-      caption: text.trim(),
+      ...(imageBuffer ? { image: imageBuffer } : {}),
+      caption: formattedText.trim(),
       contextInfo: {
         mentionedJid: [m.sender],
         forwardedNewsletterMessageInfo: {
@@ -80,7 +82,6 @@ _ʙʟᴅ-ʙᴏᴛ sᴇᴄᴜʀɪᴛʏ ɪɴᴛᴇʀꜰᴀᴄᴇ_`
     return
   }
 
-  // --- LOGICA DI ATTIVAZIONE ---
   let isEnable = !/disattiva|off|0/i.test(command)
   let type = args[0].toLowerCase()
   let status = isEnable ? 'ATTIVATO ✅' : 'DISATTIVATO ❌'
@@ -89,20 +90,11 @@ _ʙʟᴅ-ʙᴏᴛ sᴇᴄᴜʀɪᴛʏ ɪɴᴛᴇʀꜰᴀᴄᴇ_`
   if (type === 'antilink') dbKey = 'antiLink'
   if (type === 'antilinksocial') dbKey = 'antiLink2'
   if (type === 'antiviewonce') dbKey = 'antioneview'
-  if (type === 'antiprivate') dbKey = 'antiPrivate'
-  if (type === 'solocreatore') dbKey = 'soloCreatore'
 
-  const isSecurity = securityFeatures.some(f => f.key.toLowerCase() === type)
-  const isAuto = automationFeatures.some(f => f.key.toLowerCase() === type)
-  const isOwnerKey = ownerFeatures.some(f => f.key.toLowerCase() === type)
-
-  if (isSecurity || isAuto) {
-    if (!m.isGroup && !isOwner) return m.reply('❌ Solo nei gruppi')
+  const allFeats = [...securityFeatures, ...automationFeatures]
+  if (allFeats.some(f => f.key === type)) {
     if (m.isGroup && !isAdmin && !isOwner) return m.reply('🛡️ Solo per Admin')
     chat[dbKey] = isEnable
-  } else if (isOwnerKey) {
-    if (!isOwner) return m.reply('👑 Solo per l\'Owner')
-    bot[dbKey] = isEnable
   } else {
     return m.reply('❓ Modulo non trovato.')
   }
@@ -111,5 +103,14 @@ _ʙʟᴅ-ʙᴏᴛ sᴇᴄᴜʀɪᴛʏ ɪɴᴛᴇʀꜰᴀᴄᴇ_`
   m.reply(`『 🛡️ 』 *SISTEMA AGGIORNATO*\n\nModulo: *${type.toUpperCase()}*\nStato: *${status}*`)
 }
 
-handler.command = ['attiva', 'disattiva', 'on', 'off', 'enable', 'disable']
+handler.command = ['attiva', 'disattiva', 'on', 'off', 'enable', 'disable', 'menusicurezza']
 export default handler
+
+function toTypewriter(str) {
+  const normal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 /"
+  const typewriter = "𝚊𝚋𝚌𝚍𝚎𝚏𝚐𝚑𝚒𝚓𝚔𝚕𝚖𝚗𝚘𝚙𝚚𝚛𝚜𝚝𝚞𝚟𝚠𝚡𝚢𝚣𝙰𝙱𝙲𝙳𝙴𝙵𝙶𝙷𝙸𝙹𝙺𝙻𝙼𝙽𝙾𝙿𝚀𝚁𝚂𝚃𝚄𝚅𝚆𝚇𝚈𝚉𝟶𝟷𝟸𝟹𝟺𝟻𝟼𝟽𝟾𝟿 /"
+  return str.split('').map(char => {
+    const index = normal.indexOf(char)
+    return index !== -1 ? typewriter.substr(index * 2, 2) : char
+  }).join('')
+}
