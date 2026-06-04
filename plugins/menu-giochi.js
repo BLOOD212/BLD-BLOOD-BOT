@@ -3,43 +3,34 @@ import { join } from 'path'
 import { xpRange } from '../lib/levelling.js'
 import moment from 'moment-timezone'
 
-// --- PERCORSO DIRETTO AL FILE ---
-// Il file si chiama 'menu-giochi.jpeg' ed è nella cartella principale del bot
 const localImg = join(process.cwd(), 'menu-giochi.jpeg'); 
 
 const defaultMenu = {
   before: `
-╔════════════════════╗
-  🎮  *G A M E  C E N T E R* 🎮
-╚════════════════════╝
- ┌───────────────────
- │ 👤 *Utente:* %name
- │ 🏆 *Livello:* %level
- │ 💰 *Eris:* %eris
- │ 🎖️ *Rango:* %role
- └───────────────────
- 
- *Seleziona una sfida:*
+⚡  〔 𝐁 𝐋 𝐃  •  𝐆 𝐀 𝐌 𝐄 𝐒 〕  ⚡
+
+┃ 👤 𝚄𝚝𝚎𝚗𝚝𝚎 ⭔ @%user
+┃ 🏆 𝙻𝚒𝚟𝚎𝚕𝚕𝚘 ⭔ %level
+┃ 💰 𝙴𝚛𝚒𝚜 ⭔ %eris
+┃ 🎖️ 𝚁𝚊𝚗𝚐𝚘 ⭔ %role
 `.trimStart(),
-  header: '╭──〔 %category 〕──✦',
-  body: '│ 🕹️  %cmd %islimit%isPremium',
-  footer: '╰───────────────━━━━\n',
-  after: `_Usa %p [comando] per giocare_`,
+
+  header: '\n〔 %category 〕',
+  body: '┃ ⌲ %emoji %cmd %islimit%isPremium',
+  footer: '',
+  after: `\n_Usa %p [comando] per giocare_`,
 }
 
 let handler = async (m, { conn, usedPrefix: _p, __dirname }) => {
-  let tags = { 'giochi': 'GIOCHI DISPONIBILI' }
+  let tags = { 'giochi': '⚡ 𝙱𝙻𝙳 𝙶𝙰𝙼𝙴 𝙲𝙴𝙽𝚃𝙴𝚁 ⚡' }
 
   try {
     await conn.sendPresenceUpdate('composing', m.chat)
     
-    // Dati Utente
     let user = global.db.data.users[m.sender] || {}
     let { exp = 0, level = 1, role = 'Utente', eris = 0, limit = 10 } = user
-    let name = await conn.getName(m.sender)
     let uptime = clockString(process.uptime() * 1000)
 
-    // Filtro Plugin
     let help = Object.values(global.plugins)
       .filter(p => !p.disabled)
       .map(p => ({
@@ -55,33 +46,34 @@ let handler = async (m, { conn, usedPrefix: _p, __dirname }) => {
       groups[tag] = help.filter(menu => menu.tags && menu.tags.includes(tag) && menu.help[0])
     }
 
-    // Costruzione Testo
     let _text = [
       defaultMenu.before,
       ...Object.keys(tags).map(tag => {
-        return defaultMenu.header.replace(/%category/g, tags[tag]) + '\n' +
-          [
-            ...groups[tag].map(menu =>
-              menu.help.map(cmd => defaultMenu.body
-                .replace(/%cmd/g, menu.prefix ? cmd : _p + cmd)
-                .replace(/%islimit/g, menu.limit ? ' ⚠️' : '')
-                .replace(/%isPremium/g, menu.premium ? ' 💎' : '')
-                .trimEnd()
-              ).join('\n')
-            ),
-            defaultMenu.footer
-          ].join('\n')
+        let commands = groups[tag].flatMap(menu =>
+          menu.help.map(cmd => {
+            let rawCmd = menu.prefix ? cmd : _p + cmd
+            let styledCmd = toTypewriter(rawCmd)
+            return defaultMenu.body
+              .replace(/%cmd/g, styledCmd)
+              .replace(/%emoji/g, '🎮')
+              .replace(/%islimit/g, menu.limit ? ' ⚠️' : '')
+              .replace(/%isPremium/g, menu.premium ? ' 💎' : '')
+              .trimEnd()
+          })
+        ).join('\n')
+
+        return defaultMenu.header.replace(/%category/g, tags[tag]) + '\n' + commands
       }),
       defaultMenu.after
     ].join('\n')
 
+    let userJid = m.sender.split('@')[0]
     let replace = {
-      '%': '%', p: _p, eris, name, level, limit, role, uptime
+      '%': '%', p: _p, eris, user: userJid, level, limit, role, uptime
     }
 
     let text = _text.replace(new RegExp(`%(${Object.keys(replace).sort((a, b) => b.length - a.length).join('|')})`, 'g'), (_, name) => '' + replace[name])
 
-    // --- INVIO CON L'IMMAGINE SPECIFICA ---
     await conn.sendMessage(m.chat, {
       image: { url: localImg },
       caption: text.trim(),
@@ -107,4 +99,13 @@ function clockString(ms) {
   let m = Math.floor(ms / 60000) % 60
   let s = Math.floor(ms / 1000) % 60
   return [h, 'h ', m, 'm ', s, 's'].map(v => v.toString().padStart(2, '0')).join('')
+}
+
+function toTypewriter(str) {
+  const normal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+  const typewriter = "𝚊𝚋𝚌𝚍𝚎𝚏𝚐𝚑𝚒𝚓𝚔𝚕𝚖𝚗𝚘𝚙𝚚𝚛𝚜𝚝𝚞𝚟𝚠𝚡𝚢𝚣𝙰𝙱𝙲𝙳𝙴𝙵𝙶𝙷𝙸𝙹𝙺𝙻𝙼𝙽𝙾𝙿𝚀𝚁𝚂𝚃𝚄𝚅𝚆𝚇𝚈𝚉𝟶𝟷𝟸𝟹𝟺𝟻𝟼𝟽𝟾𝟿"
+  return str.split('').map(char => {
+    const index = normal.indexOf(char)
+    return index !== -1 ? typewriter.substr(index * 2, 2) : char
+  }).join('')
 }
