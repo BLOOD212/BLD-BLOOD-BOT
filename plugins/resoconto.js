@@ -463,7 +463,7 @@ setInterval(async () => {
 }, 60000);
 
 handler.help = ['resoconto','resoconto settimana','topgruppi','topgruppi settimana']
-handler.tags = ['strumenti']
+handler.tags = ['main']
 handler.command = /^(resoconto|topgruppi)$/i
 handler.group = true
 
