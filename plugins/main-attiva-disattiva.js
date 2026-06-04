@@ -21,8 +21,6 @@ const featureRegistry = [
   { key: 'antimedia', store: 'chat', perm: PERM.ADMIN, name: '*🖼️ Antimedia*', desc: 'Elimina foto/video' },
   { key: 'antioneview', store: 'chat', perm: PERM.ADMIN, name: '*👁️ Antiviewonce*', desc: 'Blocca visualizzazione singola' },
   { key: 'antitagall', store: 'chat', perm: PERM.ADMIN, name: '*🏷️ Anti-tagall*', desc: 'Blocca menzioni massa' },
-  { key: 'antiporno', store: 'chat', perm: PERM.ADMIN, name: '*🔞 Antiporno*', desc: 'Filtro contenuti NSFW' },
-  { key: 'antigore', store: 'chat', perm: PERM.ADMIN, name: '*🚫 Antigore*', desc: 'Blocca contenuti splatter' },
   { key: 'modoadmin', store: 'chat', perm: PERM.ADMIN, name: '*🛡️ Soloadmin*', desc: 'Comandi solo admin' },
   { key: 'antivoip', store: 'chat', perm: PERM.ADMIN, name: '*📞 Antivoip*', desc: 'Blocca numeri stranieri' },
   { key: 'antiLink', store: 'chat', perm: PERM.ADMIN, name: '*🔗 Antilink*', desc: 'Blocca link WhatsApp' },
