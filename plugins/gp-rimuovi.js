@@ -48,7 +48,7 @@ var handler = async (m, { conn, participants, isOwner, isAdmin }) => {
         }
 
         if (isTargetAdmin) {
-            return conn.reply(m.chat, '『 🤒 』 `Non posso rimuovere un altro admin. Devi prima togliergli i privileges.`', m);
+            return conn.reply(m.chat, '『 🤒 』 `Non posso rimuovere un altro admin. Devi prima togliergli i privilegi.`', m);
         }
 
         await conn.groupParticipantsUpdate(m.chat, [user], 'remove');
@@ -65,6 +65,10 @@ var handler = async (m, { conn, participants, isOwner, isAdmin }) => {
 
 handler.help = ['rimuovi']
 handler.tags = ['gruppo']
+
+// Questa funzione dice al bot: "Se il messaggio contiene vongole o sparisci, attiva il comando senza prefisso. Altrimenti usa il prefisso normale (es. .)"
+handler.customPrefix = m => /(vongole|sparisci)/i.test(m.text) ? "" : /^[./!#]/
+
 handler.command = /^(kick|rimuovi|paki|ban|abdul|.*vongole.*|.*sparisci.*)$/i
 handler.group = true
 handler.admin = false 
