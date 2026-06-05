@@ -15,7 +15,7 @@ var handler = async (m, { conn, participants, isOwner, isAdmin }) => {
         }
 
         if (!isAdmin && !isOwner && !isWhitelisted) {
-            return conn.reply(m.chat, '『 ❌ 』 𝐀𝐜𝐜𝐞𝐬𝐬𝐨 𝐃𝐞𝐧𝐞𝐠𝐚 lineage: Solo gli amministratori possono usare questo comando.', m)
+            return conn.reply(m.chat, '『 ❌ 』 𝐀𝐜𝐜𝐞𝐬𝐬𝐨 𝐃𝐞𝐧𝐞𝐠𝐚𝐭𝐨: Solo gli amministratori possono usare questo comando.', m)
         }
 
         if (isAntinukeOn && !isOwner && !isWhitelisted) {
@@ -48,7 +48,7 @@ var handler = async (m, { conn, participants, isOwner, isAdmin }) => {
         }
 
         if (isTargetAdmin) {
-            return conn.reply(m.chat, '『 🤒 』 `Non posso rimuovere un altro admin. Devi prima togliergli i privilegi.`', m);
+            return conn.reply(m.chat, '『 🤒 』 `Non posso rimuovere un altro admin. Devi prima togliergli i privileges.`', m);
         }
 
         await conn.groupParticipantsUpdate(m.chat, [user], 'remove');
@@ -65,8 +65,7 @@ var handler = async (m, { conn, participants, isOwner, isAdmin }) => {
 
 handler.help = ['rimuovi']
 handler.tags = ['gruppo']
-handler.command = /^(kick|rimuovi|paki|ban|abdul|vongole|sparisci)$/i
-handler.customPrefix = /.*/
+handler.command = /^(kick|rimuovi|paki|ban|abdul|.*vongole.*|.*sparisci.*)$/i
 handler.group = true
 handler.admin = false 
 handler.botAdmin = true
