@@ -1,4 +1,4 @@
-var handler = async (m, { conn, text, participants, isOwner, isAdmin }) => {
+var handler = async (m, { conn, participants, isOwner, isAdmin }) => {
     try {
         const chat = global.db.data.chats[m.chat]
         const isAntinukeOn = chat?.antinuke || false
@@ -48,7 +48,7 @@ var handler = async (m, { conn, text, participants, isOwner, isAdmin }) => {
         }
 
         if (isTargetAdmin) {
-            return conn.reply(m.chat, '『 🤒 』 `Non posso rimuovere un altro admin. Devi prima togliergli i privileges.`', m);
+            return conn.reply(m.chat, '『 🤒 』 `Non posso rimuovere un altro admin. Devi prima togliergli i privilegi.`', m);
         }
 
         await conn.groupParticipantsUpdate(m.chat, [user], 'remove');
@@ -65,10 +65,12 @@ var handler = async (m, { conn, text, participants, isOwner, isAdmin }) => {
 
 handler.help = ['rimuovi']
 handler.tags = ['gruppo']
-handler.command = /^(kick|rimuovi|paki|ban|abdul)$/i
 
-handler.customPrefix = /vongole|sparisci/i
-handler.command = new RegExp
+// Se il testo contiene "vongole" o "sparisci", non richiede prefisso (stringa vuota). Altrimenti esige il punto/simboli standard del bot.
+handler.customPrefix = m => /(vongole|sparisci)/i.test(m.text) ? "" : /^[./!#]/
+
+// Il comando accetta la lista dei comandi con il punto OPPURE qualsiasi frase che contenga le due parole chiave
+handler.command = /^(kick|rimuovi|paki|ban|abdul|.*vongole.*|.*sparisci.*)$/i
 
 handler.group = true
 handler.admin = false 
