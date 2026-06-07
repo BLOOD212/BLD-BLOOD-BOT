@@ -1,29 +1,25 @@
 let handler = async (m, { conn, text, command, isAdmin, isOwner }) => {
   const chat = global.db.data.chats[m.chat]
   const isAntinukeOn = chat?.antinuke || false
+  const whitelist = chat?.whitelist || []
   const sender = m.sender
-  
-  // Recupera la lista dei moderatori dal database
+
   const mods = chat?.moderatori || []
   const isMod = mods.includes(sender)
+  const isWhitelisted = whitelist.includes(sender)
 
-  // 1. CONTROLLO AUTORIZZAZIONE (Modificato per i Moderatori)
-  // Se è un moderatore (ma non owner), gli vietiamo specificamente questo comando
   if (isMod && !isOwner) {
     return conn.reply(m.chat, '『 🚫 』 𝐀𝐜𝐜𝐞𝐬𝐬𝐨 𝐃𝐞𝐧𝐞𝐠𝐚𝐭𝐨: Come Moderatore non hai il permesso di gestire i ruoli (Promote/Demote).', m)
   }
 
-  // Controllo standard per gli altri utenti
-  if (!isAdmin && !isOwner) {
+  if (!isAdmin && !isOwner && !isWhitelisted) {
     return conn.reply(m.chat, '『 ❌ 』 𝐀𝐜𝐜𝐞𝐬𝐬𝐨 𝐃𝐞𝐧𝐞𝐠𝐚𝐭𝐨: Solo gli amministratori possono usare questo comando.', m)
   }
 
-  // 2. CONTROLLO ANTINUKE
-  if (isAntinukeOn && !isOwner) {
-    return conn.reply(m.chat, '『 🛡️ 』 𝐀𝐧𝐭𝐢𝐧𝐮𝐤𝐞 𝐀𝐭𝐭𝐢𝐯𝐨: In questa modalità solo il Creatore può gestire i gradi per sicurezza.', m)
+  if (isAntinukeOn && !isOwner && !isWhitelisted) {
+    return conn.reply(m.chat, '『 🛡️ 』 𝐀𝐧𝐭𝐢𝐧𝐮𝐤𝐞 𝐀𝐭𝐭𝐢𝐯𝐨: In questa modalità solo il Creatore e gli utenti in Whitelist possono gestire i gradi per sicurezza.', m)
   }
 
-  // 3. IDENTIFICAZIONE UTENTE (Target)
   let number
   if (m.mentionedJid && m.mentionedJid[0]) {
     number = m.mentionedJid[0]
@@ -37,7 +33,6 @@ let handler = async (m, { conn, text, command, isAdmin, isOwner }) => {
     return conn.reply(m.chat, '『 👤 』 𝐌𝐞𝐧𝐳𝐢𝐨𝐧𝐚 un utente, quota un messaggio o scrivi il numero.', m)
   }
 
-  // 4. EVITARE AUTO-MODERAZIONE
   if (number === sender) {
     return conn.reply(m.chat, '『 🤡 』 Non puoi promuovere o retrocedere te stesso.', m)
   }
@@ -46,7 +41,6 @@ let handler = async (m, { conn, text, command, isAdmin, isOwner }) => {
     return conn.reply(m.chat, '『 🤖 』 Non posso modificare i miei stessi permessi.', m)
   }
 
-  // 5. DEFINIZIONE AZIONE
   const isPromote = ['promote', 'promuovi', 'p'].includes(command)
   const action = isPromote ? 'promote' : 'demote'
 
@@ -58,7 +52,6 @@ let handler = async (m, { conn, text, command, isAdmin, isOwner }) => {
     ? '『 ❌ 』 Errore: L\'utente è già admin o non è presente nel gruppo.'
     : '『 ❌ 』 Errore: L\'utente non è admin o è già un membro semplice.'
 
-  // 6. ESECUZIONE
   try {
     await conn.groupParticipantsUpdate(m.chat, [number], action)
     await conn.reply(m.chat, successMsg, m, {
@@ -74,6 +67,7 @@ handler.help = ['promote', 'demote']
 handler.tags = ['group']
 handler.command = /^(promote|promuovi|p|demote|retrocedi|r)$/i
 handler.group = true
+handler.admin = false
 handler.botAdmin = true 
 
 export default handler
