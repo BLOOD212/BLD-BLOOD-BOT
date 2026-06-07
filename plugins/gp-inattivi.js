@@ -4,7 +4,7 @@ let handler = async (m, { conn, text, args, groupMetadata, isAdmin, isOwner }) =
   let total = 0
   let sider = []
   let adesso = Date.now()
-  let trentaSecondi = 30 * 1000
+  let dueOre = 2 * 60 * 60 * 1000
 
   if (!global.db.data) global.db.data = {}
   if (!global.db.data.users) global.db.data.users = {}
