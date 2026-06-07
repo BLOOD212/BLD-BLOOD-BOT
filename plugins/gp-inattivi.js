@@ -32,7 +32,7 @@ let handler = async (m, { conn, text, args, groupMetadata, isAdmin, isOwner }) =
     let isWhitelist = userData ? (userData.whitelist === true) : false
     let isBanned = userData ? (userData.banned === true) : false
 
-    let eInattivo = (ultimoMessaggio === 0) || (adesso - ultimoMessaggio > trentaSecondi)
+    let eInattivo = (ultimoMessaggio === 0) || (adesso - ultimoMessaggio > dueOre)
 
     if (eInattivo && !isWhitelist && !isBanned) {
       total++
@@ -59,7 +59,7 @@ let handler = async (m, { conn, text, args, groupMetadata, isAdmin, isOwner }) =
 ┃ 𝐆𝐄𝐒𝐓𝐈𝐎𝐍𝐄 𝐈𝐍𝐀𝐓𝐓𝐈𝐕𝐈 😴
 ┃
 ┃ 𝐓𝐨𝐭𝐚𝐥𝐞: ${total}/${member.length}
-┃ 𝐂𝐫𝐨𝐧𝐨𝐦𝐞𝐭𝐫𝐨: ⏱️ > 30 Sec
+┃ 𝐂𝐫𝐨𝐧𝐨𝐦𝐞𝐭𝐫𝐨: ⏱️ > 2 Ore
 ╰━━━━━━━━━━━━━━━╯`,
       footer: 'Bot di gestione gruppo',
       buttons: buttons,
