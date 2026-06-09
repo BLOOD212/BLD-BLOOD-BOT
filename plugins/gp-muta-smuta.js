@@ -1,123 +1,151 @@
-import { createCanvas, loadImage } from 'canvas';
+import fetch from 'node-fetch'
 
-// --- LOGICA DI CANCELLAZIONE MESSAGGI ---
-export async function before(m, { conn, isAdmin, isBotAdmin }) {
-    if (m.isBaileys && m.fromMe) return true;
-    if (!m.isGroup) return false;
-
-    const user = global.db.data.users?.[m.sender];
-    if (user && user.muto && isBotAdmin && !isAdmin) {
-        await conn.sendMessage(m.chat, { delete: m.key });
-        return false;
-    }
-    return true;
+const logAdminAction = async (chatId, adminJid, actionKey, amount = 1) => {
+  if (typeof global.logAdmin?.increment === 'function') {
+    await global.logAdmin.increment(chatId, adminJid, actionKey, amount)
+  } else {
+    global.logAdminQueue = global.logAdminQueue || []
+    global.logAdminQueue.push({ chatId, adminJid, actionKey, amount })
+  }
 }
 
-// --- LOGICA DEL COMANDO ---
-const handler = async (m, { conn, command, text, isAdmin, isBotAdmin }) => {
-  const BOT_OWNERS = (global.owner || []).map(o => o[0] + '@s.whatsapp.net');
-  let mentionedJid = m.mentionedJid?.[0] || m.quoted?.sender;
+let handler = async (m, {
+  conn, command, text, groupMetadata, isAdmin, isMods
+}) => {
 
-  if (!mentionedJid && text) {
-    let number = text.replace(/[^0-9]/g, '');
-    if (number.length >= 8) mentionedJid = number + '@s.whatsapp.net';
+  const isOwner = (jid) => {
+    return global.owner.some(([number]) => jid.includes(number))
   }
 
-  const chatId = m.chat;
-  const botNumber = conn.user.jid;
+  if (command == 'muta') {
 
-  if (!isAdmin) throw '⚠️ Solo gli amministratori possono usare questo comando.';
-  if (!isBotAdmin) throw '⚠️ Il bot deve essere admin per poter cancellare i messaggi.';
-  if (!mentionedJid) return m.reply(`💡 *Esempio:* .${command} @tag`);
+    const mods = global.db.data.chats[m.chat]?.moderatori || []
+const isMod = mods.includes(m.sender)
 
-  let groupOwner = null;
-  try {
-    const metadata = await conn.groupMetadata(chatId);
-    groupOwner = metadata.owner;
-  } catch { groupOwner = null }
+if (!isAdmin && !isMod)
+  return m.reply('𝐒𝐨𝐥𝐨 𝐮𝐧 𝐚𝐝𝐦𝐢𝐧 𝐨 𝐮𝐧 𝐦𝐨𝐝𝐞𝐫𝐚𝐭𝐨𝐫𝐞 𝐩𝐮𝐨̀ 𝐞𝐬𝐞𝐠𝐮𝐢𝐫𝐞 𝐪𝐮𝐞𝐬𝐭𝐨 𝐜𝐨𝐦𝐚𝐧𝐝𝐨 👑')
 
-  if ([groupOwner, botNumber, ...BOT_OWNERS].includes(mentionedJid))
-    throw '🛡️ *ERRORE:* Impossibile mutare un superiore (Owner/Bot).';
+    let menzione = m.mentionedJid[0]
+      ? m.mentionedJid[0]
+      : m.quoted
+      ? m.quoted.sender
+      : text
 
-  if (!global.db.data.users[mentionedJid]) global.db.data.users[mentionedJid] = { muto: false };
-  const user = global.db.data.users[mentionedJid];
-  const isMute = command === 'muta';
-  const tag = '@' + mentionedJid.split('@')[0];
+    if (!menzione) return m.reply('𝐌𝐞𝐧𝐳𝐢𝐨𝐧𝐚 𝐮𝐧 𝐮𝐭𝐞𝐧𝐭𝐞 👤')
 
-  // Cambio stato
-  if (isMute) {
-    if (user.muto) throw '🔇 L\'utente è già mutato.';
-    user.muto = true;
-  } else {
-    if (!user.muto) throw '🔊 L\'utente non è mutato.';
-    user.muto = false;
-  }
+    if (menzione == conn.user.jid) return 'ⓘ 𝐍𝐨𝐧 𝐩𝐮𝐨𝐢 𝐦𝐮𝐭𝐚𝐫𝐞 𝐢𝐥 𝐛𝐨𝐭'
 
-  const caption = isMute 
-    ? `『 *SISTEMA MODERAZIONE* 』\n\n🛑 *Utente:* ${tag}\n⚖️ *Stato:* Silenziato\n🛡️ *Admin:* @${m.sender.split('@')[0]}\n\n*Nota:* I messaggi di questo utente verranno eliminati automaticamente.`
-    : `『 *SISTEMA MODERAZIONE* 』\n\n✅ *Utente:* ${tag}\n⚖️ *Stato:* Riabilitato\n🔔 *Info:* L'utente può tornare a scrivere.`;
+    if (isOwner(menzione)) return '👑 𝐍𝐨𝐧 𝐩𝐮𝐨𝐢 𝐦𝐮𝐭𝐚𝐫𝐞 𝐮𝐧 𝐨𝐰𝐧𝐞𝐫'
 
-  // --- TENTATIVO CANVAS (Fallback se fallisce) ---
-  try {
-    const canvas = createCanvas(800, 300);
-    const ctx = canvas.getContext('2d');
+    let utente = global.db.data.users[menzione]
+    if (!utente) return m.reply('𝐔𝐭𝐞𝐧𝐭𝐞 𝐧𝐨𝐧 𝐭𝐫𝐨𝐯𝐚𝐭𝐨')
 
-    ctx.fillStyle = '#121212';
-    ctx.fillRect(0, 0, 800, 300);
-    ctx.fillStyle = isMute ? '#ff4b5c' : '#4bffb3';
-    ctx.fillRect(0, 0, 15, 300);
+    if (utente.muto === true)
+      return '𝐐𝐮𝐞𝐬𝐭𝐨 𝐮𝐭𝐞𝐧𝐭𝐞 𝐞̀ 𝐠𝐢𝐚 𝐦𝐮𝐭𝐚𝐭𝐨 🔇'
 
-    let pp;
-    try { 
-      pp = await conn.profilePictureUrl(mentionedJid, 'image');
-    } catch { 
-      pp = 'https://i.imgur.com/8K9mXz4.png';
+    let prova = {
+      key: { participants: "0@s.whatsapp.net", fromMe: false, id: "Halo" },
+      message: {
+        locationMessage: {
+          name: 'Utente mutato 🔇',
+          jpegThumbnail: await (await fetch('https://telegra.ph/file/f8324d9798fa2ed2317bc.png')).buffer()
+        }
+      },
+      participant: "0@s.whatsapp.net"
     }
-    
-    const avatar = await loadImage(pp);
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(160, 150, 90, 0, Math.PI * 2, true);
-    ctx.closePath();
-    ctx.clip();
-    ctx.drawImage(avatar, 70, 60, 180, 180);
-    ctx.restore();
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 50px sans-serif';
-    ctx.fillText(isMute ? 'MUTE ATTIVATO' : 'MUTE RIMOSSO', 300, 110);
-    
-    ctx.font = '30px sans-serif';
-    ctx.fillStyle = '#bbbbbb';
-    ctx.fillText(`ID: ${mentionedJid.split('@')[0]}`, 300, 165);
-    
-    ctx.fillStyle = isMute ? '#ff4b5c' : '#4bffb3';
-    ctx.beginPath();
-    ctx.arc(315, 220, 12, 0, Math.PI * 2);
-    ctx.fill();
+    const rawText = (text || '').trim()
+    const parts = rawText.split(/\s+/).filter(Boolean)
+    let motivo = 'non specificato ma meritato'
+    if (m.quoted) {
+      if (rawText) motivo = rawText
+    } else if (parts.length > 1) {
+      const maybe = parts.slice(1).join(' ').trim()
+      if (maybe) motivo = maybe
+    } else if (parts.length === 1) {
+      const tok = parts[0]
+      if (!tok.includes('@') && !/^\+?\d+$/.test(tok)) motivo = tok
+    }
 
-    ctx.font = 'bold 40px sans-serif';
-    ctx.fillText(isMute ? 'SILENZIATO' : 'ATTIVO', 345, 235);
+    const targetJid = menzione && menzione.includes('@') ? menzione : (menzione ? menzione.replace(/[^0-9]/g, '') + '@s.whatsapp.net' : null)
+    const actorJid = m.sender
 
-    await conn.sendMessage(chatId, { 
-      image: canvas.toBuffer(), 
-      caption: caption,
-      mentions: [mentionedJid, m.sender]
-    }, { quoted: m });
+    const finalText = `@${(targetJid||'').split('@')[0]} *mutato da* @${actorJid.split('@')[0]}.\n\n *motivo:* ${motivo}`
 
-  } catch (e) {
-    // SE CANVAS FALLISCE (Termux o errori librerie)
-    console.error('Canvas non disponibile, invio solo testo:', e.message);
-    await conn.sendMessage(chatId, { 
-      text: caption, 
-      mentions: [mentionedJid, m.sender] 
-    }, { quoted: m });
+    utente.muto = true
+
+    await conn.sendMessage(m.chat, { text: finalText, mentions: [targetJid, actorJid] }, { quoted: prova })
+    await logAdminAction(m.chat, m.sender, 'mute')
   }
-};
 
-handler.command = /^(muta|smuta)$/i;
-handler.group = true;
-handler.admin = true;
-handler.botAdmin = true;
+  if (command == 'smuta') {
 
-export default handler;
+    const mods = global.db.data.chats[m.chat]?.moderatori || []
+const isMod = mods.includes(m.sender)
+
+if (!isAdmin && !isMod)
+  return m.reply('𝐒𝐨𝐥𝐨 𝐮𝐧 𝐚𝐝𝐦𝐢𝐧 𝐨 𝐮𝐧 𝐦𝐨𝐝𝐞𝐫𝐚𝐭𝐨𝐫𝐞 𝐩𝐮𝐨̀ 𝐞𝐬𝐞𝐠𝐮𝐢𝐫𝐞 𝐪𝐮𝐞𝐬𝐭𝐨 𝐜𝐨𝐦𝐚𝐧𝐝𝐨 👑')
+
+    let menzione = m.mentionedJid[0]
+      ? m.mentionedJid[0]
+      : m.quoted
+      ? m.quoted.sender
+      : text
+
+    if (!menzione) return m.reply('𝐌𝐞𝐧𝐳𝐢𝐨𝐧𝐚 𝐮𝐧 𝐮𝐭𝐞𝐧𝐭𝐞 👤')
+
+    if (isOwner(menzione)) return '👑 𝐆𝐥𝐢 𝐨𝐰𝐧𝐞𝐫 𝐧𝐨𝐧 𝐡𝐚𝐧𝐧𝐨 𝐛𝐢𝐬𝐨𝐠𝐧𝐨 𝐝𝐢 𝐞𝐬𝐬𝐞𝐫𝐞 𝐬𝐦𝐮𝐭𝐚𝐭𝐢 😏'
+
+    let utente = global.db.data.users[menzione]
+    if (!utente) return m.reply('𝐔𝐭𝐞𝐧𝐭𝐞 𝐧𝐨𝐧 𝐭𝐫𝐨𝐯𝐚𝐭𝐨')
+
+    if (utente.arrestoExpire && Date.now() < utente.arrestoExpire) {
+      return m.reply('❌ Questo utente è attualmente in arresto e non può essere smutato con questo comando.')
+    }
+
+    if (utente.arrestoExpire && Date.now() >= utente.arrestoExpire) {
+      utente.muto = false
+      utente.arrestoExpire = null
+    }
+
+    utente.muto = false
+
+    let prova = {
+      key: { participants: "0@s.whatsapp.net", fromMe: false, id: "Halo" },
+      message: {
+        locationMessage: {
+          name: 'Utente smutato 🔊',
+          jpegThumbnail: await (await fetch('https://telegra.ph/file/aea704d0b242b8c41bf15.png')).buffer()
+        }
+      },
+      participant: "0@s.whatsapp.net"
+    }
+
+    const rawText = (text || '').trim()
+    const parts = rawText.split(/\s+/).filter(Boolean)
+    let motivo = 'non specificato ma meritato'
+    if (m.quoted) {
+      if (rawText) motivo = rawText
+    } else if (parts.length > 1) {
+      const maybe = parts.slice(1).join(' ').trim()
+      if (maybe) motivo = maybe
+    } else if (parts.length === 1) {
+      const tok = parts[0]
+      if (!tok.includes('@') && !/^\+?\d+$/.test(tok)) motivo = tok
+    }
+
+    const targetJid = menzione && menzione.includes('@') ? menzione : (menzione ? menzione.replace(/[^0-9]/g, '') + '@s.whatsapp.net' : null)
+    const actorJid = m.sender
+
+    const finalText = `@${(targetJid||'').split('@')[0]} *smutato da* @${actorJid.split('@')[0]}.\n\n *motivo:* ${motivo}`
+
+    await conn.sendMessage(m.chat, { text: finalText, mentions: [targetJid, actorJid] }, { quoted: prova })
+    await logAdminAction(m.chat, m.sender, 'unmute')
+  }
+}
+
+handler.command = /^(muta|smuta)$/i
+handler.group = true
+handler.botAdmin = true
+
+export default handler
