@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { createWriteStream, unlinkSync, createReadStream, existsSync, mkdirSync } from 'fs';
+import { createWriteStream, unlinkSync, createReadStream } from 'fs';
 import { join } from 'path';
 import { FormData } from 'formdata-node';
 
@@ -8,23 +8,47 @@ const img = 10 * 1024 * 1024;
 const vid = 50 * 1024 * 1024;
 const erpollo = 1000;
 const mpt = 600000;
-const opto = 45000; // Aumentato a 45s per dare tempo all'upload
-
+const opto = 25000;
+const PRIMARY_LANGUAGE_CODE = 'it';
+const LANGUAGE_FALLBACK_CONFIDENCE_THRESHOLD = 0.7;
+const lingue = ['it', 'en', 'es', 'fr', 'de', 'pt'];
 const requestCache = new Map();
 const CACHE_TTL = 3600000;
 
-// Assicura che la cartella temp esista
-const tempDir = join(process.cwd(), 'temp');
-if (!existsSync(tempDir)) mkdirSync(tempDir);
-
 function getCachedResult(key) {
     const cached = requestCache.get(key);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.result;
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        return cached.result;
+    }
     return null;
 }
 
 function setCachedResult(key, result) {
-    requestCache.set(key, { result, timestamp: Date.now() });
+    requestCache.set(key, {
+        result,
+        timestamp: Date.now()
+    });
+}
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, value] of requestCache.entries()) {
+        if (now - value.timestamp > CACHE_TTL) {
+            requestCache.delete(key);
+        }
+    }
+}, CACHE_TTL);
+
+function generateCacheKey(m, quoted) {
+    const timestamp = Math.floor(Date.now() / 1000);
+    const mediaId = quoted?.key?.id || quoted?.id || timestamp;
+    return `${m.sender}_${mediaId}_${timestamp}`;
+}
+
+function createTimeoutPromise(ms, message = '『 ❌ 』- Timeout raggiunto, riprova più tardi..') {
+    return new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(message)), ms);
+    });
 }
 
 let handler = async (m, { conn, usedPrefix, command }) => {
@@ -34,103 +58,268 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     let operationStartTime = Date.now();
 
     try {
-        if (!m.quoted) return m.reply(`Rispondi a un audio, video o immagine con *${usedPrefix + command}*`);
+        if (!m.quoted) {
+            return m.reply(`
+ㅤㅤ⋆｡˚『 ╭ \`TRASCRIZIONE\` ╯ 』˚｡⋆\n╭\n│
+│ 『 📝 』 - \`Uso:\` *${usedPrefix + command} rispondendo*
+│                   *ad un audio/immagine/video*
+│
+│ 『 ⚠️ 』- _Limiti:_
+│ ➤ \`Audio:\` *max 25MB*
+│ ➤ \`Immagine:\` *max 10MB*
+│ ➤ \`Video:\` *max 50MB*
+│ ➤ \`Lingue supportate:\` *${lingue.join(', ')}*
+│
+*╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*`);
+        }
 
         const quoted = m.quoted;
         const mime = quoted.mimetype || '';
-        if (!/audio|video|image/.test(mime)) throw 'Formato non supportato.';
 
-        await conn.sendPresenceUpdate('composing', m.chat);
-        const media = await quoted.download();
-        
-        // --- LOGICA AUDIO / VIDEO (AssemblyAI) ---
-        if (mime.includes('audio') || mime.includes('video')) {
-            const ext = mime.includes('audio') ? 'mp3' : 'mp4';
-            tempPath = join(tempDir, `media_${Date.now()}.${ext}`);
-            
-            // Scrittura sincrona per sicurezza o attesa del completamento
-            const writeStream = createWriteStream(tempPath);
-            await new Promise((resolve, reject) => {
-                writeStream.write(media);
-                writeStream.end();
-                writeStream.on('finish', resolve);
-                writeStream.on('error', reject);
-            });
-
-            // Upload con retry migliorato
-            let uploadUrl;
-            try {
-                const uploadResponse = await axios.post('https://api.assemblyai.com/v2/upload', 
-                    media, // Inviamo direttamente il buffer, è più stabile per file < 50MB
-                    {
-                        headers: { 
-                            'authorization': assemblykey,
-                            'content-type': 'application/octet-stream'
-                        },
-                        maxContentLength: Infinity,
-                        maxBodyLength: Infinity
-                    }
-                );
-                uploadUrl = uploadResponse.data.upload_url;
-            } catch (e) {
-                console.error("Dettaglio Errore Upload:", e.response?.data || e.message);
-                throw new Error('Errore durante il caricamento sui server di trascrizione.');
-            }
-
-            // Richiesta trascrizione
-            const transcriptReq = await axios.post('https://api.assemblyai.com/v2/transcript',
-                { audio_url: uploadUrl, language_detection: true },
-                { headers: { 'authorization': assemblykey } }
-            );
-
-            // Polling del risultato
-            let transcriptResult;
-            while (true) {
-                if (Date.now() - operationStartTime > opto) throw new Error('Tempo scaduto durante l\'elaborazione.');
-                
-                transcriptResult = await axios.get(`https://api.assemblyai.com/v2/transcript/${transcriptReq.data.id}`, {
-                    headers: { 'authorization': assemblykey }
-                });
-
-                if (transcriptResult.data.status === 'completed') {
-                    const text = transcriptResult.data.text.trim();
-                    const conf = (transcriptResult.data.confidence * 100).toFixed(1);
-                    return m.reply(`『 📊 』 *Accuratezza:* ${conf}%\n\n『 📝 』 *Testo:*\n${text}`);
-                }
-                if (transcriptResult.data.status === 'error') throw new Error('Errore AssemblyAI: ' + transcriptResult.data.error);
-                
-                await new Promise(r => setTimeout(r, 2000));
-            }
-        } 
-        
-        // --- LOGICA IMMAGINE (OCR Space) ---
-        else if (mime.includes('image')) {
-            const formData = new FormData();
-            formData.append('apikey', ocrkey);
-            formData.append('language', 'ita');
-            formData.append('OCREngine', '2'); // Motore 2 è più veloce per testo semplice
-            formData.append('file', media, { filename: 'image.jpg', contentType: mime });
-
-            const ocrRes = await axios.post('https://api.ocr.space/parse/image', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-
-            const text = ocrRes.data.ParsedResults?.[0]?.ParsedText;
-            if (!text) throw 'Nessun testo trovato nell\'immagine.';
-            
-            m.reply(`『 📝 』 *Testo Rilevato:*\n\n${text.trim()}`);
+        if (!mime.includes('audio') && !mime.includes('image') && !mime.includes('video')) {
+            throw new Error('\`Il messaggio deve essere un audio, immagine o video\`');
         }
 
+        const cacheKey = generateCacheKey(m, quoted);
+        const cachedResult = getCachedResult(cacheKey);
+        if (cachedResult) {
+            return m.reply(cachedResult);
+        }
+
+        await conn.sendPresenceUpdate('composing', m.chat);
+
+        const operationPromise = (async () => {
+            const media = await quoted.download();
+
+            const maxSize = mime.includes('audio') ? aud : 
+                           mime.includes('video') ? vid : 
+                           img;
+
+            if (media.length > maxSize) {
+                throw new Error(`File troppo grande. Max ${mime.includes('audio') ? '25MB' : mime.includes('video') ? '50MB' : '10MB'}`);
+            }
+
+            if (mime.includes('audio') || mime.includes('video')) {
+                const extension = mime.includes('audio') ? 'mp3' : 'mp4';
+                tempPath = join(process.cwd(), 'temp', `media_${Date.now()}.${extension}`);
+
+                const writeStream = createWriteStream(tempPath);
+                writeStream.write(media);
+                writeStream.end();
+
+                let uploadResponse;
+                for (let attempt = 0; attempt < 3; attempt++) {
+                    try {
+                        uploadResponse = await axios.post('https://api.assemblyai.com/v2/upload',
+                            createReadStream(tempPath),
+                            {
+                                headers: {
+                                    'authorization': assemblykey,
+                                    'content-type': 'application/octet-stream',
+                                    'transfer-encoding': 'chunked'
+                                },
+                                maxContentLength: Infinity,
+                                maxBodyLength: Infinity,
+                                timeout: Math.max(5000, opto - (Date.now() - operationStartTime))
+                            }
+                        );
+                        break;
+                    } catch (e) {
+                        if (attempt === 2) throw new Error('Errore durante l\'upload del file');
+                        await new Promise(r => setTimeout(r, 1000));
+                    }
+                }
+
+                const createTranscript = async (forceItalian) => {
+                    const payload = {
+                        audio_url: uploadResponse.data.upload_url,
+                        speed_boost: false,
+                        punctuate: true,
+                        format_text: true
+                    };
+
+                    if (forceItalian) {
+                        payload.language_detection = false;
+                        payload.language_code = PRIMARY_LANGUAGE_CODE;
+                    } else {
+                        payload.language_detection = true;
+                    }
+
+                    return await axios.post('https://api.assemblyai.com/v2/transcript',
+                        payload,
+                        {
+                            headers: {
+                                'authorization': assemblykey,
+                                'content-type': 'application/json'
+                            },
+                            timeout: Math.max(5000, opto - (Date.now() - operationStartTime))
+                        }
+                    );
+                };
+
+                const pollTranscript = async (id) => {
+                    let transcriptResult;
+                    const startTime = Date.now();
+                    const maxPollingTime = Math.min(mpt, opto - (Date.now() - operationStartTime));
+
+                    while (Date.now() - startTime < maxPollingTime) {
+                        if (Date.now() - operationStartTime >= opto - 2000) {
+                            throw new Error('Timeout: operazione troppo lunga');
+                        }
+
+                        transcriptResult = await axios.get(
+                            `https://api.assemblyai.com/v2/transcript/${id}`,
+                            {
+                                headers: { 'authorization': assemblykey },
+                                timeout: Math.max(3000, opto - (Date.now() - operationStartTime))
+                            }
+                        );
+
+                        if (transcriptResult.data.status === 'completed') return transcriptResult.data;
+
+                        if (transcriptResult.data.status === 'error') {
+                            throw new Error(transcriptResult.data.error || 'Errore durante la trascrizione');
+                        }
+
+                        await new Promise(r => setTimeout(r, erpollo));
+                    }
+
+                    throw new Error('Timeout: trascrizione troppo lunga');
+                };
+
+                const firstTranscript = await createTranscript(false);
+                let data = await pollTranscript(firstTranscript.data.id);
+
+                const detectedLang = String(data.language_code || '').trim().toLowerCase();
+                const confidence = Number(data.confidence || 0);
+                const isLangUnknown = !detectedLang || detectedLang === 'und' || detectedLang === 'unknown';
+                const shouldFallbackToItalian = isLangUnknown || confidence < LANGUAGE_FALLBACK_CONFIDENCE_THRESHOLD;
+
+                if (shouldFallbackToItalian) {
+                    const secondTranscript = await createTranscript(true);
+                    data = await pollTranscript(secondTranscript.data.id);
+                }
+
+                const text = String(data.text || '').trim();
+                if (!text) throw new Error('Trascrizione vuota');
+
+                const response = `『 📝 』 \`Testo ricavato:\`\n- ${text}`;
+                setCachedResult(cacheKey, response);
+                return response;
+
+            } else {
+
+                const validImageMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp'];
+                if (!validImageMimes.includes(mime)) {
+                    throw new Error('Formato immagine non supportato. Usa JPEG, PNG, GIF o BMP.');
+                }
+
+                const formData = new FormData();
+                formData.append('apikey', ocrkey);
+                formData.append('language', 'ita');
+                formData.append('OCREngine', '3');
+                formData.append('scale', 'true');
+                formData.append('detectOrientation', 'true');
+                formData.append('isTable', 'true');
+                const fileExtension = mime.split('/')[1] || 'jpg';
+                formData.append('file', media, `image.${fileExtension}`);
+                console.log('OCR FormData:', {
+                    apikey: ocrkey.replace(/.(?=.{4})/g, '*'),
+                    language: 'ita',
+                    OCREngine: '3',
+                    scale: 'true',
+                    detectOrientation: 'true',
+                    isTable: 'true',
+                    fileExtension
+                });
+
+                let response;
+                try {
+                    response = await axios.post('https://api.ocr.space/parse/image',
+                        formData,
+                        {
+                            headers: {
+                                'accept': 'application/json'
+                            },
+                            timeout: Math.max(10000, opto - (Date.now() - operationStartTime))
+                        }
+                    );
+                } catch (err) {
+                    console.error('OCR API error:', err.response?.data);
+                    if (err.response?.data?.ErrorMessage?.includes('language')) {
+                        console.log('Retrying with language "eng"...');
+                        formData.set('language', 'eng');
+                        try {
+                            response = await axios.post('https://api.ocr.space/parse/image',
+                                formData,
+                                {
+                                    headers: {
+                                        'accept': 'application/json'
+                                    },
+                                    timeout: Math.max(10000, opto - (Date.now() - operationStartTime))
+                                }
+                            );
+                        } catch (err) {
+                            console.error('OCR retry error:', err.response?.data);
+                            throw new Error(err.response?.data?.ErrorMessage || 'Errore durante il tentativo con lingua eng');
+                        }
+                    } else {
+                        throw new Error(err.response?.data?.ErrorMessage || 'Errore durante l\'elaborazione dell\'immagine');
+                    }
+                }
+
+                if (!response.data.ParsedResults || response.data.IsErroredOnProcessing) {
+                    console.error('OCR response:', response.data);
+                    throw new Error(response.data.ErrorMessage || 'Errore durante l\'elaborazione dell\'immagine');
+                }
+
+                const result = response.data.ParsedResults[0];
+                const text = result.ParsedText;
+                let confidence = 0;
+                if (result.TextOverlay?.Lines?.length > 0) {
+                    let totalConf = 0;
+                    let count = 0;
+                    for (const line of result.TextOverlay.Lines) {
+                        for (const word of line.Words) {
+                            totalConf += word.WordConfidence;
+                            count++;
+                        }
+                    }
+                    confidence = count > 0 ? totalConf / count : 0;
+                }
+
+                if (!text.trim()) {
+                    throw new Error('Nessun testo rilevato nell\'immagine');
+                }
+                const responseText = `『 📝 』 \`Testo ricavato:\`\n- ${text.trim()}`;
+
+                setCachedResult(cacheKey, responseText);
+                return responseText;
+            }
+        })();
+
+        const result = await Promise.race([
+            operationPromise,
+            createTimeoutPromise(opto)
+        ]);
+        await conn.sendMessage(m.chat, { text: result }, { quoted: m });
+
     } catch (e) {
-        console.error(e);
-        m.reply(`『 ❌ 』 *Errore:* ${e.message || e}`);
+        console.error('Errore elaborazione:', e);
+        const isTimeout = e.message.includes('timeout') || e.message.includes('Timeout');
+        const errorMsg = isTimeout ? `${global.errore}` : e.message;
+        await m.react('❌');
+        m.reply(errorMsg);
     } finally {
-        if (tempPath && existsSync(tempPath)) unlinkSync(tempPath);
+        if (tempPath) {
+            try { unlinkSync(tempPath); } catch {}
+        }
     }
 };
 
-handler.help = ['trascrivi'];
+handler.help = ['trascrivi', 'totext'];
 handler.tags = ['strumenti'];
 handler.command = ['trascrivi', 'totext'];
+handler.register = true;
 
 export default handler;
