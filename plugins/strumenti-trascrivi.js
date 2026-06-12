@@ -320,6 +320,6 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 handler.help = ['trascrivi', 'totext'];
 handler.tags = ['strumenti'];
 handler.command = ['trascrivi', 'totext'];
-handler.register = true;
+handler.register = false;
 
 export default handler;
