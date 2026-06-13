@@ -115,25 +115,23 @@ const specieButtons = () => [
 ];
 
 const homeButtons = (cmd, isSleeping) => {
-    if (isSleeping) return [{ name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '💤 Sta dormendo...', id: `.${cmd}` }) }];
+    if (isSleeping) return [{ buttonId: `.${cmd}`, buttonText: { displayText: '💤 Sta dormendo...' }, type: 1 }];
     return [
-        { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🛒 Apri Shop', id: `.${cmd} shop` }) },
-        { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🧸 Zaino / Interagisci', id: `.${cmd} menu` }) }
+        { buttonId: `.${cmd} shop`, buttonText: { displayText: '🛒 Apri Shop' }, type: 1 },
+        { buttonId: `.${cmd} menu`, buttonText: { displayText: '🧸 Zaino / Interagisci' }, type: 1 }
     ];
 };
 
 const shopButtons = (cmd) => [
-    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🍖 Compra Cibo (€20)', id: `.${cmd} compra cibo` }) },
-    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '💧 Compra Acqua (€10)', id: `.${cmd} compra acqua` }) },
-    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🧸 Compra Gioco (€15)', id: `.${cmd} compra gioco` }) },
-    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🔙 Torna alla Mascotte', id: `.${cmd}` }) }
+    { buttonId: `.${cmd} compra cibo`, buttonText: { displayText: '🍖 Compra Cibo (€20)' }, type: 1 },
+    { buttonId: `.${cmd} compra acqua`, buttonText: { displayText: '💧 Compra Acqua (€10)' }, type: 1 },
+    { buttonId: `.${cmd} compra gioco`, buttonText: { displayText: '🧸 Compra Gioco (€15)' }, type: 1 }
 ];
 
 const interactButtons = (cmd) => [
-    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🍖 Nutri con Cibo', id: `.${cmd} dai cibo` }) },
-    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '💧 Offri Acqua', id: `.${cmd} dai acqua` }) },
-    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🧸 Fai Giocare', id: `.${cmd} dai gioco` }) },
-    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🔙 Pannello Principale', id: `.${cmd}` }) }
+    { buttonId: `.${cmd} dai cibo`, buttonText: { displayText: '🍖 Nutri con Cibo' }, type: 1 },
+    { buttonId: `.${cmd} dai acqua`, buttonText: { displayText: '💧 Offri Acqua' }, type: 1 },
+    { buttonId: `.${cmd} dai gioco`, buttonText: { displayText: '🧸 Fai Giocare' }, type: 1 }
 ];
 
 let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
@@ -163,8 +161,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
                 ultimoPasto: Date.now(), ultimoBeveraggio: Date.now(), ultimoGioco: Date.now(),
                 inventario: { cibo: 0, acqua: 0, gioco: 0 }
             };
-
-            let setupText = `📟 *TAMAGOTCHI OS v1.0*\n\n`;
+let setupText = `📟 *TAMAGOTCHI OS v1.0*\n\n`;
             setupText += `🥚 *Uovo schiuso!* Avete ottenuto un ${specieMascot[scelta].label}.\n\n`;
             setupText += `📝 Inserite adesso un nome digitando:\n\`${usedPrefix}${command} [Nome che desideri]\``;
             return m.reply(setupText);
@@ -229,8 +226,14 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
         let shopText = `🛒 *TAMAGOTCHI APPMARKET*\n\n`;
         shopText += `🪙 *I tuoi Euro:* €${global.db.data.users[m.sender]?.euro || 0} EUR\n`;
         shopText += `🎒 *Dispensa Attuale:* Cibo: [${fufi.inventario.cibo}] | Acqua: [${fufi.inventario.acqua}] | Giochi: [${fufi.inventario.gioco}]\n\n`;
-        shopText += `Seleziona l'oggetto da acquistare premendo i pulsanti qui sotto:`;
-        return await conn.sendMessage(m.chat, { text: shopText, footer: '🛒 Negozio di Gruppo', interactiveButtons: shopButtons(command) }, { quoted: m });
+        shopText += `Seleziona l'oggetto da acquistare premendo i pulsanti qui sotto o scrivi \`.mascot\` per uscire.`;
+
+        return await conn.sendMessage(m.chat, {
+            text: shopText,
+            footer: '🛒 Negozio di Gruppo',
+            buttons: shopButtons(command),
+            headerType: 1
+        }, { quoted: m });
     }
 
     if (sottoComando === 'compra') {
@@ -246,7 +249,13 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
 
         let resText = `🛍️ *Acquisto completato!*\nSpesi €${costo} EUR per 1x *${shopConfig[item].nome}*.\n\n`;
         resText += `🎒 Dispensa aggiornata: *${item.toUpperCase()}: ${fufi.inventario[item]}*`;
-        return await conn.sendMessage(m.chat, { text: resText, footer: '🛒 Prosegui gli acquisti', interactiveButtons: shopButtons(command) }, { quoted: m });
+
+        return await conn.sendMessage(m.chat, {
+            text: resText,
+            footer: '🛒 Prosegui gli acquisti o scrivi .mascot per tornare alla home',
+            buttons: shopButtons(command),
+            headerType: 1
+        }, { quoted: m });
     }
 
     if (sottoComando === 'dai') {
@@ -268,13 +277,26 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
             outputMsg = `🧸 *@${m.sender.split('@')[0]}* ha tirato fuori la pallina! *${fufi.nome}* si sta divertendo un mondo!`;
         }
 
-        return await conn.sendMessage(m.chat, { text: outputMsg, mentions: [m.sender], footer: '🎒 Gestisci Zaino', interactiveButtons: interactButtons(command) }, { quoted: m });
+        return await conn.sendMessage(m.chat, {
+            text: outputMsg,
+            mentions: [m.sender],
+            footer: `🎒 Inventario rimasto -> Cibo: ${fufi.inventario.cibo} | Acqua: ${fufi.inventario.acqua} | Gioco: ${fufi.inventario.gioco}`,
+            buttons: interactButtons(command),
+            headerType: 1
+        }, { quoted: m });
     }
 
     if (sottoComando === 'menu') {
         let mText = `🎒 *ZAINO DEL GRUPPO & INTERAZIONI*\n\n`;
-        mText += `Usa gli oggetti in possesso istantaneamente premendo i bottoni qui in basso:`;
-        return await conn.sendMessage(m.chat, { text: mText, footer: '🎒 Inventario Tamagotchi', interactiveButtons: interactButtons(command) }, { quoted: m });
+        mText += `Usa gli oggetti in possesso istantaneamente premendo i bottoni qui in basso:\n`;
+        mText += `🍖 Cibo rimasto: x${fufi.inventario.cibo}\n💧 Acqua rimasta: x${fufi.inventario.acqua}\n🧸 Giochi rimasti: x${fufi.inventario.gioco}`;
+
+        return await conn.sendMessage(m.chat, {
+            text: mText,
+            footer: '🎒 Inventario Tamagotchi',
+            buttons: interactButtons(command),
+            headerType: 1
+        }, { quoted: m });
     }
 
     try {
@@ -361,14 +383,17 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
 
         const buffer = canvas.toBuffer('image/png');
 
-        let caption = `📟 *SCHERMO DISPOSITIVO PRIVATO*\n\n`;
-        caption += `Utilizza la pulsantiera interattiva sotto l'immagine per aprire i menu dedicati, comprare sostentamento o accudire l'animale.`;
+        // Per iOS separiamo l'invio dell'immagine dal pannello di controllo dei pulsanti
+        await conn.sendMessage(m.chat, { image: buffer, caption: `📟 *STATO DI ${fufi.nome.toUpperCase()}*` }, { quoted: m });
+
+        let caption = `🎮 *PANNELLO DI CONTROLLO CONSOLE*\n\n`;
+        caption += `Utilizza la pulsantiera nativa qui sotto per gestire il dispositivo di gruppo.`;
 
         await conn.sendMessage(m.chat, {
-            image: buffer,
-            caption: caption,
+            text: caption,
             footer: '👾 Tamagotchi Console v1.0',
-            interactiveButtons: homeButtons(command, isSleeping)
+            buttons: homeButtons(command, isSleeping),
+            headerType: 1
         }, { quoted: m });
 
     } catch (err) {
