@@ -1,35 +1,102 @@
-import { createCanvas, loadImage } from 'canvas';
+import { createCanvas } from 'canvas';
 
 const specieMascot = {
     cane: {
         emoji: '🐶', label: 'Cane 🐶',
         versi: ['Bau! 🐾', '*muove la coda felice*', '*ti guarda fisso aspettando i croccantini* 🍖'],
         versiMalato: ['*guaisce molto debolmente... ha bisogno di cure* 😢'],
-        immagini: { felice: 'https://i.imgur.com/w3X6N6Y.png', triste: 'https://i.imgur.com/rXb2Z91.png', malato: 'https://i.imgur.com/8Yv6Zg8.png' }
+        draw: (ctx, x, y) => {
+            ctx.fillStyle = '#d7a15c'; ctx.beginPath(); ctx.arc(x + 75, y + 75, 55, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#a67238';
+            ctx.beginPath(); ctx.ellipse(x + 30, y + 70, 15, 35, Math.PI / 6, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x + 120, y + 70, 15, 35, -Math.PI / 6, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(x + 55, y + 65, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 95, y + 65, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#000000';
+            ctx.beginPath(); ctx.arc(x + 55, y + 65, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 95, y + 65, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 75, y + 85, 8, 0, Math.PI); ctx.fill();
+            ctx.fillStyle = '#ff6666'; ctx.beginPath(); ctx.ellipse(x + 75, y + 100, 7, 10, 0, 0, Math.PI * 2); ctx.fill();
+        }
     },
     gatto: {
         emoji: '🐱', label: 'Gatto 🐱',
         versi: ['Miao~ 🐾', '*fa le fusa e si strofina sulle tue gambe*', '*ti fissa con superiorità* 🐟'],
         versiMalato: ['*miagola debolmente rannicchiato in un angolo* 😢'],
-        immagini: { felice: 'https://i.imgur.com/vH9Z97G.png', triste: 'https://i.imgur.com/E8WbLka.png', malato: 'https://i.imgur.com/M6LgO0b.png' }
+        draw: (ctx, x, y) => {
+            ctx.fillStyle = '#9e9e9e'; ctx.beginPath(); ctx.arc(x + 75, y + 75, 55, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#757575';
+            ctx.beginPath(); ctx.moveTo(x + 30, y + 35); ctx.lineTo(x + 55, y + 25); ctx.lineTo(x + 45, y + 55); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(x + 120, y + 35); ctx.lineTo(x + 95, y + 25); ctx.lineTo(x + 105, y + 55); ctx.fill();
+            ctx.fillStyle = '#ffff66';
+            ctx.beginPath(); ctx.arc(x + 55, y + 70, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 95, y + 70, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#000000';
+            ctx.beginPath(); ctx.ellipse(x + 55, y + 70, 3, 9, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x + 95, y + 70, 3, 9, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ff9999'; ctx.beginPath(); ctx.moveTo(x + 71, y + 85); ctx.lineTo(x + 79, y + 85); ctx.lineTo(x + 75, y + 89); ctx.fill();
+        }
     },
     serpente: {
         emoji: '🐍', label: 'Serpente 🐍',
         versi: ['Sssss~ 🐍', '*striscia sinuosamente*', '*tira fuori la lingua biforcuta* 🐀'],
         versiMalato: ['*rimane immobile arrotolato su se stesso* 🥺'],
-        immagini: { felice: 'https://i.imgur.com/4eNOnU9.png', triste: 'https://i.imgur.com/VkeB64z.png', malato: 'https://i.imgur.com/XkMvHwz.png' }
+        draw: (ctx, x, y) => {
+            ctx.fillStyle = '#4caf50'; ctx.beginPath(); ctx.arc(x + 75, y + 75, 55, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ff3333';
+            ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x + 75, y + 95); ctx.lineTo(x + 75, y + 115); ctx.stroke();
+            ctx.lineTo(x + 70, y + 122); ctx.moveTo(x + 75, y + 115); ctx.lineTo(x + 80, y + 122); ctx.stroke();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(x + 55, y + 65, 12, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 95, y + 65, 12, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ffeb3b';
+            ctx.beginPath(); ctx.arc(x + 55, y + 65, 9, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 95, y + 65, 9, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#000000';
+            ctx.beginPath(); ctx.ellipse(x + 55, y + 65, 2, 8, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x + 95, y + 65, 2, 8, 0, 0, Math.PI * 2); ctx.fill();
+        }
     },
     criceto: {
         emoji: '🐹', label: 'Criceto 🐹',
         versi: ['Squitt! 🐹', '*gira velocissimo sulla ruota*', '*riempie le guance di semi* 🌻'],
         versiMalato: ['*trema debolmente sotto la segatura* 😢'],
-        immagini: { felice: 'https://i.imgur.com/2m6D8F8.png', triste: 'https://i.imgur.com/MhO7Awb.png', malato: 'https://i.imgur.com/pZqNrw9.png' }
+        draw: (ctx, x, y) => {
+            ctx.fillStyle = '#ffb74d'; ctx.beginPath(); ctx.arc(x + 75, y + 75, 55, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ffe082'; ctx.beginPath(); ctx.arc(x + 75, y + 90, 35, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ff8a65';
+            ctx.beginPath(); ctx.arc(x + 35, y + 35, 14, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 115, y + 35, 14, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ff80ab';
+            ctx.beginPath(); ctx.arc(x + 35, y + 85, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 115, y + 85, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(x + 55, y + 65, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 95, y + 65, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#000000';
+            ctx.beginPath(); ctx.arc(x + 55, y + 65, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 95, y + 65, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 75, y + 78, 5, 0, Math.PI * 2); ctx.fill();
+        }
     },
     coniglio: {
         emoji: '🐰', label: 'Coniglio 🐰',
         versi: ['*muove il nasino velocemente* 🐰', '*fa un piccolo balzo di gioia*', '*rosicchia una foglia* 🥕'],
         versiMalato: ['*tiene le orecchie basse e non si muove* 🥺'],
-        immagini: { felice: 'https://i.imgur.com/wIitwKx.png', triste: 'https://i.imgur.com/uR27k4b.png', malato: 'https://i.imgur.com/5yGbKwD.png' }
+        draw: (ctx, x, y) => {
+            ctx.fillStyle = '#e0e0e0'; ctx.beginPath(); ctx.arc(x + 75, y + 85, 50, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#b0bec5';
+            ctx.beginPath(); ctx.ellipse(x + 50, y + 35, 14, 35, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x + 100, y + 35, 14, 35, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ff80ab';
+            ctx.beginPath(); ctx.ellipse(x + 50, y + 38, 8, 25, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x + 100, y + 38, 8, 25, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#000000';
+            ctx.beginPath(); ctx.arc(x + 55, y + 78, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 95, y + 78, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ff80ab'; ctx.beginPath(); ctx.moveTo(x + 72, y + 88); ctx.lineTo(x + 78, y + 88); ctx.lineTo(x + 75, y + 92); ctx.fill();
+        }
     }
 };
 
@@ -63,6 +130,14 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
     let oraCorrente = new Date().getHours();
     let isSleeping = oraCorrente >= 0 && oraCorrente < 10;
 
+    if (sottoComando === 'elimina' || sottoComando === 'cancella') {
+        if (!isAdmin && !m.fromMe) return m.reply('❌ *Solo gli admin o il proprietario del bot possono eliminare la mascotte!*');
+        if (!fufi) return m.reply('⚠️ Non c\'è nessuna mascotte da eliminare in questo gruppo.');
+        
+        delete global.fufiStats[m.chat];
+        return m.reply('🗑️ *Mascotte eliminata correttamente!* I dati e la dispensa di questo gruppo sono stati azzerati.');
+    }
+
     if (!fufi) {
         if (sottoComando === 'adotta') {
             if (!isAdmin && !m.fromMe) return m.reply('❌ *Solo gli admin possono avviare l\'adozione!*');
@@ -78,14 +153,14 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
             let setupText = `ㅤ⋆｡˚『 ╭ \`✨ ADOZIONE AVVIATA!\` ╯ 』˚｡⋆\n╭\n`;
             setupText += `│ ${specieMascot[scelta].emoji} *Avete scelto un ${specieMascot[scelta].label}!*\n│\n`;
             setupText += `│ 📝 Scegliete il suo nome digitando: \`${usedPrefix}${command} [Nome]\`\n`;
-            setupText += `*╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*`;
+            setupText += `*╰⭒─瞬─瞬─瞬─⭒─瞬─瞬─瞬─*`;
             return m.reply(setupText);
         }
 
         let introText = `ㅤ⋆｡˚『 ╭ \`🐾 IL TAMAGOTCHI DEL GRUPPO 🐾\` ╯ 』˚｡⋆\n╭\n`;
         introText += `│ 🤔 *Questo gruppo non ha ancora adottato una mascotte!*\n│\n`;
         introText += `│ _Scegli quale animale accudire tramite i bottoni qui sotto:_ \n`;
-        introText += `*╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*`;
+        introText += `*╰⭒─瞬─瞬─瞬─⭒─瞬─瞬─瞬─*`;
         return await conn.sendMessage(m.chat, { text: introText, footer: ' can𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓', interactiveButtons: specieButtons() }, { quoted: m });
     }
 
@@ -125,13 +200,13 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
         if (sottoComando === 'rianima') {
             if (!isAdmin && !m.fromMe) return m.reply('❌ Solo gli admin.');
             let costoRianima = 200;
-            let soldiUtente = global.db.data.users[m.sender]?.bandiere || 0;
-            if (soldiUtente < costoRianima) return m.reply(`❌ Ti servono ${costoCianima} bandiere 🚩.`);
-            global.db.data.users[m.sender].bandiere -= costoRianima;
+            let soldiUtente = global.db.data.users[m.sender]?.euro || 0;
+            if (soldiUtente < costoRianima) return m.reply(`❌ Ti servono €${costoRianima} EUR.`);
+            global.db.data.users[m.sender].euro -= costoRianima;
             fufi.morto = false; fufi.salute = 60; fufi.ultimoPasto = Date.now(); fufi.ultimoBeveraggio = Date.now(); fufi.ultimoGioco = Date.now();
-            return m.reply(`❤️ *Veterinario:* Rianimato con successo! (-${costoCianima} 🚩)`);
+            return m.reply(`❤️ *Veterinario:* Rianimato con successo! (-€${costoRianima} EUR)`);
         }
-        return m.reply(`💀 *${fufi.nome}* è morto. Digita \`${usedPrefix}${command} rianima\` (Costo: 200 🚩) per salvarlo.`);
+        return m.reply(`💀 *${fufi.nome}* è morto. Digita \`${usedPrefix}${command} rianima\` (Costo: €200 EUR) per salvarlo.`);
     }
 
     if (isSleeping && ['dai', 'shop', 'compra', 'gioca', 'menu'].includes(sottoComando)) {
@@ -140,12 +215,12 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
 
     if (sottoComando === 'shop') {
         let shopText = `ㅤ⋆｡˚『 ╭ \`🛒 MASCOT SHOP - DI BLOOD-BOT\` ╯ 』˚｡⋆\n╭\n`;
-        shopText += `│ 🚩 *Bilancio Personale:* ${global.db.data.users[m.sender]?.bandiere || 0} 🚩\n│\n`;
-        shopText += `│ 🍖 *${shopConfig.cibo.nome}* -> ${shopConfig.cibo.prezzo} 🚩 \n│ └ Comando: \`${usedPrefix}${command} compra cibo\`\n`;
-        shopText += `│ 💧 *${shopConfig.acqua.nome}* -> ${shopConfig.acqua.prezzo} 🚩 \n│ └ Comando: \`${usedPrefix}${command} compra acqua\`\n`;
-        shopText += `│ 🧸 *${shopConfig.gioco.nome}* -> ${shopConfig.gioco.prezzo} 🚩 \n│ └ Comando: \`${usedPrefix}${command} compra gioco\`\n│\n`;
+        shopText += `│ 💶 *Bilancio Personale:* €${global.db.data.users[m.sender]?.euro || 0} EUR\n│\n`;
+        shopText += `│ 🍖 *${shopConfig.cibo.nome}* -> €${shopConfig.cibo.prezzo} EUR \n│ └ Comando: \`${usedPrefix}${command} compra cibo\`\n`;
+        shopText += `│ 💧 *${shopConfig.acqua.nome}* -> €${shopConfig.acqua.prezzo} EUR \n│ └ Comando: \`${usedPrefix}${command} compra acqua\`\n`;
+        shopText += `│ 🧸 *${shopConfig.gioco.nome}* -> €${shopConfig.gioco.prezzo} EUR \n│ └ Comando: \`${usedPrefix}${command} compra gioco\`\n│\n`;
         shopText += `│ 🎒 \`Dispensa di gruppo:\` Cibo: [${fufi.inventario.cibo}] | Acqua: [${fufi.inventario.acqua}] | Giochi: [${fufi.inventario.gioco}]\n`;
-        shopText += `*╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*`;
+        shopText += `*╰⭒─瞬─瞬─瞬─⭒─瞬─瞬─瞬─*`;
         return m.reply(shopText);
     }
 
@@ -153,11 +228,11 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
         let item = args[1]?.toLowerCase();
         if (!item || !shopConfig[item]) return m.reply(`⚠️ Scegli cosa comprare: \`cibo\`, \`acqua\` o \`gioco\`.`);
         let costo = shopConfig[item].prezzo;
-        let soldiUtente = global.db.data.users[m.sender]?.bandiere || 0;
-        if (soldiUtente < costo) return m.reply(`❌ Non hai abbastanza bandiere (${costo} 🚩 necessarie).`);
+        let soldiUtente = global.db.data.users[m.sender]?.euro || 0;
+        if (soldiUtente < costo) return m.reply(`❌ Non hai abbastanza soldi (€${costo} EUR necessari).`);
 
         if (!global.db.data.users[m.sender]) global.db.data.users[m.sender] = {};
-        global.db.data.users[m.sender].bandiere -= costo;
+        global.db.data.users[m.sender].euro -= costo;
         fufi.inventario[item] += 1;
         return m.reply(`🛒 Acquistato 1x *${shopConfig[item].nome}*! Aggiunto alla dispensa. Usa \`${usedPrefix}${command} dai ${item}\``);
     }
@@ -208,26 +283,17 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
         ctx.lineWidth = 6;
         ctx.strokeRect(12, 12, 596, 366);
 
-        let avatarUrl = infoSpecie.immagini.felice;
         let statoUmore = 'Felice e Sazio ✨';
-
         if (isSleeping) {
             statoUmore = 'Sta dormendo... 💤';
         } else {
-            if (fufi.salute < 40) { avatarUrl = infoSpecie.immagini.malato; statoUmore = 'Pessimo / Sta male 🤒'; }
-            else if (percFelice < 40) { avatarUrl = infoSpecie.immagini.triste; statoUmore = 'Triste / Annoiato 🥺'; }
-            else if (percCibo < 30) { avatarUrl = infoSpecie.immagini.triste; statoUmore = 'Molta fame 🥺'; }
-            else if (percAcqua < 30) { avatarUrl = infoSpecie.immagini.triste; statoUmore = 'Molta sete 💧'; }
+            if (fufi.salute < 40) { statoUmore = 'Pessimo / Sta male 🤒'; }
+            else if (percFelice < 40) { statoUmore = 'Triste / Annoiato 🥺'; }
+            else if (percCibo < 30) { statoUmore = 'Molta fame 🥺'; }
+            else if (percAcqua < 30) { statoUmore = 'Molta sete 💧'; }
         }
 
-        try {
-            const avatar = await loadImage(avatarUrl);
-            ctx.drawImage(avatar, 45, 60, 150, 150);
-        } catch {
-            ctx.fillStyle = isSleeping ? '#1f3d7a' : '#bc0606';
-            ctx.beginPath(); ctx.arc(120, 135, 65, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 22px Arial'; ctx.fillText(fufi.nome.substring(0,6).toUpperCase(), 85, 142);
-        }
+        infoSpecie.draw(ctx, 45, 60);
 
         if (isSleeping) {
             ctx.fillStyle = '#4da6ff'; ctx.font = 'bold 20px Arial'; ctx.fillText('z', 175, 65);
@@ -272,7 +338,8 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
         let caption = `ㅤ⋆｡˚『 ╭ \`🐾 GESTIONE TAMAGOTCHI\` ╯ 』˚｡⋆\n`;
         caption += `│ 🛒 \`${usedPrefix}${command} shop\` (Negozio scorte)\n`;
         caption += `│ 🧸 \`${usedPrefix}${command} menu\` (Usa scorte ed accudisci)\n`;
-        caption += `*╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*`;
+        caption += `│ 🗑️ \`${usedPrefix}${command} elimina\` (Cancella mascotte)\n`;
+        caption += `*╰⭒─瞬─瞬─瞬─⭒─瞬─瞬─瞬─*`;
 
         await conn.sendMessage(m.chat, {
             image: buffer,
