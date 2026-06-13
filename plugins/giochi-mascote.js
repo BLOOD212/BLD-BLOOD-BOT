@@ -103,24 +103,38 @@ const specieMascot = {
 const shopConfig = {
     cibo: { nome: '🍖 Cibo Premium', prezzo: 20 },
     acqua: { nome: '💧 Acqua Fresca', prezzo: 10 },
-    gioco: { nome: '🧸 Pallina / Gioco', prezzo: 15 }
+    gioco: { nome: '🧸 Pallina Gioco', prezzo: 15 }
 };
 
 const specieButtons = () => [
-    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Cane 🐶', id: '.mascot adotta cane' }) },
-    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Gatto 🐱', id: '.mascot adotta gatto' }) },
-    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Serpente 🐍', id: '.mascot adotta serpente' }) },
-    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Criceto 🐹', id: '.mascot adotta criceto' }) },
-    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Coniglio 🐰', id: '.mascot adotta coniglio' }) }
+    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🐶 Cane', id: '.mascot adotta cane' }) },
+    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🐱 Gatto', id: '.mascot adotta gatto' }) },
+    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🐍 Serpente', id: '.mascot adotta serpente' }) },
+    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🐹 Criceto', id: '.mascot adotta criceto' }) },
+    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🐰 Coniglio', id: '.mascot adotta coniglio' }) }
 ];
 
-const giocoButtons = (cmd, isSleeping) => {
-    if (isSleeping) return [{ name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '💤 Shhh... Sta dormendo', id: `.${cmd}` }) }];
+const homeButtons = (cmd, isSleeping) => {
+    if (isSleeping) return [{ name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '💤 Sta dormendo...', id: `.${cmd}` }) }];
     return [
-        { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🛒 Mascot Shop', id: `.${cmd} shop` }) },
-        { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🧸 Gioca / Accudisci', id: `.${cmd} menu` }) }
+        { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🛒 Apri Shop', id: `.${cmd} shop` }) },
+        { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🧸 Zaino / Interagisci', id: `.${cmd} menu` }) }
     ];
 };
+
+const shopButtons = (cmd) => [
+    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🍖 Compra Cibo (€20)', id: `.${cmd} compra cibo` }) },
+    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '💧 Compra Acqua (€10)', id: `.${cmd} compra acqua` }) },
+    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🧸 Compra Gioco (€15)', id: `.${cmd} compra gioco` }) },
+    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🔙 Torna alla Mascotte', id: `.${cmd}` }) }
+];
+
+const interactButtons = (cmd) => [
+    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🍖 Nutri con Cibo', id: `.${cmd} dai cibo` }) },
+    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '💧 Offri Acqua', id: `.${cmd} dai acqua` }) },
+    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🧸 Fai Giocare', id: `.${cmd} dai gioco` }) },
+    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🔙 Pannello Principale', id: `.${cmd}` }) }
+];
 
 let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
     global.fufiStats = global.fufiStats || {};
@@ -131,18 +145,18 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
     let isSleeping = oraCorrente >= 0 && oraCorrente < 10;
 
     if (sottoComando === 'elimina' || sottoComando === 'cancella') {
-        if (!isAdmin && !m.fromMe) return m.reply('❌ *Solo gli admin o il proprietario del bot possono eliminare la mascotte!*');
-        if (!fufi) return m.reply('⚠️ Non c\'è nessuna mascotte da eliminare in questo gruppo.');
+        if (!isAdmin && !m.fromMe) return m.reply('❌ *Solo gli amministratori o il proprietario possono eliminare la mascotte!*');
+        if (!fufi) return m.reply('⚠️ Nessuna mascotte attiva in questa stanza da poter cancellare.');
         
         delete global.fufiStats[m.chat];
-        return m.reply('🗑️ *Mascotte eliminata correttamente!* I dati e la dispensa di questo gruppo sono stati azzerati.');
+        return m.reply('🗑️ *Mascotte rimossa!* Il dispositivo virtuale è stato formattato, potrete adottarne una nuova quando volete.');
     }
 
     if (!fufi) {
         if (sottoComando === 'adotta') {
-            if (!isAdmin && !m.fromMe) return m.reply('❌ *Solo gli admin possono avviare l\'adozione!*');
+            if (!isAdmin && !m.fromMe) return m.reply('❌ *Solo gli amministratori del gruppo possono avviare un\'adozione!*');
             let scelta = args[1]?.toLowerCase();
-            if (!scelta || !specieMascot[scelta]) return m.reply('⚠️ *Specie non valida!*');
+            if (!scelta || !specieMascot[scelta]) return m.reply('⚠️ *Scegli una specie valida tra quelle proposte!*');
 
             global.fufiStats[m.chat] = {
                 attivo: false, faseNome: true, specie: scelta, morto: false, nome: 'Mascotte', salute: 100,
@@ -150,30 +164,28 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
                 inventario: { cibo: 0, acqua: 0, gioco: 0 }
             };
 
-            let setupText = `ㅤ⋆｡˚『 ╭ \`✨ ADOZIONE AVVIATA!\` ╯ 』˚｡⋆\n╭\n`;
-            setupText += `│ ${specieMascot[scelta].emoji} *Avete scelto un ${specieMascot[scelta].label}!*\n│\n`;
-            setupText += `│ 📝 Scegliete il suo nome digitando: \`${usedPrefix}${command} [Nome]\`\n`;
-            setupText += `*╰⭒─瞬─瞬─瞬─⭒─瞬─瞬─瞬─*`;
+            let setupText = `📟 *TAMAGOTCHI OS v1.0*\n\n`;
+            setupText += `🥚 *Uovo schiuso!* Avete ottenuto un ${specieMascot[scelta].label}.\n\n`;
+            setupText += `📝 Inserite adesso un nome digitando:\n\`${usedPrefix}${command} [Nome che desideri]\``;
             return m.reply(setupText);
         }
 
-        let introText = `ㅤ⋆｡˚『 ╭ \`🐾 IL TAMAGOTCHI DEL GRUPPO 🐾\` ╯ 』˚｡⋆\n╭\n`;
-        introText += `│ 🤔 *Questo gruppo non ha ancora adottato una mascotte!*\n│\n`;
-        introText += `│ _Scegli quale animale accudire tramite i bottoni qui sotto:_ \n`;
-        introText += `*╰⭒─瞬─瞬─瞬─⭒─瞬─瞬─瞬─*`;
-        return await conn.sendMessage(m.chat, { text: introText, footer: ' can𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓', interactiveButtons: specieButtons() }, { quoted: m });
+        let introText = `📟 *TAMAGOTCHI CONSOLE v1.0*\n\n`;
+        introText += `👾 *Nessuna mascotte trovata in questa chat!*\n`;
+        introText += `Scegliete un uovo da far schiudere cliccando su una delle opzioni qui sotto:`;
+        return await conn.sendMessage(m.chat, { text: introText, footer: '👾 Tamagotchi Core System', interactiveButtons: specieButtons() }, { quoted: m });
     }
 
     if (fufi.faseNome) {
         let nomeScelto = args.join(' ').trim();
         if (!nomeScelto || sottoComando === 'adotta') return m.reply(`⚠️ Usa: \`${usedPrefix}${command} [Nome]\``);
-        if (nomeScelto.length > 15) return m.reply('❌ Nome troppo lungo (Max 15 caratteri).');
+        if (nomeScelto.length > 15) return m.reply('❌ Scegli un nome più corto! (Massimo 15 caratteri).');
 
         fufi.nome = nomeScelto; fufi.faseNome = false; fufi.attivo = true;
         fufi.ultimoPasto = Date.now(); fufi.ultimoBeveraggio = Date.now(); fufi.ultimoGioco = Date.now();
 
         let sp = specieMascot[fufi.specie];
-        return m.reply(`🎉 *${fufi.nome}* (${sp.emoji}) è ora la mascotte ufficiale del gruppo!\nUsa \`${usedPrefix}${command}\` per vedere la scheda.`);
+        return m.reply(`🎉 *${fufi.nome}* (${sp.emoji}) è stato registrato nel circuito virtuale di questo gruppo!\nInvia \`${usedPrefix}${command}\` per accenderlo.`);
     }
 
     const treOre = 3 * 60 * 60 * 1000; 
@@ -198,73 +210,71 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
 
     if (fufi.morto) {
         if (sottoComando === 'rianima') {
-            if (!isAdmin && !m.fromMe) return m.reply('❌ Solo gli admin.');
+            if (!isAdmin && !m.fromMe) return m.reply('❌ Operazione consentita solo agli amministratori.');
             let costoRianima = 200;
             let soldiUtente = global.db.data.users[m.sender]?.euro || 0;
-            if (soldiUtente < costoRianima) return m.reply(`❌ Ti servono €${costoRianima} EUR.`);
+            if (soldiUtente < costoRianima) return m.reply(`❌ Crediti insufficienti. La clinica richiede €${costoRianima} EUR.`);
             global.db.data.users[m.sender].euro -= costoRianima;
             fufi.morto = false; fufi.salute = 60; fufi.ultimoPasto = Date.now(); fufi.ultimoBeveraggio = Date.now(); fufi.ultimoGioco = Date.now();
-            return m.reply(`❤️ *Veterinario:* Rianimato con successo! (-€${costoRianima} EUR)`);
+            return m.reply(`⚡ *Defibrillatore Virtuale:* ${fufi.nome} è tornato in vita! (-€${costoRianima} EUR)`);
         }
-        return m.reply(`💀 *${fufi.nome}* è morto. Digita \`${usedPrefix}${command} rianima\` (Costo: €200 EUR) per salvarlo.`);
+        return m.reply(`💀 *GAME OVER* 💀\n*${fufi.nome}* è andato al creatore per mancanza di cure.\nDigita \`${usedPrefix}${command} rianima\` (Spesa: €200 EUR) per resuscitarlo.`);
     }
 
     if (isSleeping && ['dai', 'shop', 'compra', 'gioca', 'menu'].includes(sottoComando)) {
-        return m.reply(`💤 *${fufi.nome} sta dormendo profondamente...* Lascialo riposare fino alle 10:00 del mattino!`);
+        return m.reply(`💤 *Shhh... ${fufi.nome} sta dormendo nel suo guscio.* Tornerà attivo alle ore 10:00.`);
     }
 
     if (sottoComando === 'shop') {
-        let shopText = `ㅤ⋆｡˚『 ╭ \`🛒 MASCOT SHOP - DI BLOOD-BOT\` ╯ 』˚｡⋆\n╭\n`;
-        shopText += `│ 💶 *Bilancio Personale:* €${global.db.data.users[m.sender]?.euro || 0} EUR\n│\n`;
-        shopText += `│ 🍖 *${shopConfig.cibo.nome}* -> €${shopConfig.cibo.prezzo} EUR \n│ └ Comando: \`${usedPrefix}${command} compra cibo\`\n`;
-        shopText += `│ 💧 *${shopConfig.acqua.nome}* -> €${shopConfig.acqua.prezzo} EUR \n│ └ Comando: \`${usedPrefix}${command} compra acqua\`\n`;
-        shopText += `│ 🧸 *${shopConfig.gioco.nome}* -> €${shopConfig.gioco.prezzo} EUR \n│ └ Comando: \`${usedPrefix}${command} compra gioco\`\n│\n`;
-        shopText += `│ 🎒 \`Dispensa di gruppo:\` Cibo: [${fufi.inventario.cibo}] | Acqua: [${fufi.inventario.acqua}] | Giochi: [${fufi.inventario.gioco}]\n`;
-        shopText += `*╰⭒─瞬─瞬─瞬─⭒─瞬─瞬─瞬─*`;
-        return m.reply(shopText);
+        let shopText = `🛒 *TAMAGOTCHI APPMARKET*\n\n`;
+        shopText += `🪙 *I tuoi Euro:* €${global.db.data.users[m.sender]?.euro || 0} EUR\n`;
+        shopText += `🎒 *Dispensa Attuale:* Cibo: [${fufi.inventario.cibo}] | Acqua: [${fufi.inventario.acqua}] | Giochi: [${fufi.inventario.gioco}]\n\n`;
+        shopText += `Seleziona l'oggetto da acquistare premendo i pulsanti qui sotto:`;
+        return await conn.sendMessage(m.chat, { text: shopText, footer: '🛒 Negozio di Gruppo', interactiveButtons: shopButtons(command) }, { quoted: m });
     }
 
     if (sottoComando === 'compra') {
         let item = args[1]?.toLowerCase();
-        if (!item || !shopConfig[item]) return m.reply(`⚠️ Scegli cosa comprare: \`cibo\`, \`acqua\` o \`gioco\`.`);
+        if (!item || !shopConfig[item]) return m.reply(`⚠️ Specifica l'oggetto da comprare.`);
         let costo = shopConfig[item].prezzo;
         let soldiUtente = global.db.data.users[m.sender]?.euro || 0;
-        if (soldiUtente < costo) return m.reply(`❌ Non hai abbastanza soldi (€${costo} EUR necessari).`);
+        if (soldiUtente < costo) return m.reply(`❌ Saldo insufficiente! Ti servono €${costo} EUR per questo articolo.`);
 
         if (!global.db.data.users[m.sender]) global.db.data.users[m.sender] = {};
         global.db.data.users[m.sender].euro -= costo;
-        fufi.inventario[item] += 1;
-        return m.reply(`🛒 Acquistato 1x *${shopConfig[item].nome}*! Aggiunto alla dispensa. Usa \`${usedPrefix}${command} dai ${item}\``);
+        fufi.inventario[item] = (fufi.inventario[item] || 0) + 1;
+
+        let resText = `🛍️ *Acquisto completato!*\nSpesi €${costo} EUR per 1x *${shopConfig[item].nome}*.\n\n`;
+        resText += `🎒 Dispensa aggiornata: *${item.toUpperCase()}: ${fufi.inventario[item]}*`;
+        return await conn.sendMessage(m.chat, { text: resText, footer: '🛒 Prosegui gli acquisti', interactiveButtons: shopButtons(command) }, { quoted: m });
     }
 
     if (sottoComando === 'dai') {
         let item = args[1]?.toLowerCase();
-        if (!item || !shopConfig[item]) return m.reply(`⚠️ Specifica cosa dare: \`cibo\`, \`acqua\` o \`gioco\`.`);
-        if (fufi.inventario[item] <= 0) return m.reply(`❌ Dispensa vuota per questo oggetto! Compralo prima nel \`${usedPrefix}${command} shop\``);
+        if (!item || !shopConfig[item]) return m.reply(`⚠️ Cosa vorresti estrarre dallo zaino?`);
+        if ((fufi.inventario[item] || 0) <= 0) return m.reply(`❌ Oggetto non disponibile nello zaino! Compralo prima visitando il Market.`);
 
         fufi.inventario[item] -= 1;
         let outputMsg = '';
 
         if (item === 'cibo') {
             fufi.ultimoPasto = Date.now(); fufi.salute = Math.min(100, fufi.salute + 15);
-            outputMsg = `🍖 *@${m.sender.split('@')[0]}* ha dato da mangiare a ${fufi.nome}!`;
+            outputMsg = `🍖 *@${m.sender.split('@')[0]}* ha riempito la ciotola! *${fufi.nome}* ringrazia felice.`;
         } else if (item === 'acqua') {
             fufi.ultimoBeveraggio = Date.now(); fufi.salute = Math.min(100, fufi.salute + 10);
-            outputMsg = `💧 *@${m.sender.split('@')[0]}* ha dissetato ${fufi.nome}!`;
+            outputMsg = `💧 *@${m.sender.split('@')[0]}* ha versato dell'acqua fresca a *${fufi.nome}*!`;
         } else if (item === 'gioco') {
             fufi.ultimoGioco = Date.now(); fufi.salute = Math.min(100, fufi.salute + 5);
-            outputMsg = `🧸 *@${m.sender.split('@')[0]}* ha usato un gioco per far felice ${fufi.nome}!`;
+            outputMsg = `🧸 *@${m.sender.split('@')[0]}* ha tirato fuori la pallina! *${fufi.nome}* si sta divertendo un mondo!`;
         }
 
-        return await conn.sendMessage(m.chat, { text: outputMsg, mentions: [m.sender] }, { quoted: m });
+        return await conn.sendMessage(m.chat, { text: outputMsg, mentions: [m.sender], footer: '🎒 Gestisci Zaino', interactiveButtons: interactButtons(command) }, { quoted: m });
     }
 
     if (sottoComando === 'menu') {
-        let mText = `📦 *AZIONI DISPONIBILI PER ${fufi.nome.toUpperCase()}*\n\n`;
-        mText += `🍖 Nutri: \`${usedPrefix}${command} dai cibo\` (Disponibili: ${fufi.inventario.cibo})\n`;
-        mText += `💧 Disseta: \`${usedPrefix}${command} dai acqua\` (Disponibili: ${fufi.inventario.acqua})\n`;
-        mText += `🧸 Diverti: \`${usedPrefix}${command} dai gioco\` (Disponibili: ${fufi.inventario.gioco})\n`;
-        return m.reply(mText);
+        let mText = `🎒 *ZAINO DEL GRUPPO & INTERAZIONI*\n\n`;
+        mText += `Usa gli oggetti in possesso istantaneamente premendo i bottoni qui in basso:`;
+        return await conn.sendMessage(m.chat, { text: mText, footer: '🎒 Inventario Tamagotchi', interactiveButtons: interactButtons(command) }, { quoted: m });
     }
 
     try {
@@ -276,81 +286,94 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin }) => {
         const canvas = createCanvas(620, 390);
         const ctx = canvas.getContext('2d');
 
-        ctx.fillStyle = isSleeping ? '#0b0b16' : '#111116';
+        ctx.fillStyle = '#ff6b81'; 
         ctx.fillRect(0, 0, 620, 390);
-        
-        ctx.strokeStyle = isSleeping ? '#1f3d7a' : '#bc0606';
-        ctx.lineWidth = 6;
-        ctx.strokeRect(12, 12, 596, 366);
 
-        let statoUmore = 'Felice e Sazio ✨';
+        ctx.fillStyle = '#f7f1e3';
+        ctx.beginPath();
+        ctx.arc(310, 195, 240, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = isSleeping ? '#1e272e' : '#dcdde1';
+        ctx.fillRect(140, 80, 340, 200);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#2f3542';
+        ctx.strokeRect(140, 80, 340, 200);
+
+        ctx.fillStyle = '#2f3542';
+        ctx.beginPath(); ctx.arc(100, 330, 20, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(310, 345, 20, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(520, 330, 20, 0, Math.PI * 2); ctx.fill();
+
+        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 11px Arial';
+        ctx.fillText('A', 96, 334); ctx.fillText('B', 306, 349); ctx.fillText('C', 516, 334);
+
+        let statoUmore = 'OTTIMO ✨';
         if (isSleeping) {
-            statoUmore = 'Sta dormendo... 💤';
+            statoUmore = 'SONNO 💤';
         } else {
-            if (fufi.salute < 40) { statoUmore = 'Pessimo / Sta male 🤒'; }
-            else if (percFelice < 40) { statoUmore = 'Triste / Annoiato 🥺'; }
-            else if (percCibo < 30) { statoUmore = 'Molta fame 🥺'; }
-            else if (percAcqua < 30) { statoUmore = 'Molta sete 💧'; }
+            if (fufi.salute < 40) statoUmore = 'MALATO 🤒';
+            else if (percFelice < 40) statoUmore = 'ANNOIATO 🥺';
+            else if (percCibo < 30) statoUmore = 'FAME 🍖';
+            else if (percAcqua < 30) statoUmore = 'SETE 💧';
         }
 
-        infoSpecie.draw(ctx, 45, 60);
+        infoSpecie.draw(ctx, 15, 100);
 
         if (isSleeping) {
-            ctx.fillStyle = '#4da6ff'; ctx.font = 'bold 20px Arial'; ctx.fillText('z', 175, 65);
-            ctx.font = 'bold 26px Arial'; ctx.fillText('Z', 190, 50);
+            ctx.fillStyle = '#70a1ff'; ctx.font = 'bold 20px Arial'; ctx.fillText('z', 145, 110);
+            ctx.font = 'bold 26px Arial'; ctx.fillText('Z', 160, 95);
         }
 
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 26px Arial';
-        ctx.fillText(`${infoSpecie.emoji} ${fufi.nome.toUpperCase()}`, 225, 65);
+        ctx.fillStyle = '#2f3542';
+        ctx.font = 'bold 20px "Courier New"';
+        ctx.fillText(fufi.nome.toUpperCase(), 160, 115);
 
-        ctx.font = '15px Arial'; ctx.fillStyle = '#aaaaaa';
-        ctx.fillText(`Razza: ${infoSpecie.label}  |  Umore: `, 225, 95);
-        ctx.fillStyle = isSleeping ? '#4da6ff' : (fufi.salute < 40 ? '#ff3333' : '#33ff33');
-        ctx.fillText(statoUmore, ctx.measureText(`Razza: ${infoSpecie.label}  |  Umore: `).width + 225, 95);
+        ctx.font = 'bold 11px "Courier New"';
+        ctx.fillText(`MODELLO: ${fufi.specie.toUpperCase()}`, 160, 135);
+        ctx.fillText(`STATO: ${statoUmore}`, 160, 150);
 
-        const drawBar = (label, value, x, y) => {
-            ctx.fillStyle = '#ffffff'; ctx.font = '13px Arial';
-            ctx.fillText(`${label}: ${value}%`, x, y - 5);
-            ctx.fillStyle = '#1c1c24'; ctx.fillRect(x, y, 340, 14);
+        const drawPixelBar = (label, value, x, y) => {
+            ctx.fillStyle = '#2f3542'; ctx.font = 'bold 10px "Courier New"';
+            ctx.fillText(label, x, y - 4);
             
-            let color = '#33ff33';
+            ctx.fillStyle = '#718093';
+            ctx.fillRect(x, y, 200, 10);
+            
+            let color = '#4cd137';
             if (!isSleeping) {
-                if (value <= 25) color = '#ff3333';
-                else if (value <= 55) color = '#ffcc00';
-            } else { color = '#1f3d7a'; }
+                if (value <= 25) color = '#e84118';
+                else if (value <= 55) color = '#fbc531';
+            } else { color = '#00a8ff'; }
             
             ctx.fillStyle = color;
-            ctx.fillRect(x, y, (value / 100) * 340, 14);
+            ctx.fillRect(x, y, (value / 100) * 200, 10);
+            ctx.strokeRect(x, y, 200, 10);
         };
 
-        drawBar('🩺 SALUTE GENERALE', fufi.salute, 225, 135);
-        drawBar('🍖 SAZIETÀ (FAME)', percCibo, 225, 185);
-        drawBar('💧 IDRATAZIONE (SETE)', percAcqua, 225, 235);
-        drawBar('🧸 FELICITÀ / DIVERTIMENTO', percGioco, 225, 285);
+        drawPixelBar('🩺 VITA', fufi.salute, 160, 180);
+        drawPixelBar('🍖 FAME', percCibo, 160, 215);
+        drawPixelBar('💧 SETE', percAcqua, 160, 250);
 
-        ctx.fillStyle = '#1c1c24'; ctx.fillRect(35, 325, 545, 32);
-        ctx.fillStyle = '#ffffff'; ctx.font = '13px Arial';
-        ctx.fillText(`🎒 DISPENSA DI GRUPPO ->  🍖 Cibo: ${fufi.inventario.cibo}  |  💧 Acqua: ${fufi.inventario.acqua}  |  🧸 Giochi: ${fufi.inventario.gioco}`, 55, 345);
+        ctx.fillStyle = '#2f3542'; ctx.fillRect(100, 15, 420, 28);
+        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 12px "Courier New"';
+        ctx.fillText(`🎒 DISPENSA: 🍖 Cibo x${fufi.inventario.cibo} | 💧 Acqua x${fufi.inventario.acqua} | 🧸 Giochi x${fufi.inventario.gioco}`, 115, 33);
 
         const buffer = canvas.toBuffer('image/png');
 
-        let caption = `ㅤ⋆｡˚『 ╭ \`🐾 GESTIONE TAMAGOTCHI\` ╯ 』˚｡⋆\n`;
-        caption += `│ 🛒 \`${usedPrefix}${command} shop\` (Negozio scorte)\n`;
-        caption += `│ 🧸 \`${usedPrefix}${command} menu\` (Usa scorte ed accudisci)\n`;
-        caption += `│ 🗑️ \`${usedPrefix}${command} elimina\` (Cancella mascotte)\n`;
-        caption += `*╰⭒─瞬─瞬─瞬─⭒─瞬─瞬─瞬─*`;
+        let caption = `📟 *SCHERMO DISPOSITIVO PRIVATO*\n\n`;
+        caption += `Utilizza la pulsantiera interattiva sotto l'immagine per aprire i menu dedicati, comprare sostentamento o accudire l'animale.`;
 
         await conn.sendMessage(m.chat, {
             image: buffer,
             caption: caption,
-            footer: '<b>BLOOD-BOT</b>',
-            interactiveButtons: giocoButtons(command, isSleeping)
+            footer: '👾 Tamagotchi Console v1.0',
+            interactiveButtons: homeButtons(command, isSleeping)
         }, { quoted: m });
 
     } catch (err) {
         console.error(err);
-        m.reply('❌ Errore durante la generazione grafica del Canvas.');
+        m.reply('❌ Errore durante il rendering del display analogico.');
     }
 };
 
@@ -362,7 +385,7 @@ handler.before = async (m) => {
     if (m.text.toLowerCase().includes(fufi.nome.toLowerCase()) && !m.text.startsWith('.') && !m.text.startsWith('!')) {
         let oraCorrente = new Date().getHours();
         if (oraCorrente >= 0 && oraCorrente < 10) {
-            return await conn.reply(m.chat, `*${fufi.nome}*: Zzz... Sto dormendo... 💤`, m);
+            return await conn.reply(m.chat, `💤 *${fufi.nome}*: Zzz... Sto dormendo nel mio guscio...`, m);
         }
         let info = specieMascot[fufi.specie];
         let listaVersi = fufi.salute < 40 ? info.versiMalato : info.versi;
