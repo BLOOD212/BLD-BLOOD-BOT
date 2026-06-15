@@ -184,7 +184,7 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
 
         const drawBox = async (id, x, y, label, color, textColor = '#fff') => {
             if (!id) return
-            const w = 170, h = 100, r = 20 
+            const w = 230, h = 120, r = 20 
             
             ctx.save()
             ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
@@ -196,35 +196,35 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
             ctx.restore()
 
             ctx.strokeStyle = '#f1c40f'
-            ctx.lineWidth = 2.5
+            ctx.lineWidth = 3
             drawRoundedRect(ctx, x - w/2, y - h/2, w, h, r)
             ctx.stroke()
 
             ctx.fillStyle = '#f39c12'
-            ctx.font = 'bold 12px Arial'
+            ctx.font = 'bold 14px Arial'
             ctx.textAlign = 'center'
-            ctx.fillText(label, x, y - 28)
+            ctx.fillText(label, x, y - 35)
 
             let name = 'Utente'
             try { name = await conn.getName(id) } catch {}
             ctx.fillStyle = textColor
-            ctx.font = '13px Arial'
-            ctx.fillText(name.substring(0, 15), x, y + 36)
+            ctx.font = 'bold 14px Arial'
+            ctx.fillText(name.substring(0, 18), x, y + 43)
 
             try {
                 let url = await conn.profilePictureUrl(id, 'image').catch(() => 'https://telegra.ph/file/2416c30c33306fa33c5e0.jpg')
                 let img = await loadImage(url)
                 ctx.save()
                 ctx.beginPath()
-                ctx.arc(x, y + 2, 25, 0, Math.PI * 2)
+                ctx.arc(x, y + 2, 32, 0, Math.PI * 2)
                 ctx.clip()
-                ctx.drawImage(img, x - 25, y - 23, 50, 50)
+                ctx.drawImage(img, x - 32, y - 30, 64, 64)
                 ctx.restore()
                 
                 ctx.strokeStyle = 'rgba(255,255,255,0.6)'
-                ctx.lineWidth = 2
+                ctx.lineWidth = 2.5
                 ctx.beginPath()
-                ctx.arc(x, y + 2, 25, 0, Math.PI * 2)
+                ctx.arc(x, y + 2, 32, 0, Math.PI * 2)
                 ctx.stroke()
             } catch {}
         }
@@ -243,16 +243,16 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
 
         if (nonno && padre) {
             ctx.beginPath()
-            ctx.moveTo(600, 150)
-            ctx.lineTo(600, 250)
+            ctx.moveTo(600, 160)
+            ctx.lineTo(600, 240)
             ctx.stroke()
         }
 
         if (padre) {
             let targetX = partner ? 500 : 600
             ctx.beginPath()
-            ctx.moveTo(600, 350)
-            ctx.bezierCurveTo(600, 400, targetX, 400, targetX, 450)
+            ctx.moveTo(600, 360)
+            ctx.bezierCurveTo(600, 410, targetX, 410, targetX, 440)
             ctx.stroke()
         }
 
@@ -270,16 +270,16 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         let figli = (u.p || []).slice(0, 5)
         if (figli.length > 0) {
             let originX = partner ? 600 : 600 
-            let originY = partner ? 500 : 550
+            let originY = partner ? 500 : 560
             
-            let spacing = 190
+            let spacing = 240
             let startX = 600 - ((figli.length - 1) * spacing) / 2
 
             figli.forEach((_, i) => {
                 let fx = startX + (i * spacing)
                 ctx.beginPath()
                 ctx.moveTo(originX, originY)
-                ctx.bezierCurveTo(originX, 640, fx, 640, fx, 750)
+                ctx.bezierCurveTo(originX, 640, fx, 640, fx, 740)
                 ctx.stroke()
             })
         }
@@ -298,7 +298,7 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         }
 
         if (figli.length > 0) {
-            let spacing = 190
+            let spacing = 240
             let startX = 600 - ((figli.length - 1) * spacing) / 2
             figli.forEach((f, i) => {
                 let fx = startX + (i * spacing)
@@ -310,7 +310,7 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
 
         return conn.sendMessage(m.chat, { 
             image: canvas.toBuffer(), 
-            caption: `🌳 *ALBERO GENEALOGICO REALE*\n\nVisualizzazione dei legami diretti di @${target.split('@')[0]} (Inclusi nonni e fino a 5 figli).`, 
+            caption: `🌳 *ALBERO GENEALOGICO REALE*\n\nVisualizzazione dei legami diretti di @${target.split('@')[0]}`, 
             mentions: [target] 
         }, { quoted: m })
     }
