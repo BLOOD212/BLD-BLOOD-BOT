@@ -96,7 +96,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         let didascalia = `🔮 *L'ORACOLO HA PARLATO*\n\n`
         didascalia += `👤 *Domanda di:* @${m.sender.split('@')[0]}\n`
         didascalia += `💬 *Quesito:* _${text}_\n\n`
-        didascalia += `✨ *Verdetto:* Guarda l'immagine qui sotto.`
+        didascalia += `✨ *Verdetto*.`
 
         await conn.sendMessage(m.chat, { 
             image: buffer, 
