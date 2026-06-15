@@ -1,67 +1,77 @@
-import { downloadContentFromMessage } from '@realvare/based'
+let handler = m => m;
 
-let handler = m => m
-handler.before = async function (m, { conn, isAdmin, isOwner }) {
-    if (m.isBaileys && m.fromMe) return true
-    if (!m.isGroup) return false
-    if (!m.message) return true
-    
-    let chat = global.db.data.chats[m.chat]
-    if (!chat || !chat.bestemmiometro) return true
-    
-    if (!chat.bestemmie) chat.bestemmie = { total: 0, users: {} }
-    if (!global.db.data.users[m.sender]) global.db.data.users[m.sender] = { bestemmie: 0 }
-    let user = global.db.data.users[m.sender]
+handler.all = async function (m) {
+    if (!m.isGroup) return null;
 
-    let text = (m.message.conversation || 
-               m.message.extendedTextMessage?.text || 
-               m.message.imageMessage?.caption || 
-               m.message.videoMessage?.caption || '').toLowerCase()
+    let chatConfig = global.db.data.chats[m.chat];
 
-    let cleanText = text.replace(/[\.\-\_\,\*\+\/]/g, '')
-
-    const regexBlasfema = /(?:porc[oa]\s*(?:di[o0ò]|ges[uù]|crist[0o]|mad[0o]nna|mad[0o]nina|spirit[0o]\s*sant[0o]|papa|dio)|di[o0ò]\s*(?:cane|p[0o]rc[0o]|lurid[0o]|b[0o]ia|maiale|schif[0o]s[0o]|merda|str[0o]nz[0o]|serpente|infame|maledett[0o]|bestia|scroto|letame)|crist[0o]\s*(?:cane|p[0o]rc[0o]|b[0o]ia|inchi[0o]dat[0o]|appes[0o]|mort[0o])|mad[0o]nna\s*(?:puttana|tr[0o]ia|maiala|serpe|schif[0o]sa|maledetta|impestata|ladra)|mannaggia\s*(?:a\s*di[o0]|al\s*crist[0o]|alla\s*mad[0o]nna|a\s*ges[uù])|puttana\s*(?:la\s*mad[0o]nna|la\s*chiesa|la\s*evangelica)|di[o0]\s*(?:maledett[0o]|puzzolente|bastard[0o])|ges[uù]\s*(?:m[0o]rt[0o]|marci[0o]|appes[0o]|maledett[0o])|sangiuseppe\s*(?:fabbro|maledetto|cane)|p[0o]rc[0o]di[o0ò]|di[o0ò]cane|di[o0ò]p[0o]rc[0o]|crist[0o]cane|mad[0o]nnaputtana)/gi
-    
-    const matches = cleanText.match(regexBlasfema)
-    if (matches) {
-        let count = matches.length
-        let oldTotal = user.bestemmie || 0
-        user.bestemmie = oldTotal + count
-        chat.bestemmie.total += count
-        chat.bestemmie.users[m.sender] = (chat.bestemmie.users[m.sender] || 0) + count
-
-        const getSinRank = (n) => {
-            if (n > 500) return '🔥 LUCIFERO'
-            if (n > 200) return '👹 ARCIDEMONE'
-            if (n > 100) return '🔱 ERETICO'
-            if (n > 50) return '⛓️ DANNATO'
-            if (n > 20) return '👺 PECCATORE'
-            return '🤏 CHIERICHETTO'
-        }
-
-        const tag = m.sender.split('@')[0]
+    if (chatConfig.bestemmiometro && /(?:porco dio|porcodio|dio bastardo|dio cane|porcamadonna|madonnaporca|porca madonna|madonna porca|dio cristo|diocristo|dio maiale|diomaiale|jesucristo|jesu cristo|cristo madonna|madonna impanata|dio cristo|cristo dio|dio frocio|dio gay|dio madonna|dio infuocato|dio crocifissato|madonna puttana|madonna vacca|madonna inculata|maremma maiala|padre pio|jesu impanato|jesu porco|porca madonna|diocane|madonna porca|dio capra|capra dio|padre pio ti spio)/i.test(m.text)) {
         
-        // Messaggio base senza commento
-        let res = `🔥 *BESTEMMIA* @${tag} ➔ \`+${count}\`\n`
-        res += `📈 *Totale:* \`${user.bestemmie}\` | ${getSinRank(user.bestemmie)}`
+        const userStats = global.db.data.users[m.sender];
+        
+        userStats.blasphemy = (userStats.blasphemy || 0) + 1;
 
-        // Aggiunge il commento solo ogni 10 bestemmie raggiunte
-        if (Math.floor(user.bestemmie / 10) > Math.floor(oldTotal / 10)) {
-            const insulti = [
-                "L'inferno ti aspetta.",
-                "Sento odore di zolfo.",
-                "Il prete ha avuto un brivido.",
-                "Posto in paradiso: CANCELLATO.",
-                "Vergogna, tua madre legge?",
-                "Un altro chiodo sulla croce."
-            ]
-            const randomInsult = insulti[Math.floor(Math.random() * insulti.length)]
-            res += `\n💬 _"${randomInsult}"_`
+        let grado = '*Incontro faccia a faccia con dio*';
+        if (userStats.blasphemy >= 500) {
+            grado = '*Guardato male da dio*';
+        } else if (userStats.blasphemy >= 250) {
+            grado = '*Bestemmiatore professionista*';
+        } else if (userStats.blasphemy >= 100) {
+            grado = '*Nemico di dio*';
+        } else if (userStats.blasphemy >= 50) {
+            grado = '*Bestemmiatore scarso*';
+        } else if (userStats.blasphemy >= 30) {
+            grado = '*Principiante*';
+        } else if (userStats.blasphemy >= 5) {
+            grado = '*Finto santo*';
+        } else if (userStats.blasphemy >= 0) {
+            grado = '*Merdina*';
         }
 
-        await conn.reply(m.chat, res, m, { mentions: [m.sender] })
-    }
-    return true
-}
+        let vcardFakeMessage = {
+            'key': {
+                'participants': '0@s.whatsapp.net',
+                'fromMe': false,
+                'id': 'Halo'
+            },
+            'message': {
+                'locationMessage': {
+                    'name': '𝐁𝐞𝐬𝐭𝐞𝐦𝐦𝐢𝐨𝐦𝐞𝐭𝐫𝐨',
+                    'jpegThumbnail': await (await fetch('https://telegra.ph')).buffer(),
+                    'vcard': 'BEGIN:VCARD\nVERSION:3.0\nN:;Unlimited;;;\nFN:Unlimited\nORG:Unlimited\nTITLE:\nitem1.TEL;waid=19709001746:+1 (970) 900-1746\nitem1.X-ABLabel:Unlimited\nX-WA-BIZ-DESCRIPTION:ofc\nX-WA-BIZ-NAME:Unlimited\nEND:VCARD'
+                }
+            },
+            'participant': '0@s.whatsapp.net'
+        };
 
-export default handler
+        if (userStats.blasphemy == 1) {
+            const numeroUtente = '@' + m.sender.split('@')[0];
+            const testoNotifica = `${numeroUtente} 𝐡𝐚 𝐭𝐢𝐫𝐚𝐭𝐨 𝐥𝐚 𝐬𝐮𝐚 𝐩𝐫𝐢𝐦𝐚 𝐛𝐞𝐬𝐭𝐞𝐦𝐦𝐢𝐚\n\n> 🏅 𝐆𝐫𝐚𝐝𝐨: ${grado}`;
+
+            conn.sendMessage(m.chat, {
+                'text': testoNotifica,
+                'mentions': [m.sender]
+            }, {
+                'quoted': vcardFakeMessage
+            });
+        }
+
+        if (userStats.blasphemy > 1) {
+            const numeroUtente = '@' + m.sender.split('@')[0];
+            const testoNotifica = `${numeroUtente} 𝐡𝐚 𝐭𝐢𝐫𝐚𝐭𝐨 ${userStats.blasphemy} 𝐛𝐞𝐬𝐭𝐞𝐦𝐦𝐢𝐞\n\n> 🏅 𝐆𝐫𝐚𝐝𝐨: ${grado}`;
+
+            conn.sendMessage(m.chat, {
+                'text': testoNotifica,
+                'mentions': [m.sender]
+            }, {
+                'quoted': vcardFakeMessage
+            });
+        }
+    }
+};
+
+export default handler;
+
+function pickRandom(list) {
+    return list[Math.floor(Math.random() * list.length)];
+}
