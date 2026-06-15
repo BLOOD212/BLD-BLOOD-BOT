@@ -1,4 +1,4 @@
-let handler = async (m, { conn, usedPrefix, command }) => {
+let handler = async (m, { conn, command }) => {
     try {
         if (!m.isGroup) throw `『 🔤 』 \`Questo comando può essere usato solo nei gruppi.\``
 
@@ -12,10 +12,35 @@ let handler = async (m, { conn, usedPrefix, command }) => {
         const sceltaDifficolta = difficoltaDisponibili[Math.floor(Math.random() * difficoltaDisponibili.length)]
 
         const dizionario = {
-            facile: ["PIZZA", "CANE", "GATTO", "SOLE", "MARE", "CASA", "PANE", "RISO", "VINO", "ERBA", "LIBRO", "AUTO", "MOTO", "FUMO", "LUCE", "ARTE"],
-            medio: ["TELEFONO", "WHATSAPP", "GRUPPO", "AMICI", "DIVANO", "SERIE", "CALCIO", "MUSICA", "ESTATE", "LAVORO", "SCUOLA", "VIAGGIO", "CUCINA", "TAVOLO", "STRADA"],
-            difficile: ["MESSAGGIO", "TASTIERA", "STICKER", "CALCETTO", "VACANZE", "COMPUTER", "SCHERMO", "BOTTIGLIA", "OROLOGIO", "QUADERNO", "CHITARRA", "STAZIONE", "OMBRELONE"],
-            impossibile: ["INFORMATICA", "PROGRAMMAZIONE", "TELECOMUNICAZIONI", "CRYPTOCURRENCY", "AMMINISTRATORE", "SOPRALLUOGO", "CONTRADDITORIO", "PARTICOLARITÀ", "SPROPORZIONATO"]
+            facile: [
+                "PIZZA", "CANE", "GATTO", "SOLE", "MARE", "CASA", "PANE", "RISO", "VINO", "ERBA", 
+                "LIBRO", "AUTO", "MOTO", "FUMO", "LUCE", "ARTE", "COLA", "PEPE", "SALE", "UVA", 
+                "MELA", "LUPO", "ORSO", "ROSA", "VITA", "NERO", "VAGO", "TENO", "ZONA", "FILM", 
+                "DADO", "LUNA", "RANA", "NANO", "BENE", "MALE", "RETE", "TRAM", "PERA", "MONDO"
+            ],
+            medio: [
+                "TELEFONO", "WHATSAPP", "GRUPPO", "AMICI", "DIVANO", "SERIE", "CALCIO", "MUSICA", 
+                "ESTATE", "LAVORO", "SCUOLA", "VIAGGIO", "CUCINA", "TAVOLO", "STRADA", "PALLONE", 
+                "CAMERA", "QUADRO", "CINEMA", "TEATRO", "PRANZO", "SABATO", "STORIA", "PIANETA", 
+                "FUTURO", "MEDICO", "CHIAVE", "SCHEDA", "MUSEO", "CHIESA", "MONTE", "FIUME", 
+                "SOGNO", "MESSA", "GIOCO", "GOMMA", "FOGLIO", "NOTTE", "GIORNO", "SQUARE"
+            ],
+            difficile: [
+                "MESSAGGIO", "TASTIERA", "STICKER", "CALCETTO", "VACANZE", "COMPUTER", "SCHERMO", 
+                "BOTTIGLIA", "OROLOGIO", "QUADERNO", "CHITARRA", "STAZIONE", "OMBRELONE", "DISCOTECA", 
+                "GIOVENTÙ", "PROVINCIA", "STRUMENTO", "FOTOGRAFIA", "AUTOMOBILE", "UNIVERSITÀ", 
+                "SVEGLIARSI", "DIVERTIMENTO", "BICICLETTA", "MONITORAGGIO", "CONOSCENZA", "ESPERIENZA", 
+                "ATTREZZATURA", "SPETTACOLO", "SITUAZIONE", "DOCUMENTO", "RELAZIONE", "FESTEGGIARE", 
+                "SCONTRINO", "SEMINARIO", "ELETTRONICA", "INGEGNERIA", "ARCHITETTURA", "GEOGRAFIA"
+            ],
+            impossibile: [
+                "INFORMATICA", "PROGRAMMAZIONE", "TELECOMUNICAZIONI", "CRYPTOCURRENCY", "AMMINISTRATORE", 
+                "SOPRALLUOGO", "CONTRADDITORIO", "PARTICOLARITÀ", "SPROPORZIONATO", "GIUSTAPPOSIZIONE", 
+                "ELETTRODOMESTICO", "INCONTRAPPOSIZIONE", "FALSIFICAZIONE", "SOPRAVVALUTARE", 
+                "CONSERVAZIONE", "SINCRETISMO", "CONTEMPORANEAMENTE", "DECONTESTUALIZZARE", 
+                "SOTTOSCRIZIONE", "SCONVOLGIMENTO", "PREDESTINAZIONE", "RESPONSABILITÀ", 
+                "STRUMENTALIZZAZIONE", "INDIVIDUALISMO", "CARATTERIZZAZIONE"
+            ]
         }
 
         const maxErrori = {
@@ -86,6 +111,8 @@ handler.before = async function (m, { conn }) {
     const rispostaUtente = m.text.trim().toUpperCase()
     const datiGioco = conn.anagramma[m.chat]
 
+    if (m.text.startsWith('.') || m.text.startsWith('!') || m.text.startsWith('/')) return true
+
     if (rispostaUtente === datiGioco.original) {
         clearTimeout(datiGioco.timeout)
         
@@ -125,7 +152,7 @@ handler.before = async function (m, { conn }) {
             datiGioco.revealedIndexes.push(indiceScelto)
         }
 
-        let erroreMsg = `❌ *Sbagliato!* Una lettera è andata al suo posto.\n\n`
+        let erroreMsg = `❌ *Sbagliato!* Una letterina è andata al suo posto.\n\n`
         erroreMsg += `👉 Anagramma: *${datiGioco.scrambled}*\n`
         erroreMsg += `📌 Indizio aggiornato: \`${datiGioco.hint.join(' ')}\`\n`
         erroreMsg += `❤️ Tentativi rimasti al gruppo: *${datiGioco.errorsLeft}*`
@@ -136,7 +163,7 @@ handler.before = async function (m, { conn }) {
 }
 
 handler.help = ['anagramma']
-handler.tags = ['giochi']
+handler.tags = ['group', 'game']
 handler.command = /^(anagramma|scramble)$/i
 
 handler.group = true
