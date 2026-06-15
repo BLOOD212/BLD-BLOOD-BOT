@@ -4,18 +4,19 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     try {
         if (!m.isGroup) throw `『 🔮 』 \`Questo comando può essere usato solo nei gruppi.\``
 
-        if (!text) throw `『 🔮 』 \`Fammi una domanda per interrogare l'oracolo!\`\n\n\`Esempio:\`\n*${usedPrefix + command} Sabato usciamo?*`
+        if (!text) throw `『 🔮 』 \`Fammi una domanda per interrogare l'oracolo!\`\n\n\`Esempio:\`\n*${usedPrefix + command} Domani ci sarà il sole?*`
 
         const risposte = [
-            { testo: "ASSOLUTAMENTE SÌ", colore: "#00ff88", sub: "Le stelle sono a tuo favore." },
-            { testo: "SÌ, AL 100%", colore: "#00ff88", sub: "I nodi si sono sciolti." },
-            { testo: "FONTI CERTE CONFERMANO", colore: "#00ff88", sub: "Non ci sono dubbi." },
-            { testo: "CHIEDI PIÙ TARDI", colore: "#ffaa00", sub: "Il destino è ancora fluido." },
-            { testo: "SERVER CONFUSI", colore: "#ffaa00", sub: "Riprova tra poco." },
-            { testo: "MEGLIO NON DIRTELO", colore: "#ffaa00", sub: "Potresti non voler sapere." },
-            { testo: "NON CI SPERARE", colore: "#ff3344", sub: "Le probabilità sono minime." },
-            { testo: "ASSOLUTAMENTE NO", colore: "#ff3344", sub: "Meglio cambiare strada." },
-            { testo: "RISPOSTA NEGATIVA", colore: "#ff3344", sub: "Il fato ha deciso diversamente." }
+            { testo: "SÌ", colore: "#00ff88", sub: "È certo." },
+            { testo: "ASSOLUTAMENTE SÌ", colore: "#00ff88", sub: "Senza alcun dubbio." },
+            { testo: "LE FONTI DICONO SÌ", colore: "#00ff88", sub: "I segnali sono positivi." },
+            { testo: "NO", colore: "#ff3344", sub: "Non ci sperare." },
+            { testo: "ASSOLUTAMENTE NO", colore: "#ff3344", sub: "Le possibilità sono zero." },
+            { testo: "LE FONTI DICONO NO", colore: "#ff3344", sub: "Prospettive negative." },
+            { testo: "FORSE", colore: "#ffaa00", sub: "Le stelle sono incerte." },
+            { testo: "PUÒ DARSI", colore: "#ffaa00", sub: "Tutto può ancora cambiare." },
+            { testo: "CONCENTRATI E RIPROVA", colore: "#ffaa00", sub: "Il destino è nebbioso." },
+            { testo: "MEGLIO NON DIRTELO", colore: "#ffaa00", sub: "Resta nel dubbio." }
         ]
 
         const scelta = risposte[Math.floor(Math.random() * risposte.length)]
@@ -67,7 +68,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         ctx.fill()
 
         ctx.fillStyle = scelta.colore
-        ctx.font = 'bold 20px Sans-Serif'
+        ctx.font = 'bold 24px Sans-Serif'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
 
@@ -77,10 +78,10 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
         for (let n = 0; n < parole.length; n++) {
             let lineaTest = linea + parole[n] + ' '
-            if (lineaTest.length > 12 && n > 0) {
+            if (lineaTest.length > 10 && n > 0) {
                 ctx.fillText(linea.trim(), 300, y)
                 linea = parole[n] + ' '
-                y += 24
+                y += 28
             } else {
                 linea = lineaTest
             }
@@ -88,15 +89,15 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         ctx.fillText(linea.trim(), 300, y)
 
         ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'
-        ctx.font = 'italic 12px Sans-Serif'
-        ctx.fillText(scelta.sub, 300, 340)
+        ctx.font = 'italic 13px Sans-Serif'
+        ctx.fillText(scelta.sub, 300, 345)
 
         const buffer = canvas.toBuffer('image/png')
 
         let didascalia = `🔮 *L'ORACOLO HA PARLATO*\n\n`
         didascalia += `👤 *Domanda di:* @${m.sender.split('@')[0]}\n`
         didascalia += `💬 *Quesito:* _${text}_\n\n`
-        didascalia += `✨ *Verdetto*.`
+        didascalia += `✨ *Verdetto* .`
 
         await conn.sendMessage(m.chat, { 
             image: buffer, 
@@ -112,7 +113,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 }
 
 handler.help = ['8ball [domanda]']
-handler.tags = ['giochi']
+handler.tags = ['group', 'fun']
 handler.command = /^(8ball|oracolo|palla8)$/i
 
 handler.group = true
