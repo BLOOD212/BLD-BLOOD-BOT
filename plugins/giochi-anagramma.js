@@ -1,4 +1,4 @@
-let handler = async (m, { conn, command }) => {
+let handler = async (m, { conn, usedPrefix, command }) => {
     try {
         if (!m.isGroup) throw `『 🔤 』 \`Questo comando può essere usato solo nei gruppi.\``
 
@@ -86,8 +86,6 @@ handler.before = async function (m, { conn }) {
     const rispostaUtente = m.text.trim().toUpperCase()
     const datiGioco = conn.anagramma[m.chat]
 
-    if (m.text.startsWith('.')) return true
-
     if (rispostaUtente === datiGioco.original) {
         clearTimeout(datiGioco.timeout)
         
@@ -139,7 +137,7 @@ handler.before = async function (m, { conn }) {
 
 handler.help = ['anagramma']
 handler.tags = ['giochi']
-handler.command = /^\.anagramma|\.scramble$/i
+handler.command = /^(anagramma|scramble)$/i
 
 handler.group = true
 handler.owner = false
