@@ -2,7 +2,6 @@ import fs from 'fs'
 import path from 'path'
 import { createCanvas, loadImage } from 'canvas'
 
-// --- CONFIGURAZIONE DATABASE ---
 const marriagesFile = path.resolve('media/database/sposi.json');
 if (!fs.existsSync(path.dirname(marriagesFile))) fs.mkdirSync(path.dirname(marriagesFile), { recursive: true });
 
@@ -19,7 +18,6 @@ function saveMarriages() {
     fs.writeFileSync(marriagesFile, JSON.stringify(marriages, null, 2));
 }
 
-// --- UTILS & DESIGN ---
 const design = {
     header: (title) => `ㅤ⋆｡˚『 ╭ \`${title}\` ╯ 』˚｡⋆\n╭`,
     line: "│",
@@ -27,21 +25,32 @@ const design = {
     divider: "├─ׄ──⭒─ׄ─ׅ"
 };
 
-const formatMessage = (title, content) => `${design.header(title)}\n${content}\n${design.footer}`;
-
 const checkUser = (id) => {
     if (!id) return
     if (!global.db.data.users[id]) global.db.data.users[id] = {}
     let u = global.db.data.users[id]
-    if (!Array.isArray(u.p)) u.p = [] // Figli
-    if (u.s === undefined) u.s = null // Genitore
+    if (!Array.isArray(u.p)) u.p = []
+    if (u.s === undefined) u.s = null
 }
 
-// --- FUNZIONI GRAFICHE ---
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+}
+
 async function createMarriageImage(user1, user2, conn, isMarriage = true) {
     const canvas = createCanvas(800, 500);
     const ctx = canvas.getContext('2d');
-    
+
     const grad = ctx.createLinearGradient(0, 0, 0, 500);
     grad.addColorStop(0, isMarriage ? '#FF6F61' : '#4B5EAA');
     grad.addColorStop(1, isMarriage ? '#FFF5EE' : '#E6E6FA');
@@ -67,11 +76,10 @@ async function createMarriageImage(user1, user2, conn, isMarriage = true) {
     ctx.fillStyle = isMarriage ? '#FF1493' : '#4B5EAA';
     ctx.font = 'bold 40px Arial'; ctx.textAlign = 'center';
     ctx.fillText(isMarriage ? 'Matrimonio Celebrato!' : 'Divorzio Completato', 400, 380);
-    
+
     return canvas.toBuffer();
 }
 
-// --- HANDLER PRINCIPALE ---
 let handler = async (m, { conn, text, command, usedPrefix }) => {
     let user = m.sender
     checkUser(user)
@@ -82,7 +90,7 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         menu += `👉 *${usedPrefix}divorzia* - Sciogli l'unione\n`
         menu += `👉 *${usedPrefix}adotta @tag* - Adotta un figlio\n`
         menu += `👉 *${usedPrefix}disereda @tag* - Rimuovi un figlio\n`
-        menu += `👉 *${usedPrefix}albero* - Visualizza la dinastia\n`
+        menu += `👉 *${usedPrefix}albero* - Visualizza la dinastia completa\n`
         return m.reply(menu)
     }
 
@@ -114,7 +122,7 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
     if (command === 'accettasposa') {
         let proposal = global.marriage_proposals[user]
         if (!proposal) return m.reply('*⚠️ Nessuna proposta pendente.*')
-        
+
         let partner = proposal.proposer
         marriages[user] = partner
         marriages[partner] = user
@@ -129,7 +137,7 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
     if (command === 'divorzia') {
         let ex = marriages[user]
         if (!ex) return m.reply('*⚠️ Non sei sposato.*')
-        
+
         delete marriages[user]
         delete marriages[ex]
         saveMarriages()
@@ -143,7 +151,7 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         if (!target || target === user) return m.reply('*⚠️ Tagga chi vuoi adottare!*')
         checkUser(target)
         if (global.db.data.users[target].s) return m.reply('*❌ Ha già un genitore!*')
-        
+
         global.db.data.users[user].p.push(target)
         global.db.data.users[target].s = user
         m.reply(`*👶 Hai adottato @${target.split('@')[0]}!*`, null, { mentions: [target] })
@@ -154,7 +162,7 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         if (!target) return m.reply('*⚠️ Tagga il figlio!*')
         let figli = global.db.data.users[user].p || []
         if (!figli.includes(target)) return m.reply('*❌ Non è tuo figlio.*')
-        
+
         global.db.data.users[user].p = figli.filter(id => id !== target)
         global.db.data.users[target].s = null
         m.reply(`*🚫 @${target.split('@')[0]} rimosso dalla famiglia.*`, null, { mentions: [target] })
@@ -163,57 +171,153 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
     if (command === 'albero' || command === 'famigliamia') {
         let target = m.mentionedJid[0] || user
         checkUser(target)
-        await m.reply('⏳ *Generazione albero in corso...*')
+        await m.reply('⏳ *Generazione albero dinastico in corso...*')
 
-        const canvas = createCanvas(800, 800)
+        const canvas = createCanvas(1000, 900)
         const ctx = canvas.getContext('2d')
-        ctx.fillStyle = '#121212'; ctx.fillRect(0, 0, 800, 800)
+        
+        const bgGrad = ctx.createLinearGradient(0, 0, 0, 900)
+        bgGrad.addColorStop(0, '#1a1c23')
+        bgGrad.addColorStop(1, '#0f1015')
+        ctx.fillStyle = bgGrad
+        ctx.fillRect(0, 0, 1000, 900)
 
-        const drawBox = async (id, x, y, label, color) => {
+        const drawBox = async (id, x, y, label, color, textColor = '#fff') => {
             if (!id) return
-            ctx.fillStyle = color; ctx.fillRect(x - 80, y - 50, 160, 100)
-            ctx.strokeStyle = '#f1c40f'; ctx.strokeRect(x - 80, y - 50, 160, 100)
-            ctx.fillStyle = '#000'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center'
-            ctx.fillText(label, x, y - 35)
-            let name = await conn.getName(id)
-            ctx.fillText(name.substring(0, 15), x, y + 40)
+            const w = 150, h = 90, r = 15 
+            
+            ctx.save()
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)'
+            ctx.shadowBlur = 10
+            ctx.shadowOffsetY = 4
+            ctx.fillStyle = color
+            drawRoundedRect(ctx, x - w/2, y - h/2, w, h, r)
+            ctx.fill()
+            ctx.restore()
+
+            ctx.strokeStyle = '#f1c40f'
+            ctx.lineWidth = 2
+            drawRoundedRect(ctx, x - w/2, y - h/2, w, h, r)
+            ctx.stroke()
+
+            ctx.fillStyle = '#f39c12'
+            ctx.font = 'bold 11px Arial'
+            ctx.textAlign = 'center'
+            ctx.fillText(label, x, y - 25)
+
+            let name = 'Utente'
+            try { name = await conn.getName(id) } catch {}
+            ctx.fillStyle = textColor
+            ctx.font = '12px Arial'
+            ctx.fillText(name.substring(0, 15), x, y + 33)
+
             try {
                 let url = await conn.profilePictureUrl(id, 'image').catch(() => 'https://telegra.ph/file/2416c30c33306fa33c5e0.jpg')
                 let img = await loadImage(url)
-                ctx.save(); ctx.beginPath(); ctx.arc(x, y, 25, 0, Math.PI * 2); ctx.clip()
-                ctx.drawImage(img, x - 25, y - 25, 50, 50); ctx.restore()
+                ctx.save()
+                ctx.beginPath()
+                ctx.arc(x, y + 2, 22, 0, Math.PI * 2)
+                ctx.clip()
+                ctx.drawImage(img, x - 22, y - 20, 44, 44)
+                ctx.restore()
+                
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)'
+                ctx.lineWidth = 1.5
+                ctx.beginPath()
+                ctx.arc(x, y + 2, 22, 0, Math.PI * 2)
+                ctx.stroke()
             } catch {}
         }
 
         let u = global.db.data.users[target]
         let partner = marriages[target]
         let padre = u.s
+        let nonno = null
+        if (padre) {
+            checkUser(padre)
+            nonno = global.db.data.users[padre]?.s || null
+        }
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'
+        ctx.lineWidth = 3
+
+        if (nonno && padre) {
+            ctx.beginPath()
+            ctx.moveTo(500, 145)
+            ctx.lineTo(500, 255)
+            ctx.stroke()
+        }
 
         if (padre) {
-            ctx.strokeStyle = '#fff'; ctx.beginPath(); ctx.moveTo(400, 150); ctx.lineTo(400, 350); ctx.stroke()
-            await drawBox(padre, 400, 100, 'GENITORE', '#3498db')
+            ctx.beginPath()
+            ctx.moveTo(500, 345)
+            ctx.lineTo(500, 410) 
+            ctx.lineTo(partner ? 400 : 500, 410)
+            ctx.lineTo(partner ? 400 : 500, 455)
+            ctx.stroke()
         }
 
         if (partner) {
-            ctx.strokeStyle = '#e74c3c'; ctx.beginPath(); ctx.moveTo(300, 350); ctx.lineTo(500, 350); ctx.stroke()
-            await drawBox(target, 300, 350, 'TU', '#fff'); await drawBox(partner, 500, 350, 'PARTNER', '#ff7675')
-        } else {
-            await drawBox(target, 400, 350, 'TU', '#fff')
+            ctx.strokeStyle = '#e74c3c'
+            ctx.beginPath()
+            ctx.moveTo(400, 500)
+            ctx.lineTo(600, 500)
+            ctx.stroke()
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)' 
         }
 
-        let figli = u.p || []
+        let figli = (u.p || []).slice(0, 5)
         if (figli.length > 0) {
-            let startX = 400 - (figli.length - 1) * 100
-            figli.slice(0, 4).forEach(async (f, i) => {
-                let fx = startX + (i * 200)
-                ctx.strokeStyle = '#fff'; ctx.beginPath(); ctx.moveTo(400, 350); ctx.lineTo(fx, 600); ctx.stroke()
-                await drawBox(f, fx, 600, 'FIGLIO', '#2ecc71')
+            let originX = partner ? 500 : 500 
+            let originY = partner ? 500 : 545
+            
+            ctx.beginPath()
+            ctx.moveTo(originX, originY)
+            ctx.lineTo(originX, 650)
+            ctx.stroke()
+
+            let spacing = 160
+            let startX = 500 - ((figli.length - 1) * spacing) / 2
+
+            figli.forEach((_, i) => {
+                let fx = startX + (i * spacing)
+                ctx.beginPath()
+                ctx.moveTo(originX, 650)
+                ctx.lineTo(fx, 650)
+                ctx.lineTo(fx, 705)
+                ctx.stroke()
             })
         }
 
-        setTimeout(() => {
-            conn.sendMessage(m.chat, { image: canvas.toBuffer(), caption: `🌳 Albero di @${target.split('@')[0]}`, mentions: [target] })
-        }, 1500)
+        let renderQueue = []
+
+        if (nonno) renderQueue.push(drawBox(nonno, 500, 100, '👑 NONNO/A', '#8e44ad'))
+
+        if (padre) renderQueue.push(drawBox(padre, 500, 300, '👨‍🍼 GENITORE', '#2980b9'))
+
+        if (partner) {
+            renderQueue.push(drawBox(target, 400, 500, '⭐ TU', '#2c3e50'))
+            renderQueue.push(drawBox(partner, 600, 500, '❤️ PARTNER', '#c0392b'))
+        } else {
+            renderQueue.push(drawBox(target, 500, 500, '⭐ TU', '#2c3e50'))
+        }
+
+        if (figli.length > 0) {
+            let spacing = 160
+            let startX = 500 - ((figli.length - 1) * spacing) / 2
+            figli.forEach((f, i) => {
+                let fx = startX + (i * spacing)
+                renderQueue.push(drawBox(f, fx, 750, `👶 FIGLIO ${i+1}`, '#27ae60'))
+            })
+        }
+
+        await Promise.all(renderQueue)
+
+        return conn.sendMessage(m.chat, { 
+            image: canvas.toBuffer(), 
+            caption: `🌳 *ALBERO GENEALOGICO DI REALE DEL CASATO*\n\nVisualizzazione dei legami diretti di @${target.split('@')[0]} (Inclusi nonni e fino a 5 figli).`, 
+            mentions: [target] 
+        }, { quoted: m })
     }
 }
 
