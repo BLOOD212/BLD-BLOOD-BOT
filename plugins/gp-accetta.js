@@ -1,133 +1,146 @@
-// .richieste by Kinderino × chatunity 
-let richiestaInAttesa = {};
+const ACTIONS = {
+  accetta: 'approve',
+  approva: 'approve',
+  approve: 'approve',
+  accept: 'approve',
+  rifiuta: 'reject',
+  rifiuto: 'reject',
+  reject: 'reject',
+  refuse: 'reject',
+}
 
-let handler = async (m, { conn, isAdmin, isBotAdmin, args, usedPrefix, command }) => {
-  if (!m.isGroup) return;
+// Funzione per verificare se un JID appartiene a un numero straniero (non inizia con 39)
+const isForeignJid = (jid) => {
+  if (!jid) return false
+  const number = jid.split('@')[0]
+  return !number.startsWith('39')
+}
 
-  const groupId = m.chat;
+const normalizeRequestJid = (request, conn) => {
+  let jid = request.user || request.requester || request.id || request.jid || request.participant || request.lid || ''
+  if (!jid) return ''
+  if (conn && typeof conn.decodeJid === 'function') {
+    jid = conn.decodeJid(jid)
+  }
+  return jid
+}
 
-  if (richiestaInAttesa[m.sender]) {
-    const pending = await conn.groupRequestParticipantsList(groupId);
-    const input = (m.text || '').trim();
-    delete richiestaInAttesa[m.sender];
+const formatRequestDisplay = (request) => {
+  const jid = normalizeRequestJid(request)
+  if (!jid) return JSON.stringify(request)
+  return `@${jid.replace(/@.*$/, '')}`
+}
 
-    if (/^\d+$/.test(input)) {
-      const numero = parseInt(input);
-      if (numero <= 0) return m.reply("❌ Numero non valido. Usa un numero > 0.");
-      const daAccettare = pending.slice(0, numero);
-      let accettati = 0;
+let handler = async (m, { conn, isAdmin, isBotAdmin }) => {
+  if (!m.isGroup) return m.reply('❌ Questo comando si usa solo nei gruppi.')
+  if (!isBotAdmin) return m.reply('❌ Devo essere admin per controllare le richieste.')
+  if (!isAdmin) return m.reply('❌ Solo gli admin del gruppo possono usare questo comando.')
+
+  try {
+    const groupId = m.chat
+    const fullText = (m.text || '').trim()
+    const parts = fullText.split(/\s+/).slice(1)
+    const actionArg = parts[0]?.toLowerCase()
+    const indexArg = parts[1]?.toLowerCase()
+
+    const pending = await conn.groupRequestParticipantsList(groupId)
+    if (!pending?.length) return m.reply('✅ Non ci sono richieste di partecipazione in sospeso.')
+
+    const totalRequests = pending.length
+    const requests = []
+    const getSafeName = async (jid) => {
+      const fallback = jid ? jid.split('@')[0] : ''
+      if (!conn.getName) return fallback
       try {
-        const jidList = daAccettare.map(p => p.jid);
-        await conn.groupRequestParticipantsUpdate(groupId, jidList, 'approve');
-        accettati = jidList.length;
-      } catch {}
-      return m.reply(`✅ Accettate ${accettati} richieste.`);
+        const name = await Promise.resolve(conn.getName(jid))
+        return typeof name === 'string' && name ? name : fallback
+      } catch {
+        return fallback
+      }
     }
 
-    if (input === '39' || input === '+39') {
-      const daAccettare = pending.filter(p => p.jid.startsWith('39'));
-      let accettati = 0;
-      try {
-        const jidList = daAccettare.map(p => p.jid);
-        await conn.groupRequestParticipantsUpdate(groupId, jidList, 'approve');
-        accettati = jidList.length;
-      } catch {}
-      return m.reply(`✅ Accettate ${accettati} richieste con prefisso 39.`);
+    for (let i = 0; i < pending.length; i++) {
+      const req = pending[i]
+      const jid = normalizeRequestJid(req, conn)
+      const name = jid ? await getSafeName(jid) : JSON.stringify(req)
+      requests.push({ index: i + 1, jid, display: `@${name}`, raw: req })
     }
 
-    return m.reply("❌ Input non valido. Invia un numero o '39'.");
+    const action = actionArg ? ACTIONS[actionArg] : null
+
+    if (!action) {
+      const listText = requests.slice(0, 20).map(req => `*${req.index}.* ${req.display}${isForeignJid(req.jid) ? ' 🌐 [Estero]' : ''}`).join('\n\n')
+      const extra = totalRequests > 20 ? `\n...e altre ${totalRequests - 20} richieste` : ''
+      const message = `📊 Ci sono *${totalRequests}* richieste di partecipazione in sospeso.\n\n${listText}${extra}\n\n` +
+        `Usa i pulsanti qui sotto per gestire le richieste.`
+
+      const buttons = [
+        ['✅ Accetta tutte', '.richieste accetta'],
+        ['🌐 Accetta solo Esteri', '.richieste accetta voip'],
+        ['❌ Rifiuta tutte', '.richieste rifiuta'],
+      ]
+
+      const btns = buttons.map(b => ({ buttonId: b[1], buttonText: { displayText: b[0] }, type: 1 }))
+
+      return await conn.sendMessage(m.chat, {
+        text: message,
+        footer: 'Gestione Richieste 333',
+        buttons: btns,
+        headerType: 1,
+        contextInfo: { mentionedJid: requests.map(r => r.jid).filter(Boolean) },
+        mentions: requests.map(r => r.jid).filter(Boolean)
+      }, { quoted: m })
+    }
+
+    let targets = []
+    // Gestione specifica per "accetta voip" (che ora filtra i prefissi non italiani)
+    if (indexArg === 'voip' || indexArg === 'esteri' || indexArg === 'stranieri') {
+      targets = requests.filter(req => isForeignJid(req.jid))
+      if (!targets.length) {
+        return m.reply('⚠️ Non ci sono richieste pendenti provenienti da numeri esteri.')
+      }
+    } else if (!indexArg || indexArg === 'tutti' || indexArg === 'tutte' || indexArg === 'all') {
+      targets = requests
+    } else {
+      const idx = parseInt(indexArg, 10)
+      if (Number.isNaN(idx) || idx < 1 || idx > requests.length) {
+        return m.reply(`❌ Indice non valido. Usa un numero tra 1 e ${requests.length}, ".richieste ${actionArg} voip" oppure ".richieste ${actionArg} tutti".`)
+      }
+      targets = [requests[idx - 1]]
+    }
+
+    const targetJids = targets.map(req => req.jid).filter(Boolean)
+    if (!targetJids.length) {
+      return m.reply('❌ Impossibile trovare gli ID utente delle richieste selezionate.')
+    }
+
+    const result = await conn.groupRequestParticipantsUpdate(groupId, targetJids, action)
+    const successful = result.filter(r => r.status === '200' || r.status === '201' || r.status === 'success')
+    const failed = result.filter(r => r.status !== '200' && r.status !== '201' && r.status !== 'success')
+
+    const successText = successful.length
+      ? `✅ ${action === 'approve' ? 'Approvo' : 'Rifiuto'} con successo ${successful.length} richiesta${successful.length > 1 ? 'e' : ''}.`
+      : `⚠️ Nessuna richiesta ${action === 'approve' ? 'approvata' : 'rifiutata'}.`
+
+    const failureText = failed.length
+      ? `\n\n❌ Errore per ${failed.length} richiesta${failed.length > 1 ? 'e' : ''}:\n` + failed.map(r => `- ${r.jid}: ${r.status || 'errore'}`).join('\n')
+      : ''
+
+    const targetList = targets.map(req => `• ${req.display}`).join('\n')
+    const replyText = `${successText}\n\n${action === 'approve' ? 'Richieste approvate:' : 'Richieste rifiutate:'}\n${targetList}${failureText}`
+    await conn.sendMessage(m.chat, { text: replyText, contextInfo: { mentionedJid: targetJids }, mentions: targetJids }, { quoted: m })
+    return
+  } catch (err) {
+    console.error('[ERRORE RICHIESTE]', err)
+    m.reply('❌ Errore durante la gestione delle richieste.')
   }
+}
 
-  if (!isBotAdmin) return m.reply("❌ Devo essere admin per gestire richieste.");
-  if (!isAdmin) return m.reply("❌ Solo admin del gruppo possono usare questo comando.");
+handler.command = ['richieste', 'requests']
+handler.tags = ['gruppo']
+handler.help = ['richieste - mostra e gestisce le richieste di partecipazione con pulsanti']
+handler.group = true
+handler.admin = true
+handler.botAdmin = true
 
-  const pending = await conn.groupRequestParticipantsList(groupId);
-  if (!pending.length) return m.reply("✅ Non ci sono richieste in sospeso.");
-
-  if (!args[0]) {
-    const text = `📨 Richieste in sospeso: ${pending.length}\nSeleziona un'opzione:`;
-    return conn.sendMessage(m.chat, {
-      text,
-      footer: 'Gestione richieste gruppo',
-      buttons: [
-        { buttonId: `${usedPrefix}${command} accetta`, buttonText: { displayText: "✅ Accetta tutte" }, type: 1 },
-        { buttonId: `${usedPrefix}${command} rifiuta`, buttonText: { displayText: "❌ Rifiuta tutte" }, type: 1 },
-        { buttonId: `${usedPrefix}${command} accetta39`, buttonText: { displayText: "🇮🇹 Accetta +39" }, type: 1 },
-        { buttonId: `${usedPrefix}${command} gestisci`, buttonText: { displayText: "📥 Gestisci richieste" }, type: 1 }
-      ],
-      headerType: 1,
-      viewOnce: true
-    }, { quoted: m });
-  }
-
-  if (args[0] === 'accetta') {
-    const numero = parseInt(args[1]);
-    const daAccettare = isNaN(numero) || numero <= 0 ? pending : pending.slice(0, numero);
-    let accettati = 0;
-    try {
-      const jidList = daAccettare.map(p => p.jid);
-      await conn.groupRequestParticipantsUpdate(groupId, jidList, 'approve');
-      accettati = jidList.length;
-    } catch {}
-    return m.reply(`✅ Accettate ${accettati} richieste.`);
-  }
-
-  if (args[0] === 'accettane') {
-    const numero = parseInt(args[1]);
-    if (isNaN(numero) || numero <= 0) return m.reply("❌ Numero non valido. Usa un numero maggiore di 0.");
-    const daAccettare = pending.slice(0, numero);
-    let accettati = 0;
-    try {
-      const jidList = daAccettare.map(p => p.jid);
-      await conn.groupRequestParticipantsUpdate(groupId, jidList, 'approve');
-      accettati = jidList.length;
-    } catch {}
-    return m.reply(`✅ Accettate ${accettati} richieste su ${numero}.`);
-  }
-
-  if (args[0] === 'rifiuta') {
-    let rifiutati = 0;
-    try {
-      const jidList = pending.map(p => p.jid);
-      await conn.groupRequestParticipantsUpdate(groupId, jidList, 'reject');
-      rifiutati = jidList.length;
-    } catch {}
-    return m.reply(`❌ Rifiutate ${rifiutati} richieste.`);
-  }
-
-  if (args[0] === 'accetta39') {
-    const daAccettare = pending.filter(p => p.jid.startsWith('39'));
-    let accettati = 0;
-    try {
-      const jidList = daAccettare.map(p => p.jid);
-      await conn.groupRequestParticipantsUpdate(groupId, jidList, 'approve');
-      accettati = jidList.length;
-    } catch {}
-    return m.reply(`✅ Accettate ${accettati} richieste con prefisso 39.`);
-  }
-
-  if (args[0] === 'gestisci') {
-    return conn.sendMessage(m.chat, {
-      text: `📥 Quante richieste vuoi accettare?\n\nScegli una quantità qui sotto oppure scrivi manualmente:\n\n*.${command} accettane <numero>*\nEsempio: *.${command} accettane 7*`,
-      footer: 'Gestione personalizzata richieste',
-      buttons: [
-        { buttonId: `${usedPrefix}${command} accettane 10`, buttonText: { displayText: "10" }, type: 1 },
-        { buttonId: `${usedPrefix}${command} accettane 20`, buttonText: { displayText: "20" }, type: 1 },
-        { buttonId: `${usedPrefix}${command} accettane 50`, buttonText: { displayText: "50" }, type: 1 },
-        { buttonId: `${usedPrefix}${command} accettane 100`, buttonText: { displayText: "100" }, type: 1 },
-        { buttonId: `${usedPrefix}${command} accettane 200`, buttonText: { displayText: "200" }, type: 1 },
-      ],
-      headerType: 1,
-      viewOnce: true
-    }, { quoted: m });
-  }
-};
-
-handler.command = ['richieste'];
-handler.tags = ['gruppo'];
-handler.help = ['richieste'];
-handler.group = true;
-handler.admin = true;
-handler.botAdmin = true;
-
-export default handler;
+export default handler
