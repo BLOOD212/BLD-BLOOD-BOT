@@ -84,7 +84,7 @@ let handler = async (m, { conn, isAdmin, isBotAdmin }) => {
 
       return await conn.sendMessage(m.chat, {
         text: message,
-        footer: 'Gestione Richieste 333',
+        footer: 'Gestione Richieste',
         buttons: btns,
         headerType: 1,
         contextInfo: { mentionedJid: requests.map(r => r.jid).filter(Boolean) },
