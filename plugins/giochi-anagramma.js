@@ -147,10 +147,8 @@ handler.before = async function (m, { conn }) {
 
 handler.help = ['anagramma']
 handler.tags = ['giochi']
-handler.command = /^anagramma$/i
+handler.command = ['anagramma', 'scramble']
 
-handler.owner = false
 handler.group = true
-handler.register = false
 
 export default handler
