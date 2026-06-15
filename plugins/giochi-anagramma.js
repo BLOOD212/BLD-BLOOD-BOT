@@ -1,15 +1,17 @@
-let handler = async (m, { conn, text, usedPrefix, command }) => {
-    try {
-        if (!m.isGroup) throw `『 🔤 』 \`Questo comando può essere usato solo nei gruppi.\``
+let games = {};
 
-        conn.anagramma = conn.anagramma || {}
+let handler = async (m, { conn, usedPrefix, command, text }) => {
+    const chatId = m.chat;
 
-        if (conn.anagramma[m.chat]) {
-            return m.reply(`⚠️ C'è già un anagramma attivo in questo gruppo!\nParola: *${conn.anagramma[m.chat].scrambled}*`)
+    if (!m.isGroup) return m.reply(`『 🔤 』 \`Questo comando può essere usato solo nei gruppi.\``);
+
+    if (command === 'anagramma' || command === 'scramble') {
+        if (games[chatId]) {
+            return m.reply(`⚠️ C'è già un anagramma attivo in questo gruppo!\nParola: *${games[chatId].scrambled}*`);
         }
 
-        const difficoltaDisponibili = ['facile', 'medio', 'difficile', 'impossibile']
-        const sceltaDifficolta = difficoltaDisponibili[Math.floor(Math.random() * difficoltaDisponibili.length)]
+        const difficoltaDisponibili = ['facile', 'medio', 'difficile', 'impossibile'];
+        const sceltaDifficolta = difficoltaDisponibili[Math.floor(Math.random() * difficoltaDisponibili.length)];
 
         const dizionario = {
             facile: [
@@ -28,24 +30,24 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
                 "INFORMATICA", "PROGRAMMAZIONE", "TELECOMUNICAZIONI", "CRYPTOCURRENCY", "AMMINISTRATORE", 
                 "SOPRALLUOGO", "CONTRADDITORIO", "PARTICOLARITÀ", "SPROPORZIONATO"
             ]
-        }
+        };
 
-        const maxErrori = { facile: 2, medio: 3, difficile: 5, impossibile: 6 }
-        const premi = { facile: 10, medio: 25, difficile: 50, impossibile: 100 }
+        const maxErrori = { facile: 2, medio: 3, difficile: 5, impossibile: 6 };
+        const premi = { facile: 10, medio: 25, difficile: 50, impossibile: 100 };
 
-        const paroleLivello = dizionario[sceltaDifficolta]
-        const parolaOriginale = paroleLivello[Math.floor(Math.random() * paroleLivello.length)]
+        const paroleLivello = dizionario[sceltaDifficolta];
+        const parolaOriginale = paroleLivello[Math.floor(Math.random() * paroleLivello.length)];
         
-        let lettere = parolaOriginale.split('')
+        let lettere = parolaOriginale.split('');
         for (let i = lettere.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [lettere[i], lettere[j]] = [lettere[j], lettere[i]]
+            [lettere[i], lettere[j]] = [lettere[j], lettere[i]];
         }
-        const parolaMescolata = lettere.join('')
+        const parolaMescolata = lettere.join('');
 
-        let indizioIniziale = Array(parolaOriginale.length).fill("_")
+        let indizioIniziale = Array(parolaOriginale.length).fill("_");
 
-        conn.anagramma[m.chat] = {
+        games[chatId] = {
             original: parolaOriginale,
             scrambled: parolaMescolata,
             level: sceltaDifficolta,
@@ -53,102 +55,88 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             reward: premi[sceltaDifficolta],
             hint: indizioIniziale,
             revealedIndexes: [],
-            timeout: setTimeout(() => {
-                if (conn.anagramma && conn.anagramma[m.chat]) {
-                    conn.sendMessage(m.chat, { text: `⏳ *TEMPO SCADUTO!*\n\nNessuno ha indovinato in tempo. La parola corretta era: *${conn.anagramma[m.chat].original}*` })
-                    delete conn.anagramma[m.chat]
+            timer: setTimeout(() => {
+                if (games[chatId]) {
+                    conn.sendMessage(chatId, { text: `⏳ *TEMPO SCADUTO!*\n\nNessuno ha indovinato in tempo. La parola corretta era: *${games[chatId].original}*` });
+                    delete games[chatId];
                 }
-            }, 90000) 
-        }
+            }, 90000)
+        };
 
-        let messaggio = `🔤 *SFIDA ANAGRAMMA ESTRATTA*\n\n`
-        messaggio += `📊 Difficoltà: *${sceltaDifficolta.toUpperCase()}*\n`
-        messaggio += `🧠 Riordina le lettere per formare la parola:\n`
-        messaggio += `👉 *${parolaMescolata}*\n\n`
-        messaggio += `📌 Indizio: \`${indizioIniziale.join(' ')}\`\n`
-        messaggio += `💰 Premio in palio: *${premi[sceltaDifficolta]}€*\n`
-        messaggio += `❤️ Errori rimasti al gruppo: *${maxErrori[sceltaDifficolta]}*\n\n`
-        messaggio += `⏱️ Avete 90 secondi per rispondere scrivendo la parola direttamente in chat!`
+        let messaggio = `🔤 *SFIDA ANAGRAMMA ESTRATTA*\n\n`;
+        messaggio += `📊 Difficoltà: *${sceltaDifficolta.toUpperCase()}*\n`;
+        messaggio += `🧠 Riordina le lettere per formare la parola:\n`;
+        messaggio += `👉 *${parolaMescolata}*\n\n`;
+        messaggio += `📌 Indizio: \`${indizioIniziale.join(' ')}\`\n`;
+        messaggio += `💰 Premio in palio: *${premi[sceltaDifficolta]}€*\n`;
+        messaggio += `❤️ Errori rimasti al gruppo: *${maxErrori[sceltaDifficolta]}*\n\n`;
+        messaggio += `⏱️ Avete 90 secondi per rispondere usando il comando: \`${usedPrefix}p [parola]\``;
 
-        return m.reply(messaggio)
-
-    } catch (error) {
-        console.error('Errore nel comando anagramma:', error)
-        if (typeof error === 'string') return m.reply(error)
-        return m.reply(`⚠️ Errore durante l'avvio del gioco.`)
+        return m.reply(messaggio);
     }
-}
 
-handler.before = async function (m, { conn }) {
-    try {
-        conn.anagramma = conn.anagramma || {}
-        if (!m.isGroup || !conn.anagramma[m.chat] || !m.text || m.key.fromMe) return true
+    else if (command === 'p') {
+        const game = games[chatId];
+        if (!game) return m.reply(`❌ Nessun anagramma attivo in questo gruppo. Avvialo con \`${usedPrefix}anagramma\``);
 
-        const rispostaUtente = m.text.trim().toUpperCase()
-        const datiGioco = conn.anagramma[m.chat]
+        if (!text) return m.reply(`⚠️ Inserisci la parola per tentare la risposta!\nEsempio: \`${usedPrefix}p PIZZA\``);
 
-        if (m.text.startsWith('.') || m.text.startsWith('!') || m.text.startsWith('/')) return true
+        const rispostaUtente = text.trim().toUpperCase();
 
-        if (rispostaUtente === datiGioco.original) {
-            clearTimeout(datiGioco.timeout)
+        if (rispostaUtente === game.original) {
+            clearTimeout(game.timer);
             
-            global.db = global.db || { data: { users: {} } }
-            global.db.data = global.db.data || { users: {} }
-            global.db.data.users = global.db.data.users || {}
-            global.db.data.users[m.sender] = global.db.data.users[m.sender] || {}
+            global.db = global.db || { data: { users: {} } };
+            global.db.data = global.db.data || { users: {} };
+            global.db.data.users = global.db.data.users || {} ;
+            global.db.data.users[m.sender] = global.db.data.users[m.sender] || {};
             
-            global.db.data.users[m.sender].euro = (global.db.data.users[m.sender].euro || 0) + datiGioco.reward
+            global.db.data.users[m.sender].euro = (global.db.data.users[m.sender].euro || 0) + game.reward;
             
-            let vittoria = `🎉 *COMPLIMENTI!*\n\n`
-            vittoria += `👤 @${m.sender.split('@')[0]} ha indovinato la parola prima di tutti!\n`
-            vittoria += `🎯 Parola: *${datiGioco.original}*\n`
-            vittoria += `💰 Ricompensa: *+${datiGioco.reward}€* aggiunti al tuo portafoglio!`
+            let vittoria = `🎉 *COMPLIMENTI!*\n\n`;
+            vittoria += `👤 @${m.sender.split('@')[0]} ha indovinato la parola prima di tutti!\n`;
+            vittoria += `🎯 Parola: *${game.original}*\n`;
+            vittoria += `💰 Ricompensa: *+${game.reward}€* aggiunti al tuo portafoglio!`;
             
-            delete conn.anagramma[m.chat]
-            await conn.sendMessage(m.chat, { text: vittoria, mentions: [m.sender] }, { quoted: m })
-            return true
+            delete games[chatId];
+            return conn.sendMessage(chatId, { text: vittoria, mentions: [m.sender] }, { quoted: m });
         }
 
-        if (rispostaUtente.length === datiGioco.original.length && rispostaUtente !== datiGioco.original) {
-            datiGioco.errorsLeft--
+        if (rispostaUtente.length === game.original.length) {
+            game.errorsLeft--;
 
-            if (datiGioco.errorsLeft <= 0) {
-                clearTimeout(datiGioco.timeout)
-                delete conn.anagramma[m.chat]
-                await conn.sendMessage(m.chat, { text: `💀 *GAME OVER!*\n\nIl gruppo ha esaurito i tentativi disponibili. La parola corretta era: *${datiGioco.original}*` }, { quoted: m })
-                return true
+            if (game.errorsLeft <= 0) {
+                clearTimeout(game.timer);
+                let soluzione = game.original;
+                delete games[chatId];
+                return m.reply(`💀 *GAME OVER!*\n\nIl gruppo ha esaurito i tentativi disponibili. La parola corretta era: *${soluzione}*`);
             }
 
-            let indiciDisponibili = []
-            for (let i = 0; i < datiGioco.original.length; i++) {
-                if (!datiGioco.revealedIndexes.includes(i)) {
-                    indiciDisponibili.push(i)
+            let indiciDisponibili = [];
+            for (let i = 0; i < game.original.length; i++) {
+                if (!game.revealedIndexes.includes(i)) {
+                    indiciDisponibili.push(i);
                 }
             }
 
             if (indiciDisponibili.length > 0) {
-                const indiceScelto = indiciDisponibili[Math.floor(Math.random() * indiciDisponibili.length)]
-                datiGioco.hint[indiceScelto] = datiGioco.original[indiceScelto]
-                datiGioco.revealedIndexes.push(indiceScelto)
+                const indiceScelto = indiciDisponibili[Math.floor(Math.random() * indiciDisponibili.length)];
+                game.hint[indiceScelto] = game.original[indiceScelto];
+                game.revealedIndexes.push(indiceScelto);
             }
 
-            let erroreMsg = `❌ *Sbagliato!* Una lettera è andata al suo posto.\n\n`
-            erroreMsg += `👉 Anagramma: *${datiGioco.scrambled}*\n`
-            erroreMsg += `📌 Indizio aggiornato: \`${datiGioco.hint.join(' ')}\`\n`
-            erroreMsg += `❤️ Tentativi rimasti al gruppo: *${datiGioco.errorsLeft}*`
+            let erroreMsg = `❌ *Sbagliato!* Una lettera è andata al suo posto.\n\n`;
+            erroreMsg += `👉 Anagramma: *${game.scrambled}*\n`;
+            erroreMsg += `📌 Indizio aggiornato: \`${game.hint.join(' ')}\`\n`;
+            erroreMsg += `❤️ Tentativi rimasti al gruppo: *${game.errorsLeft}*`;
 
-            await conn.sendMessage(m.chat, { text: erroreMsg }, { quoted: m })
+            return m.reply(erroreMsg);
+        } else {
+            return m.reply(`⚠️ La parola inserita non ha lo stesso numero di lettere dell'anagramma (*${game.original.length} lettere*). Riprova!`);
         }
-    } catch (e) {
-        console.error("Errore nel prima dell'anagramma:", e)
     }
-    return true
-}
+};
 
-handler.help = ['anagramma']
-handler.tags = ['giochi']
-handler.command = ['anagramma', 'scramble']
-
-handler.group = true
-
+handler.command = /^(anagramma|scramble|p)$/i;
+handler.group = true;
 export default handler;
