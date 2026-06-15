@@ -1,4 +1,4 @@
-let handler = async (m, { conn }) => {
+let handler = async (m, { conn, text, usedPrefix, command }) => {
     try {
         if (!m.isGroup) throw `『 🔤 』 \`Questo comando può essere usato solo nei gruppi.\``
 
@@ -14,32 +14,19 @@ let handler = async (m, { conn }) => {
         const dizionario = {
             facile: [
                 "PIZZA", "CANE", "GATTO", "SOLE", "MARE", "CASA", "PANE", "RISO", "VINO", "ERBA", 
-                "LIBRO", "AUTO", "MOTO", "FUMO", "LUCE", "ARTE", "COLA", "PEPE", "SALE", "UVA", 
-                "MELA", "LUPO", "ORSO", "ROSA", "VITA", "NERO", "VAGO", "TENO", "ZONA", "FILM", 
-                "DADO", "LUNA", "RANA", "NANO", "BENE", "MALE", "RETE", "TRAM", "PERA", "MONDO"
+                "LIBRO", "AUTO", "MOTO", "FUMO", "LUCE", "ARTE", "COLA", "PEPE", "SALE", "UVA"
             ],
             medio: [
                 "TELEFONO", "WHATSAPP", "GRUPPO", "AMICI", "DIVANO", "SERIE", "CALCIO", "MUSICA", 
-                "ESTATE", "LAVORO", "SCUOLA", "VIAGGIO", "CUCINA", "TAVOLO", "STRADA", "PALLONE", 
-                "CAMERA", "QUADRO", "CINEMA", "TEATRO", "PRANZO", "SABATO", "STORIA", "PIANETA", 
-                "FUTURO", "MEDICO", "CHIAVE", "SCHEDA", "MUSEO", "CHIESA", "MONTE", "FIUME", 
-                "SOGNO", "MESSA", "GIOCO", "GOMMA", "FOGLIO", "NOTTE", "GIORNO", "SQUARE"
+                "ESTATE", "LAVORO", "SCUOLA", "VIAGGIO", "CUCINA", "TAVOLO", "STRADA"
             ],
             difficile: [
                 "MESSAGGIO", "TASTIERA", "STICKER", "CALCETTO", "VACANZE", "COMPUTER", "SCHERMO", 
-                "BOTTIGLIA", "OROLOGIO", "QUADERNO", "CHITARRA", "STAZIONE", "OMBRELONE", "DISCOTECA", 
-                "GIOVENTÙ", "PROVINCIA", "STRUMENTO", "FOTOGRAFIA", "AUTOMOBILE", "UNIVERSITÀ", 
-                "SVEGLIARSI", "DIVERTIMENTO", "BICICLETTA", "MONITORAGGIO", "CONOSCENZA", "ESPERIENZA", 
-                "ATTREZZATURA", "SPETTACOLO", "SITUAZIONE", "DOCUMENTO", "RELAZIONE", "FESTEGGIARE", 
-                "SCONTRINO", "SEMINARIO", "ELETTRONICA", "INGEGNERIA", "ARCHITETTURA", "GEOGRAFIA"
+                "BOTTIGLIA", "OROLOGIO", "QUADERNO", "CHITARRA", "STAZIONE", "OMBRELONE"
             ],
             impossibile: [
                 "INFORMATICA", "PROGRAMMAZIONE", "TELECOMUNICAZIONI", "CRYPTOCURRENCY", "AMMINISTRATORE", 
-                "SOPRALLUOGO", "CONTRADDITORIO", "PARTICOLARITÀ", "SPROPORZIONATO", "GIUSTAPPOSIZIONE", 
-                "ELETTRODOMESTICO", "INCONTRAPPOSIZIONE", "FALSIFICAZIONE", "SOPRAVVALUTARE", 
-                "CONSERVAZIONE", "SINCRETISMO", "CONTEMPORANEAMENTE", "DECONTESTUALIZZARE", 
-                "SOTTOSCRIZIONE", "SCONVOLGIMENTO", "PREDESTINAZIONE", "RESPONSABILITÀ", 
-                "STRUMENTALIZZAZIONE", "INDIVIDUALISMO", "CARATTERIZZAZIONE"
+                "SOPRALLUOGO", "CONTRADDITORIO", "PARTICOLARITÀ", "SPROPORZIONATO"
             ]
         }
 
@@ -86,7 +73,8 @@ let handler = async (m, { conn }) => {
         return m.reply(messaggio)
 
     } catch (error) {
-        console.error(error)
+        console.error('Errore nel comando anagramma:', error)
+        if (typeof error === 'string') return m.reply(error)
         return m.reply(`⚠️ Errore durante l'avvio del gioco.`)
     }
 }
@@ -104,10 +92,10 @@ handler.before = async function (m, { conn }) {
         if (rispostaUtente === datiGioco.original) {
             clearTimeout(datiGioco.timeout)
             
-            if (!global.db) global.db = { data: { users: {} } }
-            if (!global.db.data) global.db.data = { users: {} }
-            if (!global.db.data.users) global.db.data.users = {}
-            if (!global.db.data.users[m.sender]) global.db.data.users[m.sender] = {}
+            global.db = global.db || { data: { users: {} } }
+            global.db.data = global.db.data || { users: {} }
+            global.db.data.users = global.db.data.users || {}
+            global.db.data.users[m.sender] = global.db.data.users[m.sender] || {}
             
             global.db.data.users[m.sender].euro = (global.db.data.users[m.sender].euro || 0) + datiGioco.reward
             
@@ -152,16 +140,17 @@ handler.before = async function (m, { conn }) {
             await conn.sendMessage(m.chat, { text: erroreMsg }, { quoted: m })
         }
     } catch (e) {
-        console.error("Errore nell'anagramma prima del messaggio:", e)
+        console.error("Errore nel prima dell'anagramma:", e)
     }
     return true
 }
 
 handler.help = ['anagramma']
 handler.tags = ['giochi']
-handler.command = /^(anagramma|scramble)$/i
+handler.command = /^anagramma$/i
 
-handler.group = true
 handler.owner = false
+handler.group = true
+handler.register = false
 
 export default handler
