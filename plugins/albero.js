@@ -173,18 +173,67 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         checkUser(target)
         await m.reply('⏳ *Generazione albero dinastico in corso...*')
 
-        const canvas = createCanvas(1200, 1000)
+        let u = global.db.data.users[target]
+        let partner = marriages[target]
+        let padre = u.s
+        let nonno = null
+        if (padre) {
+            checkUser(padre)
+            nonno = global.db.data.users[padre]?.s || null
+        }
+        let figli = (u.p || []).slice(0, 5)
+
+        let activeLevels = []
+        if (nonno) activeLevels.push('nonno')
+        if (padre) activeLevels.push('padre')
+        activeLevels.push('tu')
+        if (figli.length > 0) activeLevels.push('figli')
+
+        let totalLevels = activeLevels.length
+        let canvasHeight = totalLevels * 220 + 100
+        let canvasWidth = figli.length > 3 ? figli.length * 260 + 100 : 1000
+
+        const canvas = createCanvas(canvasWidth, canvasHeight)
         const ctx = canvas.getContext('2d')
         
-        const bgGrad = ctx.createLinearGradient(0, 0, 0, 1000)
+        const bgGrad = ctx.createLinearGradient(0, 0, 0, canvasHeight)
         bgGrad.addColorStop(0, '#111318')
         bgGrad.addColorStop(1, '#060709')
         ctx.fillStyle = bgGrad
-        ctx.fillRect(0, 0, 1200, 1000)
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight)
+
+        let currentY = 120
+        let positions = {}
+
+        if (nonno) {
+            positions['nonno'] = { x: canvasWidth / 2, y: currentY }
+            currentY += 220
+        }
+        if (padre) {
+            positions['padre'] = { x: canvasWidth / 2, y: currentY }
+            currentY += 220
+        }
+        
+        if (partner) {
+            positions['tu'] = { x: (canvasWidth / 2) - 150, y: currentY }
+            positions['partner'] = { x: (canvasWidth / 2) + 150, y: currentY }
+        } else {
+            positions['tu'] = { x: canvasWidth / 2, y: currentY }
+        }
+        currentY += 220
+
+        if (figli.length > 0) {
+            let spacing = 270
+            let startX = (canvasWidth / 2) - ((figli.length - 1) * spacing) / 2
+            positions['figli'] = []
+            figli.forEach((f, i) => {
+                positions['figli'].push({ id: f, x: startX + (i * spacing), y: currentY })
+            })
+        }
 
         const drawBox = async (id, x, y, label, color, textColor = '#fff') => {
             if (!id) return
-            const w = 260, h = 140, r = 24 
+            const w = 240, h = 130, r = 24 
             
             ctx.save()
             ctx.shadowColor = 'rgba(0, 0, 0, 0.6)'
@@ -203,13 +252,13 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
             ctx.fillStyle = '#f39c12'
             ctx.font = 'bold 16px Arial'
             ctx.textAlign = 'center'
-            ctx.fillText(label, x, y - 42)
+            ctx.fillText(label, x, y - 38)
 
             let name = 'Utente'
             try { name = await conn.getName(id) } catch {}
             ctx.fillStyle = textColor
             ctx.font = 'bold 15px Arial'
-            ctx.fillText(name.substring(0, 18), x, y + 52)
+            ctx.fillText(name.substring(0, 18), x, y + 48)
 
             try {
                 let url = await conn.profilePictureUrl(id, 'image').catch(() => 'https://telegra.ph/file/2416c30c33306fa33c5e0.jpg')
@@ -229,30 +278,21 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
             } catch {}
         }
 
-        let u = global.db.data.users[target]
-        let partner = marriages[target]
-        let padre = u.s
-        let nonno = null
-        if (padre) {
-            checkUser(padre)
-            nonno = global.db.data.users[padre]?.s || null
-        }
-
         ctx.strokeStyle = 'rgba(241, 196, 15, 0.5)'
         ctx.lineWidth = 4.5
 
         if (nonno && padre) {
             ctx.beginPath()
-            ctx.moveTo(600, 190)
-            ctx.lineTo(600, 280)
+            ctx.moveTo(positions['nonno'].x, positions['nonno'].y + 65)
+            ctx.lineTo(positions['padre'].x, positions['padre'].y - 65)
             ctx.stroke()
         }
 
         if (padre) {
-            let targetX = partner ? 480 : 600
+            let targetX = partner ? positions['tu'].x : positions['tu'].x
             ctx.beginPath()
-            ctx.moveTo(600, 420)
-            ctx.bezierCurveTo(600, 480, targetX, 480, targetX, 510)
+            ctx.moveTo(positions['padre'].x, positions['padre'].y + 65)
+            ctx.bezierCurveTo(positions['padre'].x, positions['tu'].y - 100, targetX, positions['tu'].y - 100, targetX, positions['tu'].y - 65)
             ctx.stroke()
         }
 
@@ -260,49 +300,36 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
             ctx.strokeStyle = '#e74c3c'
             ctx.lineWidth = 5
             ctx.beginPath()
-            ctx.moveTo(480, 580)
-            ctx.lineTo(720, 580)
+            ctx.moveTo(positions['tu'].x + 120, positions['tu'].y)
+            ctx.lineTo(positions['partner'].x - 120, positions['partner'].y)
             ctx.stroke()
             ctx.strokeStyle = 'rgba(241, 196, 15, 0.5)'
             ctx.lineWidth = 4.5
         }
 
-        let figli = (u.p || []).slice(0, 5)
         if (figli.length > 0) {
-            let originX = partner ? 600 : 600 
-            let originY = partner ? 580 : 650
+            let originX = canvasWidth / 2
+            let originY = partner ? positions['tu'].y : positions['tu'].y + 65
             
-            let spacing = 230
-            let startX = 600 - ((figli.length - 1) * spacing) / 2
-
-            figli.forEach((_, i) => {
-                let fx = startX + (i * spacing)
+            positions['figli'].forEach((fPos) => {
                 ctx.beginPath()
                 ctx.moveTo(originX, originY)
-                ctx.bezierCurveTo(originX, 720, fx, 720, fx, 750)
+                ctx.bezierCurveTo(originX, fPos.y - 100, fPos.x, fPos.y - 100, fPos.x, fPos.y - 65)
                 ctx.stroke()
             })
         }
 
         let renderQueue = []
 
-        if (nonno) renderQueue.push(drawBox(nonno, 600, 120, '👑 NONNO/A', '#8e44ad'))
-
-        if (padre) renderQueue.push(drawBox(padre, 600, 350, '👨‍🍼 GENITORE', '#2980b9'))
-
-        if (partner) {
-            renderQueue.push(drawBox(target, 480, 580, '⭐ TU', '#2c3e50'))
-            renderQueue.push(drawBox(partner, 720, 580, '❤️ PARTNER', '#c0392b'))
-        } else {
-            renderQueue.push(drawBox(target, 600, 580, '⭐ TU', '#2c3e50'))
-        }
+        if (nonno) renderQueue.push(drawBox(nonno, positions['nonno'].x, positions['nonno'].y, '👑 NONNO/A', '#8e44ad'))
+        if (padre) renderQueue.push(drawBox(padre, positions['padre'].x, positions['padre'].y, '👨‍🍼 GENITORE', '#2980b9'))
+        
+        renderQueue.push(drawBox(target, positions['tu'].x, positions['tu'].y, '⭐ TU', '#2c3e50'))
+        if (partner) renderQueue.push(drawBox(partner, positions['partner'].x, positions['partner'].y, '❤️ PARTNER', '#c0392b'))
 
         if (figli.length > 0) {
-            let spacing = 230
-            let startX = 600 - ((figli.length - 1) * spacing) / 2
-            figli.forEach((f, i) => {
-                let fx = startX + (i * spacing)
-                renderQueue.push(drawBox(f, fx, 820, `👶 FIGLIO ${i+1}`, '#27ae60'))
+            positions['figli'].forEach((fPos, i) => {
+                renderQueue.push(drawBox(fPos.id, fPos.x, fPos.y, `👶 FIGLIO ${i+1}`, '#27ae60'))
             })
         }
 
