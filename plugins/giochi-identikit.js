@@ -75,7 +75,7 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
 };
 
 handler.help = ['identikit', 'indovina'];
-handler.tags = ['game'];
+handler.tags = ['giochi'];
 handler.command = ['identikit', 'indovina'];
 handler.group = true;
 
