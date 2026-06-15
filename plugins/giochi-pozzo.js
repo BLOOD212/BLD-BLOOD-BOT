@@ -12,7 +12,7 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
 
     if (!datiPozzo[chatId]) {
         datiPozzo[chatId] = {
-            jackpot: 150,
+            jackpot: Math.floor(Math.random() * (1500 - 300 + 1)) + 300,
             lanciTotali: 0,
             ultimoGiocatore: 'Nessuno'
         };
@@ -21,16 +21,17 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
     let userEuro = global.db.data.users[m.sender].euro || 0;
 
     if (!text) {
-        let info = `🔮 *IL POZZO MISTERIOSO DEI DESIDERI* 🔮\n`;
+        let info = `🔮 *IL POZZO CIECO DEI DESIDERI* 🔮\n`;
         info += `====================================\n\n`;
-        info += `💰 *JACKPOT ATTUALE:*  🏆 *${datiPozzo[chatId].jackpot}€*\n\n`;
+        info += `💰 *JACKPOT ATTUALE:*  ❓ *Sconosciuto!*\n`;
+        info += `⚠️ _Il valore del pozzo è segreto e cambia ogni volta!_\n\n`;
         info += `📊 *STATISTICHE DEL POZZO:*\n`;
-        info += `✨ Monete accumulate all'interno: *${datiPozzo[chatId].lanciTotali}€*\n`;
+        info += `✨ Euro extra gettati dal gruppo: *${datiPozzo[chatId].lanciTotali}€*\n`;
         info += `👤 Ultimo cercatore di fortuna: ${datiPozzo[chatId].ultimoGiocatore}\n\n`;
         info += `ℹ️ *COME PARTECIPARE:*\n`;
-        info += `Lancia una quantità di euro a tua scelta nel pozzo profondo. Se la magia del pozzo si attiva, l'intero Jackpot comunitario diventerà tuo!\n\n`;
+        info += `Lancia una quantità di euro nel pozzo. Se attivi la magia, vincerai l'intero Jackpot misterioso accumulato fino a questo momento!\n\n`;
         info += `📈 *BONUS DI PUNTATA:*\n`;
-        info += `Più monete lanci contemporaneamente, più sale la tua percentuale di sbloccare il Jackpot!\n\n`;
+        info += `Più monete lanci insieme, più sale la tua percentuale di sbloccare il bottino segreto!\n\n`;
         info += `👉 *Usa:* \`${usedPrefix}${command} [cifra]\` (es: \`${usedPrefix}${command} 25\`)`;
         return m.reply(info);
     }
@@ -39,7 +40,7 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
 
     let lancio = parseInt(text);
 
-    if (lancio <= 0) return m.reply(`❌ Non puoi gettare il nulla nel pozzo! Inserisci una cifra superiore a 0.`);
+    if (lancio <= 0) return m.reply(`❌ Inserisci una cifra superiore a 0.`);
     if (userEuro < lancio) return m.reply(`❌ Il tuo portafoglio è troppo leggero. Saldo attuale: *${userEuro}€*`);
 
     global.db.data.users[m.sender].euro -= lancio;
@@ -57,15 +58,15 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
         let bottinoVinto = datiPozzo[chatId].jackpot;
         global.db.data.users[m.sender].euro += bottinoVinto;
 
-        let vittoria = `✨🌌 *IL POZZO TRABOCCA DI MAGIA!* 🌌✨\n`;
+        let vittoria = `✨🌌 *IL POZZO SEGRETO SI È SBLOCCATO!* 🌌✨\n`;
         vittoria += `====================================\n\n`;
-        vittoria += `🎉 *CLAMOROSO!* Le divinità del pozzo hanno accolto l'offerta di @${m.sender.split('@')[0]}!\n`;
-        vittoria += `🌊 Un'esplosione di monete d'oro investe la chat del gruppo!\n\n`;
-        vittoria += `🏆 *HAI SVUOTATO IL POZZO!*\n`;
-        vittoria += `💰 Vincita totale accreditata: *+${bottinoVinto}€*`;
+        vittoria += `🎉 *CLAMOROSO!* @${m.sender.split('@')[0]} ha indovinato il momento perfetto!\n`;
+        vittoria += `🌊 Il pozzo cieco sputa fuori tutte le monete nascoste al suo interno!\n\n`;
+        vittoria += `🏆 *HAI SVUOTATO IL JACKPOT MISTERIOSO!*\n`;
+        vittoria += `💰 Hai vinto l'incredibile cifra di: *+${bottinoVinto}€*`;
 
         datiPozzo[chatId] = {
-            jackpot: 150,
+            jackpot: Math.floor(Math.random() * (1500 - 300 + 1)) + 300,
             lanciTotali: 0,
             ultimoGiocatore: 'Nessuno'
         };
@@ -76,18 +77,18 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
         
         let risf = `🔮 *MONETA LANCIATA NEL PROFONDO* 🔮\n`;
         risf += `------------------------------------\n\n`;
-        risf += `👤 @${m.sender.split('@')[0]} ha gettato *${lancio}€* nell'oscurità.\n`;
-        risf += `🕳️ *Splash!* Senti il rumore dell'acqua, ma il Jackpot rimane sul fondo...\n\n`;
+        risf += `👤 @${m.sender.split('@')[0]} ha gettato *${lancio}€* nel buio del pozzo.\n`;
+        risf += `🕳️ *Splash!* Senti il rumore, ma il Jackpot segreto resta nascosto...\n\n`;
         risf += `🎯 Probabilità di successo per questo lancio: *${quotaFortuna}%*\n`;
-        risf += `💰 Il nuovo *JACKPOT* da saccheggiare è: *${datiPozzo[chatId].jackpot}€*\n\n`;
-        risf += `🍀 La fortuna non è bastata. Riprova lanciando altre monete con \`${usedPrefix}${command}\`!`;
+        risf += `💰 Gli euro extra nel pozzo aumentano di +${lancio}€!\n\n`;
+        risf += `🍀 Continua a tentare la fortuna con \`${usedPrefix}${command} [cifra]\`!`;
 
         return conn.sendMessage(m.chat, { text: risf, mentions: [m.sender] }, { quoted: m });
     }
 };
 
 handler.help = ['pozzo', 'lancia'];
-handler.tags = ['game'];
+handler.tags = ['giochi'];
 handler.command = /^(pozzo|lancia)$/i;
 handler.group = true;
 
