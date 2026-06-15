@@ -112,7 +112,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 }
 
 handler.help = ['8ball [domanda]']
-handler.tags = ['group', 'fun']
+handler.tags = ['giochi']
 handler.command = /^(8ball|oracolo|palla8)$/i
 
 handler.group = true
