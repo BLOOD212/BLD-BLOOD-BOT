@@ -177,54 +177,54 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         const ctx = canvas.getContext('2d')
         
         const bgGrad = ctx.createLinearGradient(0, 0, 0, 1000)
-        bgGrad.addColorStop(0, '#16181f')
-        bgGrad.addColorStop(1, '#0b0c10')
+        bgGrad.addColorStop(0, '#111318')
+        bgGrad.addColorStop(1, '#060709')
         ctx.fillStyle = bgGrad
         ctx.fillRect(0, 0, 1200, 1000)
 
         const drawBox = async (id, x, y, label, color, textColor = '#fff') => {
             if (!id) return
-            const w = 230, h = 120, r = 20 
+            const w = 260, h = 140, r = 24 
             
             ctx.save()
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
-            ctx.shadowBlur = 12
-            ctx.shadowOffsetY = 5
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)'
+            ctx.shadowBlur = 16
+            ctx.shadowOffsetY = 6
             ctx.fillStyle = color
             drawRoundedRect(ctx, x - w/2, y - h/2, w, h, r)
             ctx.fill()
             ctx.restore()
 
             ctx.strokeStyle = '#f1c40f'
-            ctx.lineWidth = 3
+            ctx.lineWidth = 3.5
             drawRoundedRect(ctx, x - w/2, y - h/2, w, h, r)
             ctx.stroke()
 
             ctx.fillStyle = '#f39c12'
-            ctx.font = 'bold 14px Arial'
+            ctx.font = 'bold 16px Arial'
             ctx.textAlign = 'center'
-            ctx.fillText(label, x, y - 35)
+            ctx.fillText(label, x, y - 42)
 
             let name = 'Utente'
             try { name = await conn.getName(id) } catch {}
             ctx.fillStyle = textColor
-            ctx.font = 'bold 14px Arial'
-            ctx.fillText(name.substring(0, 18), x, y + 43)
+            ctx.font = 'bold 15px Arial'
+            ctx.fillText(name.substring(0, 18), x, y + 52)
 
             try {
                 let url = await conn.profilePictureUrl(id, 'image').catch(() => 'https://telegra.ph/file/2416c30c33306fa33c5e0.jpg')
                 let img = await loadImage(url)
                 ctx.save()
                 ctx.beginPath()
-                ctx.arc(x, y + 2, 32, 0, Math.PI * 2)
+                ctx.arc(x, y + 2, 38, 0, Math.PI * 2)
                 ctx.clip()
-                ctx.drawImage(img, x - 32, y - 30, 64, 64)
+                ctx.drawImage(img, x - 38, y - 36, 76, 76)
                 ctx.restore()
                 
-                ctx.strokeStyle = 'rgba(255,255,255,0.6)'
-                ctx.lineWidth = 2.5
+                ctx.strokeStyle = 'rgba(255,255,255,0.7)'
+                ctx.lineWidth = 3
                 ctx.beginPath()
-                ctx.arc(x, y + 2, 32, 0, Math.PI * 2)
+                ctx.arc(x, y + 2, 38, 0, Math.PI * 2)
                 ctx.stroke()
             } catch {}
         }
@@ -238,71 +238,71 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
             nonno = global.db.data.users[padre]?.s || null
         }
 
-        ctx.strokeStyle = 'rgba(241, 196, 15, 0.4)'
-        ctx.lineWidth = 3
+        ctx.strokeStyle = 'rgba(241, 196, 15, 0.5)'
+        ctx.lineWidth = 4.5
 
         if (nonno && padre) {
             ctx.beginPath()
-            ctx.moveTo(600, 160)
-            ctx.lineTo(600, 240)
+            ctx.moveTo(600, 190)
+            ctx.lineTo(600, 280)
             ctx.stroke()
         }
 
         if (padre) {
-            let targetX = partner ? 500 : 600
+            let targetX = partner ? 480 : 600
             ctx.beginPath()
-            ctx.moveTo(600, 360)
-            ctx.bezierCurveTo(600, 410, targetX, 410, targetX, 440)
+            ctx.moveTo(600, 420)
+            ctx.bezierCurveTo(600, 480, targetX, 480, targetX, 510)
             ctx.stroke()
         }
 
         if (partner) {
             ctx.strokeStyle = '#e74c3c'
-            ctx.lineWidth = 4
+            ctx.lineWidth = 5
             ctx.beginPath()
-            ctx.moveTo(500, 500)
-            ctx.lineTo(700, 500)
+            ctx.moveTo(480, 580)
+            ctx.lineTo(720, 580)
             ctx.stroke()
-            ctx.strokeStyle = 'rgba(241, 196, 15, 0.4)'
-            ctx.lineWidth = 3
+            ctx.strokeStyle = 'rgba(241, 196, 15, 0.5)'
+            ctx.lineWidth = 4.5
         }
 
         let figli = (u.p || []).slice(0, 5)
         if (figli.length > 0) {
             let originX = partner ? 600 : 600 
-            let originY = partner ? 500 : 560
+            let originY = partner ? 580 : 650
             
-            let spacing = 240
+            let spacing = 230
             let startX = 600 - ((figli.length - 1) * spacing) / 2
 
             figli.forEach((_, i) => {
                 let fx = startX + (i * spacing)
                 ctx.beginPath()
                 ctx.moveTo(originX, originY)
-                ctx.bezierCurveTo(originX, 640, fx, 640, fx, 740)
+                ctx.bezierCurveTo(originX, 720, fx, 720, fx, 750)
                 ctx.stroke()
             })
         }
 
         let renderQueue = []
 
-        if (nonno) renderQueue.push(drawBox(nonno, 600, 100, '👑 NONNO/A', '#8e44ad'))
+        if (nonno) renderQueue.push(drawBox(nonno, 600, 120, '👑 NONNO/A', '#8e44ad'))
 
-        if (padre) renderQueue.push(drawBox(padre, 600, 300, '👨‍🍼 GENITORE', '#2980b9'))
+        if (padre) renderQueue.push(drawBox(padre, 600, 350, '👨‍🍼 GENITORE', '#2980b9'))
 
         if (partner) {
-            renderQueue.push(drawBox(target, 500, 500, '⭐ TU', '#2c3e50'))
-            renderQueue.push(drawBox(partner, 700, 500, '❤️ PARTNER', '#c0392b'))
+            renderQueue.push(drawBox(target, 480, 580, '⭐ TU', '#2c3e50'))
+            renderQueue.push(drawBox(partner, 720, 580, '❤️ PARTNER', '#c0392b'))
         } else {
-            renderQueue.push(drawBox(target, 600, 500, '⭐ TU', '#2c3e50'))
+            renderQueue.push(drawBox(target, 600, 580, '⭐ TU', '#2c3e50'))
         }
 
         if (figli.length > 0) {
-            let spacing = 240
+            let spacing = 230
             let startX = 600 - ((figli.length - 1) * spacing) / 2
             figli.forEach((f, i) => {
                 let fx = startX + (i * spacing)
-                renderQueue.push(drawBox(f, fx, 800, `👶 FIGLIO ${i+1}`, '#27ae60'))
+                renderQueue.push(drawBox(f, fx, 820, `👶 FIGLIO ${i+1}`, '#27ae60'))
             })
         }
 
