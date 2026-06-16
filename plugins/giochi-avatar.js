@@ -1,7 +1,6 @@
 import pkg from 'canvas';
 const { createCanvas } = pkg;
 
-// --- DATABASE CAPI DI LUSSO (100 CAPI UNICI) ---
 const catalogoUomo = [
     { id: 1, tipo: 'Giacca', modello: 'Blazer Armani Slim', costo: 1200, fas: 90, col: '#1a1a1a' },
     { id: 2, tipo: 'Giacca', modello: 'Bomber Off-White', costo: 950, fas: 85, col: '#2d3748' },
@@ -9,14 +8,14 @@ const catalogoUomo = [
     { id: 4, tipo: 'Scarpe', modello: 'Jordan 1 Retro High', costo: 1500, fas: 92, col: '#c53030' },
     { id: 5, tipo: 'Scarpe', modello: 'Yeezy Boost 350 V2', costo: 800, fas: 88, col: '#f6ad55' },
     { id: 6, tipo: 'Accessorio', modello: 'Rolex Submariner', costo: 9000, fas: 100, col: '#cbd5e0' },
-    { id: 7, tipo: 'Accessorio', modello: 'Occhiali Gucci Aviator', costo: 450, fas: 75, col: '#000000' },
+    { id: 7, tipo: 'Accessorio', modello: 'Gucci Aviator', costo: 450, fas: 75, col: '#000000' },
     { id: 8, tipo: 'Accessorio', modello: 'Catena Versace Oro', costo: 3200, fas: 94, col: '#fbbf24' },
     { id: 9, tipo: 'Giacca', modello: 'Pelle Saint Laurent', costo: 3800, fas: 96, col: '#1a202c' },
-    { id: 10, tipo: 'Scarpe', modello: 'Chelsea Boots Bottega', costo: 1100, fas: 89, col: '#2d3748' },
+    { id: 10, tipo: 'Scarpe', modello: 'Chelsea Bottega', costo: 1100, fas: 89, col: '#2d3748' },
     { id: 11, tipo: 'Street', modello: 'Supreme Box Logo', costo: 700, fas: 82, col: '#e53e3e' },
     { id: 12, tipo: 'Accessorio', modello: 'Cintura Hermes H', costo: 600, fas: 80, col: '#744210' },
     { id: 13, tipo: 'Street', modello: 'Cargo Off-White', costo: 900, fas: 84, col: '#4a5568' },
-    { id: 14, tipo: 'Giacca', modello: 'Piumino Moncler Maya', costo: 1400, fas: 91, col: '#1a365d' },
+    { id: 14, tipo: 'Giacca', modello: 'Moncler Maya', costo: 1400, fas: 91, col: '#1a365d' },
     { id: 15, tipo: 'Scarpe', modello: 'Nike Dunk Travis', costo: 1600, fas: 93, col: '#718096' },
     { id: 16, tipo: 'Accessorio', modello: 'AP Royal Oak', costo: 15000, fas: 100, col: '#a0aec0' },
     { id: 17, tipo: 'Giacca', modello: 'Trench Burberry', costo: 1800, fas: 90, col: '#d69e2e' },
@@ -138,47 +137,48 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     if (!user) user = global.db.data.users[m.sender] = { euro: 10000, guardaroba: [], genere: null };
 
     if (command === 'avatar') {
+        if (user.genere) return m.reply(`Il tuo avatar è già impostato come: ${user.genere === 'm' ? 'Uomo 🧔' : 'Donna 👩'}.`);
         return conn.sendMessage(m.chat, { 
             text: "Benvenuto nel tuo Atelier privato. Scegli il tuo stile:", 
             buttons: [
                 { buttonId: '.setgenere m', buttonText: { displayText: 'Uomo 🧔' }, type: 1 },
                 { buttonId: '.setgenere f', buttonText: { displayText: 'Donna 👩' }, type: 1 }
-            ],
-            footer: "Atelier Mode System v2.0" 
+            ], footer: "Atelier Mode System v2.0" 
         }, { quoted: m });
     }
 
     if (command === 'setgenere') {
         let g = m.text.toLowerCase().includes('m') ? 'm' : 'f';
         user.genere = g;
-        return m.reply(`Profilo impostato come: ${g === 'm' ? 'Uomo 🧔' : 'Donna 👩'}.`);
+        return m.reply(`Profilo salvato correttamente come: ${g === 'm' ? 'Uomo 🧔' : 'Donna 👩'}.`);
     }
 
     if (command === 'shopvestiti') {
-        if (!user.genere) return m.reply("Prima usa .avatar");
+        if (!user.genere) return m.reply("Prima imposta il tuo avatar con .avatar");
         let cat = user.genere === 'm' ? catalogoUomo : catalogoDonna;
-        let txt = `--- BOUTIQUE ${user.genere.toUpperCase()} ---\n\n`;
-        cat.forEach(v => txt += `${v.id}. ${v.modello} [${v.fas} Fas] - ${v.costo}€\n`);
-        return m.reply(txt);
+        let txt = `--- BOUTIQUE ${user.genere.toUpperCase()} (50 CAPI) ---\n\n`;
+        cat.forEach(v => txt += `${v.id}. ${v.modello} | ${v.fas} Fas | ${v.costo}€\n`);
+        return m.reply(txt + "\n\nUsa .compravestito [ID] per acquistare.");
     }
 
     if (command === 'compravestito') {
         let cat = user.genere === 'm' ? catalogoUomo : catalogoDonna;
         let id = parseInt(args[0]);
         let v = cat.find(x => x.id === id);
-        if (!v || user.euro < v.costo) return m.reply("Oggetto non trovato o fondi insufficienti.");
+        if (!v || user.euro < v.costo) return m.reply("Capo non trovato o fondi insufficienti.");
         user.euro -= v.costo;
         user.guardaroba.push(v);
-        return m.reply(`Acquistato: ${v.modello}!`);
+        return m.reply(`Acquistato con successo: ${v.modello}!`);
     }
 
     if (command === 'armadio') {
         let v = user.guardaroba[args[0] ? parseInt(args[0]) - 1 : 0];
-        if (!v) return m.reply("Armadio vuoto.");
+        if (!v) return m.reply("Il tuo armadio è vuoto. Vai nello shop!");
         let buffer = await generaCanvas(v);
-        return conn.sendMessage(m.chat, { image: buffer, caption: `Outfit: ${v.modello}\nFascino: +${v.fas}` }, { quoted: m });
+        return conn.sendMessage(m.chat, { image: buffer, caption: `Outfit attivo: ${v.modello}\nFascino: +${v.fas}` }, { quoted: m });
     }
 };
 
 handler.command = ['avatar', 'setgenere', 'shopvestiti', 'compravestito', 'armadio'];
+handler.tag = ["giochi"]
 export default handler;
