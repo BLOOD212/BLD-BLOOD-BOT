@@ -48,11 +48,13 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     const userId = m.sender;
 
     global.db = global.db || { data: { users: {} } };
-    global.db.data.users[userId] = global.db.data.users[userId] || { euro: 0, garageSlot: 1, parcoAuto: [], autoAttiva: null };
+    if (!global.db.data.users[userId]) global.db.data.users[userId] = {};
+    
     let user = global.db.data.users[userId];
-
-    user.parcoAuto = user.parcoAuto || [];
-    user.garageSlot = user.garageSlot || 1;
+    if (user.euro === undefined) user.euro = 0;
+    if (user.garageSlot === undefined) user.garageSlot = 1;
+    if (!user.parcoAuto) user.parcoAuto = [];
+    if (user.autoAttiva === undefined) user.autoAttiva = null;
 
     if (command === 'shopauto') {
         let txt = `🏎️ *CONCESSIONARIA AUTOMOBILISTICA GLOBALE* 🏎️\n`;
