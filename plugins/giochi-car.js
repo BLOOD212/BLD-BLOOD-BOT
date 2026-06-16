@@ -214,6 +214,14 @@ async function generaCanvasRealistico(veicolo, usati, totali) {
     const canvas = createCanvas(700, 400);
     const ctx = canvas.getContext('2d');
 
+    // Controllo di sicurezza anti-crash se mancano i dati del veicolo
+    let nomeModello = (veicolo && veicolo.modello) ? veicolo.modello : "VEICOLO SCONOSCIUTO";
+    let coloreVeicolo = (veicolo && veicolo.colore) ? veicolo.colore : "#38bdf8";
+    let tipoVeicolo = (veicolo && veicolo.tipo) ? veicolo.tipo : "auto";
+    let vMaxVeicolo = (veicolo && veicolo.vMax) ? veicolo.vMax : 0;
+    let accVeicolo = (veicolo && veicolo.acc) ? veicolo.acc : 0;
+    let pezziNum = (veicolo && veicolo.pezziInstallati) ? veicolo.pezziInstallati.length : 0;
+
     let bgGrad = ctx.createLinearGradient(0, 0, 0, 400);
     bgGrad.addColorStop(0, '#0f172a');
     bgGrad.addColorStop(0.5, '#1e293b');
@@ -257,11 +265,11 @@ async function generaCanvasRealistico(veicolo, usati, totali) {
     ctx.fillStyle = shadow;
     ctx.fillRect(70, 275, 220, 25);
 
-    ctx.shadowColor = veicolo.colore;
+    ctx.shadowColor = coloreVeicolo;
     ctx.shadowBlur = 35;
-    ctx.fillStyle = veicolo.colore;
+    ctx.fillStyle = coloreVeicolo;
 
-    if (veicolo.tipo === 'moto') {
+    if (tipoVeicolo === 'moto') {
         ctx.beginPath();
         ctx.moveTo(110, 170); ctx.lineTo(190, 150); ctx.lineTo(240, 220); ctx.lineTo(130, 250);
         ctx.closePath(); ctx.fill();
@@ -300,30 +308,30 @@ async function generaCanvasRealistico(veicolo, usati, totali) {
 
     ctx.fillStyle = '#38bdf8';
     ctx.font = 'bold 15px sans-serif';
-    ctx.fillText(veicolo.modello.toUpperCase().slice(0, 24), 430, 65);
+    ctx.fillText(nomeModello.toUpperCase().slice(0, 24), 430, 65);
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = '10px monospace';
-    ctx.fillText(`CATEGORIA: ${veicolo.tipo.toUpperCase()}`, 430, 90);
+    ctx.fillText(`CATEGORIA: ${tipoVeicolo.toUpperCase()}`, 430, 90);
 
     ctx.fillStyle = '#ffffff';
     ctx.font = '11px sans-serif';
-    ctx.fillText(`VELOCITÀ MASSIMA: ${veicolo.vMax} KM/H`, 430, 135);
+    ctx.fillText(`VELOCITÀ MASSIMA: ${vMaxVeicolo} KM/H`, 430, 135);
     ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
     ctx.fillRect(430, 145, 225, 10);
     let vBar = ctx.createLinearGradient(430, 0, 655, 0);
     vBar.addColorStop(0, '#0284c7'); vBar.addColorStop(1, '#38bdf8');
     ctx.fillStyle = vBar;
-    ctx.fillRect(430, 145, Math.min(225, (veicolo.vMax / 1000) * 225), 10);
+    ctx.fillRect(430, 145, Math.min(225, (vMaxVeicolo / 1000) * 225), 10);
 
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(`PROPULSIONE / ACC: ${veicolo.acc}/100`, 430, 195);
+    ctx.fillText(`PROPULSIONE / ACC: ${accVeicolo}/100`, 430, 195);
     ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
     ctx.fillRect(430, 205, 225, 10);
     let aBar = ctx.createLinearGradient(430, 0, 655, 0);
     aBar.addColorStop(0, '#7c3aed'); aBar.addColorStop(1, '#c084fc');
     ctx.fillStyle = aBar;
-    ctx.fillRect(430, 205, (veicolo.acc / 100) * 225, 10);
+    ctx.fillRect(430, 205, (accVeicolo / 100) * 225, 10);
 
     ctx.fillStyle = '#ffffff';
     ctx.fillText(`ALLOCAZIONE STRUTTURA: ${usati}/${totali}`, 430, 255);
@@ -342,7 +350,7 @@ async function generaCanvasRealistico(veicolo, usati, totali) {
     ctx.font = 'bold 9px monospace';
     ctx.fillText(`HARDWARE COUPLING OK // SYSTEMS NOMINAL`, 440, 328);
     ctx.fillStyle = '#94a3b8';
-    ctx.fillText(`UPGRADES UNIT: ${veicolo.pezziInstallati.length}`, 440, 342);
+    ctx.fillText(`UPGRADES UNIT: ${pezziNum}`, 440, 342);
 
     ctx.fillStyle = '#020617';
     ctx.fillRect(20, 20, 190, 35);
