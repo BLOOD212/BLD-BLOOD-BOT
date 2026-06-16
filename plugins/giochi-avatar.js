@@ -1,67 +1,68 @@
 import pkg from 'canvas';
 const { createCanvas } = pkg;
 
-const catalogoUomo = [
-    { id: 1, sesso: 'm', tipo: 'giacca', modello: 'Blazer Armani Slim', costo: 1200, fas: 80, stl: 85, col: '#1a1a1a' },
-    { id: 2, sesso: 'm', tipo: 'street', modello: 'Hoodie Off-White', costo: 800, fas: 60, stl: 90, col: '#000000' },
-    { id: 3, sesso: 'm', tipo: 'scarpe', modello: 'Jordan 1 Retro High', costo: 1500, fas: 70, stl: 95, col: '#ff0000' },
-    { id: 4, sesso: 'm', tipo: 'accessorio', modello: 'Rolex Submariner', costo: 9000, fas: 100, stl: 100, col: '#c0c0c0' },
-    { id: 5, sesso: 'm', tipo: 'jeans', modello: 'Baggy Levi\'s Vintage', costo: 300, fas: 40, stl: 50, col: '#4a5568' },
-    { id: 6, sesso: 'm', tipo: 'giacca', modello: 'Bomber Varsity', costo: 500, fas: 45, stl: 60, col: '#2b6cb0' },
-    { id: 7, sesso: 'm', tipo: 'scarpe', modello: 'Stivaletti Chelsea', costo: 700, fas: 50, stl: 70, col: '#2d3748' },
-    { id: 8, sesso: 'm', tipo: 'accessorio', modello: 'Catena Oro 24k', costo: 2500, fas: 85, stl: 80, col: '#fbbf24' },
-    { id: 9, sesso: 'm', tipo: 'street', modello: 'Cargo Pants Tech', costo: 400, fas: 35, stl: 65, col: '#1a202c' },
-    { id: 10, sesso: 'm', tipo: 'accessorio', modello: 'Occhiali Aviator RayBan', costo: 200, fas: 30, stl: 50, col: '#000000' },
-    ...Array.from({ length: 40 }, (_, i) => ({ id: i + 11, sesso: 'm', tipo: 'varie', modello: `Capo Maschile ${i + 11}`, costo: 100 + (i * 50), fas: 10 + i, stl: 10 + i, col: '#333333' }))
-];
+// Catalogo completo Uomo (50 capi)
+const catalogoUomo = Array.from({ length: 50 }, (_, i) => ({
+    id: i + 1, sesso: 'm', tipo: i < 10 ? 'Giacca' : (i < 20 ? 'Scarpe' : 'Accessorio'),
+    modello: i < 10 ? `Blazer Premium ${i + 1}` : (i < 20 ? `Sneakers Tech ${i + 1}` : `Orologio Lusso ${i + 1}`),
+    costo: 500 + (i * 100), fas: 20 + i, stl: 20 + i, col: '#2d3748'
+}));
 
-const catalogoDonna = [
-    { id: 1, sesso: 'f', tipo: 'vestito', modello: 'Abito Chanel Tweed', costo: 3500, fas: 90, stl: 95, col: '#ffffff' },
-    { id: 2, sesso: 'f', tipo: 'gonne', modello: 'Gonna Dior Plissettata', costo: 1800, fas: 75, stl: 85, col: '#000000' },
-    { id: 3, sesso: 'f', tipo: 'scarpe', modello: 'Décolleté Louboutin', costo: 900, fas: 85, stl: 90, col: '#ff0000' },
-    { id: 4, sesso: 'f', tipo: 'accessorio', modello: 'Collana Tiffany', costo: 5000, fas: 100, stl: 100, col: '#87ceeb' },
-    { id: 5, sesso: 'f', tipo: 'jeans', modello: 'Mom-Fit Gucci', costo: 1200, fas: 60, stl: 75, col: '#5a6772' },
-    { id: 6, sesso: 'f', tipo: 'top', modello: 'Crop Top Prada', costo: 600, fas: 50, stl: 70, col: '#e53e3e' },
-    { id: 7, sesso: 'f', tipo: 'scarpe', modello: 'Stivali Cuissard', costo: 1100, fas: 65, stl: 80, col: '#2d3748' },
-    { id: 8, sesso: 'f', tipo: 'accessorio', modello: 'Borsa Birkin Mini', costo: 8000, fas: 100, stl: 100, col: '#7c2d12' },
-    { id: 9, sesso: 'f', tipo: 'gonne', modello: 'Minigonna in Pelle', costo: 500, fas: 40, stl: 60, col: '#1a202c' },
-    { id: 10, sesso: 'f', tipo: 'top', modello: 'Blusa Seta Versace', costo: 900, fas: 70, stl: 75, col: '#f6ad55' },
-    ...Array.from({ length: 40 }, (_, i) => ({ id: i + 11, sesso: 'f', tipo: 'varie', modello: `Capo Femminile ${i + 11}`, costo: 150 + (i * 60), fas: 15 + i, stl: 15 + i, col: '#ffb6c1' }))
-];
+// Catalogo completo Donna (50 capi)
+const catalogoDonna = Array.from({ length: 50 }, (_, i) => ({
+    id: i + 1, sesso: 'f', tipo: i < 10 ? 'Vestito' : (i < 20 ? 'Scarpe' : 'Accessorio'),
+    modello: i < 10 ? `Abito Alta Moda ${i + 1}` : (i < 20 ? `Tacchi Glam ${i + 1}` : `Borsa Firmata ${i + 1}`),
+    costo: 600 + (i * 120), fas: 25 + i, stl: 25 + i, col: '#ffb6c1'
+}));
 
-let handler = async (m, { conn, args, usedPrefix, command }) => {
+let handler = async (m, { conn, usedPrefix, command }) => {
     let user = global.db.data.users[m.sender];
     if (!user) user = global.db.data.users[m.sender] = { euro: 10000, guardaroba: [], vestitoAttivo: null, genere: null };
 
-    if (command === 'avatar') return m.reply("Scegli: .setgenere m (Uomo) o .setgenere f (Donna)");
-    
+    if (command === 'avatar') {
+        let buttons = [
+            { buttonId: '.setgenere m', buttonText: { displayText: 'Uomo 🧔' }, type: 1 },
+            { buttonId: '.setgenere f', buttonText: { displayText: 'Donna 👩' }, type: 1 }
+        ];
+        return conn.sendMessage(m.chat, { 
+            text: "Benvenuto nel tuo Atelier personale. Scegli il genere del tuo Avatar:", 
+            buttons: buttons, 
+            footer: "Sistema Avatar v1.0", 
+            headerType: 1 
+        }, { quoted: m });
+    }
+
     if (command === 'setgenere') {
-        user.genere = args[0] === 'm' ? 'm' : 'f';
+        let g = m.text.toLowerCase().includes(' m') ? 'm' : 'f';
+        user.genere = g;
         user.guardaroba = [];
-        return m.reply(`Avatar configurato come ${user.genere === 'm' ? 'Uomo' : 'Donna'}.`);
+        return m.reply(`Avatar configurato come: ${g === 'm' ? 'Uomo 🧔' : 'Donna 👩'}. Usa .shopvestiti per vedere tutti i 50 capi dedicati.`);
     }
 
     if (command === 'shopvestiti') {
+        if (!user.genere) return m.reply("Prima usa .avatar");
         let cat = user.genere === 'm' ? catalogoUomo : catalogoDonna;
-        let txt = `--- SHOP ${user.genere === 'm' ? 'UOMO' : 'DONNA'} ---\n\n`;
-        cat.forEach(v => txt += `${v.id}. ${v.modello} - ${v.costo}€\n`);
+        let txt = `--- BOUTIQUE ${user.genere === 'm' ? 'MASCHILE' : 'FEMMINILE'} (50 CAPI) ---\n\n`;
+        // Mostra la lista completa
+        cat.forEach(v => txt += `${v.id}. [${v.tipo}] ${v.modello} - ${v.costo}€\n`);
         return m.reply(txt);
     }
 
     if (command === 'compravestito') {
         let cat = user.genere === 'm' ? catalogoUomo : catalogoDonna;
-        let v = cat.find(x => x.id === parseInt(args[0]));
-        if (!v || user.euro < v.costo) return m.reply("Non disponibile o fondi insufficienti.");
+        let id = parseInt(m.text.split(' ')[1]);
+        let v = cat.find(x => x.id === id);
+        if (!v || user.euro < v.costo) return m.reply("Capo non trovato o fondi insufficienti.");
         user.euro -= v.costo;
         user.guardaroba.push(v);
-        return m.reply(`Acquistato: ${v.modello}`);
+        return m.reply(`Acquistato con successo: ${v.modello}!`);
     }
 
     if (command === 'armadio') {
-        let v = user.guardaroba[args[0] ? parseInt(args[0]) - 1 : 0];
-        if (!v) return m.reply("Armadio vuoto o capo inesistente.");
+        let v = user.guardaroba[m.text.split(' ')[1] ? parseInt(m.text.split(' ')[1]) - 1 : 0];
+        if (!v) return m.reply("Armadio vuoto.");
         let buffer = await generaCanvas(v);
-        return conn.sendMessage(m.chat, { image: buffer, caption: `Indossato: ${v.modello}` }, { quoted: m });
+        return conn.sendMessage(m.chat, { image: buffer, caption: `Outfit attivo: ${v.modello}\nFascino: +${v.fas}` }, { quoted: m });
     }
 };
 
