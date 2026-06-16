@@ -193,18 +193,38 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
             return m.reply(`⚠️ Il tuo garage è deserto. Sfoglia il listino completo usando \`${usedPrefix}shopauto\`.`);
         }
 
-        let veicolo = user.parcoAuto[user.autoAttiva];
+        let indiceAuto = user.autoAttiva;
+        let messaggioSwitch = "";
+
+        // Se l'utente specifica un numero (es. .garage 2)
+        if (args[0]) {
+            let idRichiesto = parseInt(args[0]) - 1; // Array parte da 0, input utente da 1
+            if (isNaN(idRichiesto) || idRichiesto < 0 || idRichiesto >= user.parcoAuto.length) {
+                return m.reply(`⚠️ Indice non valido. Possiedi attualmente *${user.parcoAuto.length}* veicoli. Scegli un numero tra 1 e ${user.parcoAuto.length}.`);
+            }
+            indiceAuto = idRichiesto;
+            user.autoAttiva = idRichiesto; // Cambia automaticamente l'auto attiva su quella scelta
+            messaggioSwitch = `🔄 *Configurazione modificata:* Questo mezzo è ora impostato come **Attivo**.\n\n`;
+        }
+
+        if (indiceAuto === null || !user.parcoAuto[indiceAuto]) {
+            indiceAuto = 0;
+            user.autoAttiva = 0;
+        }
+
+        let veicolo = user.parcoAuto[indiceAuto];
         let buffer = await generaCanvasRealistico(veicolo, user.parcoAuto.length, user.garageSlot);
 
         let icon = veicolo.tipo === 'auto' ? '🚘' : '🏍️';
         let cap = `⚙️ *OFFICINA DI DIAGNOSTICA ADVANCED* ⚙️\n`;
         cap += `========================================\n\n`;
-        cap += `${icon} *Mezzo Selezionato:* ${veicolo.modello}\n`;
+        cap += messaggioSwitch;
+        cap += `${icon} *Mezzo Selezionato (Slot ${indiceAuto + 1}):* ${veicolo.modello}\n`;
         cap += `📊 Velocità di Punta: *${veicolo.vMax} km/h*\n`;
         cap += `⚡ Valutazione Accelerazione: *${veicolo.acc}/100*\n\n`;
-        cap += `📦 *Componenti Post-Vendita:* ${veicolo.pezziInstallati.length > 0 ? veicolo.pezziInstallati.join(', ') : 'Nessuno'}\n`;
+        cap += `📦 *Componenti Post-Vendita:* ${veicolo.pezziInstallati && veicolo.pezziInstallati.length > 0 ? veicolo.pezziInstallati.join(', ') : 'Nessuno'}\n`;
         cap += `🏢 Capienza Garage: **${user.parcoAuto.length}/${user.garageSlot} unità**\n\n`;
-        cap += `💡 _Usa \`${usedPrefix}shoppezzi\` per sbloccare i componenti strutturali avanzati._`;
+        cap += `💡 _Usa \`${usedPrefix}garage [numero]\` per cambiare mezzo o \`${usedPrefix}shoppezzi\` per potenziarlo._`;
 
         return conn.sendMessage(chatId, { image: buffer, caption: cap }, { quoted: m });
     }
@@ -214,7 +234,6 @@ async function generaCanvasRealistico(veicolo, usati, totali) {
     const canvas = createCanvas(700, 400);
     const ctx = canvas.getContext('2d');
 
-    // Controllo di sicurezza anti-crash se mancano i dati del veicolo
     let nomeModello = (veicolo && veicolo.modello) ? veicolo.modello : "VEICOLO SCONOSCIUTO";
     let coloreVeicolo = (veicolo && veicolo.colore) ? veicolo.colore : "#38bdf8";
     let tipoVeicolo = (veicolo && veicolo.tipo) ? veicolo.tipo : "auto";
@@ -359,12 +378,11 @@ async function generaCanvasRealistico(veicolo, usati, totali) {
     ctx.fillStyle = '#38bdf8';
     ctx.font = 'bold 11px monospace';
     ctx.fillText('GARAGE CORE v4.50 // ON', 35, 42);
-
-    return canvas.toBuffer('image/png');
+  return canvas.toBuffer('image/png');
 }
 
 handler.help = ['garage', 'shopauto', 'shoppezzi', 'compraauto', 'comprapezzo', 'potenziagarage'];
-handler.tags = ['giochi'];
+handler.tags = ['eco'];
 handler.command = ['garage', 'shopauto', 'shoppezzi', 'compraauto', 'comprapezzo', 'potenziagarage'];
 handler.group = true;
 
