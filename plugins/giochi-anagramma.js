@@ -113,5 +113,5 @@ handler.before = async (m, { conn }) => {
 
 handler.command = /^(anagramma|scramble)$/i;
 handler.group = true;
-handler.tag = [giochi];
+handler.tag = ["giochi"];
 export default handler;
