@@ -84,7 +84,3 @@ handler.tags = ['giochi'];
 handler.command = /^bsacc$/i;
 
 export default handler;
-
-```
-
-𝐁𝐋𝐎𝐎𝐃 𝐁𝐎𝐓
