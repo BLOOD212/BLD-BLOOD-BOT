@@ -103,7 +103,3 @@ handler.tags = ['giochi'];
 handler.command = /^bsrank$/i;
 
 export default handler;
-
-```
-
-𝐁𝐋𝐎𝐎𝐃 𝐁𝐎𝐓
