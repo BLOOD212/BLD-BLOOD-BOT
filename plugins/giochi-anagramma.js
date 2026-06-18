@@ -29,7 +29,7 @@ let handler = async (m, { conn, command }) => {
         let msg = await conn.sendMessage(chatId, { text: `🔤 *SFIDA ANAGRAMMA (${scelta.toUpperCase()})*\n👉 *${scram}*\n📌 Indizio: \`${Array(parola.length).fill("_").join(' ')}\`\n💰 Premio: *${{facile:10, medio:25, difficile:50, impossibile:100}[scelta]}€*` });
 
         games[chatId] = {
-            id: msg.key.id, // ID del messaggio per il controllo
+            id: msg.key.id,
             original: parola,
             scrambled: scram,
             level: scelta,
@@ -49,15 +49,19 @@ let handler = async (m, { conn, command }) => {
 
 handler.before = async (m, { conn }) => {
     const game = games[m.chat];
-    // Metodo di controllo identico alle bandiere
-    if (!game || m.isBaileys || !m.quoted || m.quoted.id !== game.id) return;
+    if (!game || m.isBaileys || !m.text) return;
+
+    const isQuoted = m.quoted && m.quoted.id === game.id;
+    const isSameLength = m.text.trim().length === game.original.length;
+
+    if (!isQuoted && !isSameLength) return;
 
     const rispostaUtente = m.text.trim().toUpperCase();
 
     if (rispostaUtente === game.original) {
         clearTimeout(game.timer);
         global.db.data.users[m.sender].euro = (global.db.data.users[m.sender].euro || 0) + game.reward;
-        let msg = await conn.sendMessage(m.chat, { text: `🎉 *COMPLIMENTI!*\n👤 @${m.sender.split('@')[0]} ha indovinato!\n🎯 Parola: *${game.original}*\n💰 Ricompensa: *+${game.reward}€*`, mentions: [m.sender], footer: '𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓', buttons: playAgainButtons() }, { quoted: m });
+        await conn.sendMessage(m.chat, { text: `🎉 *COMPLIMENTI!*\n👤 @${m.sender.split('@')[0]} ha indovinato!\n🎯 Parola: *${game.original}*\n💰 Ricompensa: *+${game.reward}€*`, mentions: [m.sender], footer: '𝐁𝐋𝐎𝐎𝐃-𝐁𝐎𝐓', buttons: playAgainButtons() }, { quoted: m });
         delete games[m.chat];
     } else {
         game.errorsLeft--;
@@ -67,9 +71,11 @@ handler.before = async (m, { conn }) => {
             delete games[m.chat];
         } else {
             let indici = Array.from({length: game.original.length}, (_, i) => i).filter(i => !game.revealedIndexes.includes(i));
-            const indice = indici[Math.floor(Math.random() * indici.length)];
-            game.hint[indice] = game.original[indice];
-            game.revealedIndexes.push(indice);
+            if (indici.length > 0) {
+                const indice = indici[Math.floor(Math.random() * indici.length)];
+                game.hint[indice] = game.original[indice];
+                game.revealedIndexes.push(indice);
+            }
             m.reply(`❌ *Sbagliato!*\n📌 Indizio: \`${game.hint.join(' ')}\`\n❤️ Tentativi: *${game.errorsLeft}*`);
         }
     }
