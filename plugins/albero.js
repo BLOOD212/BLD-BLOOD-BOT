@@ -190,10 +190,16 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         let padre = u.s
         let nonno = null
         let zii = []
+        let fratelli = []
 
         if (padre) {
             checkUser(padre)
             nonno = global.db.data.users[padre]?.s || null
+            
+            // Trova fratelli/sorelle (altri figli del genitore escluso il target stesso)
+            let tuttiIFigliDelPadre = global.db.data.users[padre]?.p || []
+            fratelli = tuttiIFigliDelPadre.filter(id => id !== target).slice(0, 3)
+
             if (nonno) {
                 checkUser(nonno)
                 let tuttiIFigliDelNonno = global.db.data.users[nonno]?.p || []
@@ -205,14 +211,14 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         let activeLevels = []
         if (nonno) activeLevels.push('nonno')
         if (padre || zii.length > 0) activeLevels.push('genitori_zii')
-        activeLevels.push('tu')
+        activeLevels.push('tu_e_fratelli')
         if (figli.length > 0) activeLevels.push('figli')
 
         let totalLevels = activeLevels.length
-        let maxHorizontalElements = Math.max(1 + zii.length, figli.length, partner ? 2 : 1)
+        let maxHorizontalElements = Math.max(1 + zii.length, 1 + fratelli.length + (partner ? 1 : 0), figli.length)
         
-        let canvasHeight = totalLevels * 250 + 100
-        let canvasWidth = Math.max(maxHorizontalElements * 280 + 200, 1000)
+        let canvasHeight = totalLevels * 260 + 100
+        let canvasWidth = Math.max(maxHorizontalElements * 290 + 200, 1100)
 
         const canvas = createCanvas(canvasWidth, canvasHeight)
         const ctx = canvas.getContext('2d')
@@ -228,12 +234,12 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
 
         if (nonno) {
             positions['nonno'] = { x: canvasWidth / 2, y: currentY }
-            currentY += 250
+            currentY += 260
         }
         
         if (padre || zii.length > 0) {
             let totalRowElements = 1 + zii.length
-            let rowSpacing = 280
+            let rowSpacing = 290
             let startX = (canvasWidth / 2) - ((totalRowElements - 1) * rowSpacing) / 2
             
             positions['padre'] = { x: startX, y: currentY }
@@ -241,19 +247,37 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
             zii.forEach((z, i) => {
                 positions['zii'].push({ id: z, x: startX + ((i + 1) * rowSpacing), y: currentY })
             })
-            currentY += 250
+            currentY += 260
         }
         
+        // Calcolo riga di TU, PARTNER e FRATELLI sullo stesso livello
+        let rowSpacingLevel3 = 290
+        positions['fratelli'] = []
+        
         if (partner) {
-            positions['tu'] = { x: (canvasWidth / 2) - 160, y: currentY }
-            positions['partner'] = { x: (canvasWidth / 2) + 160, y: currentY }
+            positions['tu'] = { x: (canvasWidth / 2) - 150, y: currentY }
+            positions['partner'] = { x: (canvasWidth / 2) + 150, y: currentY }
+            
+            // Posiziona i fratelli all'esterno sinistro/destro
+            fratelli.forEach((f, i) => {
+                let side = i % 2 === 0 ? -1 : 1
+                let offset = Math.floor(i / 2) + 1
+                let fx = (canvasWidth / 2) + (side * (150 + (offset * rowSpacingLevel3)))
+                positions['fratelli'].push({ id: f, x: fx, y: currentY })
+            })
         } else {
-            positions['tu'] = { x: canvasWidth / 2, y: currentY }
+            // Se single, distribuisci orizzontalmente centrati
+            let totalRowElements = 1 + fratelli.length
+            let startX = (canvasWidth / 2) - ((totalRowElements - 1) * rowSpacingLevel3) / 2
+            positions['tu'] = { x: startX, y: currentY }
+            fratelli.forEach((f, i) => {
+                positions['fratelli'].push({ id: f, x: startX + ((i + 1) * rowSpacingLevel3), y: currentY })
+            })
         }
-        currentY += 250
+        currentY += 260
 
         if (figli.length > 0) {
-            let spacing = 280
+            let spacing = 290
             let startX = (canvasWidth / 2) - ((figli.length - 1) * spacing) / 2
             positions['figli'] = []
             figli.forEach((f, i) => {
@@ -326,11 +350,19 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         }
 
         if (positions['padre']) {
-            let targetX = positions['tu'].x
+            // Collega il genitore a Te
             ctx.beginPath()
             ctx.moveTo(positions['padre'].x, positions['padre'].y + 70)
-            ctx.bezierCurveTo(positions['padre'].x, positions['tu'].y - 100, targetX, positions['tu'].y - 100, targetX, positions['tu'].y - 70)
+            ctx.bezierCurveTo(positions['padre'].x, positions['tu'].y - 100, positions['tu'].x, positions['tu'].y - 100, positions['tu'].x, positions['tu'].y - 70)
             ctx.stroke()
+
+            // Collega lo stesso genitore ai tuoi fratelli/sorelle
+            positions['fratelli'].forEach((fPos) => {
+                ctx.beginPath()
+                ctx.moveTo(positions['padre'].x, positions['padre'].y + 70)
+                ctx.bezierCurveTo(positions['padre'].x, fPos.y - 100, fPos.x, fPos.y - 100, fPos.x, fPos.y - 70)
+                ctx.stroke()
+            })
         }
 
         if (partner) {
@@ -367,6 +399,10 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
 
         renderQueue.push(drawBox(target, positions['tu'].x, positions['tu'].y, '⭐ TU', '#2c3e50'))
         if (partner) renderQueue.push(drawBox(partner, positions['partner'].x, positions['partner'].y, '❤️ PARTNER', '#c0392b'))
+
+        positions['fratelli'].forEach((fPos) => {
+            renderQueue.push(drawBox(fPos.id, fPos.x, fPos.y, '👥 FRATELLO/SORELLA', '#7f8c8d'))
+        })
 
         if (figli.length > 0) {
             positions['figli'].forEach((fPos, i) => {
