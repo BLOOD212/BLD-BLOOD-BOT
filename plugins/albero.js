@@ -24,6 +24,7 @@ const checkUser = (id) => {
     let u = global.db.data.users[id]
     if (!Array.isArray(u.p)) u.p = []
     if (u.s === undefined) u.s = null
+    if (u.role === undefined) u.role = null // Ruolo specifico (fratello/sorella)
 }
 
 function drawRoundedRect(ctx, x, y, width, height, radius) {
@@ -85,6 +86,7 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         menu += `👉 *${usedPrefix}disereda @tag* - Rimuovi un figlio\n`
         menu += `👉 *${usedPrefix}fratello @tag* - Imposta un fratello\n`
         menu += `👉 *${usedPrefix}sorella @tag* - Imposta una sorella\n`
+        menu += `👉 *${usedPrefix}allontana @tag* - Rimuovi un fratello/sorella\n`
         menu += `👉 *${usedPrefix}albero* - Visualizza la dinastia completa\n`
         return m.reply(menu)
     }
@@ -169,15 +171,34 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         checkUser(target)
 
         let u = global.db.data.users[user]
-        if (!u.s) return m.reply('*❌ Non puoi impostare fratelli o sorelle se prima non hai un Genitore (fatti adottare o usa un legame)!*')
+        if (!u.s) return m.reply('*❌ Non puoi impostare fratelli o sorelle se prima non hai un Genitore (fatti adottare)!*')
         if (global.db.data.users[target].s) return m.reply(`*❌ Questa persona appartiene già a un altro genitore.*`)
 
         let padreId = u.s
         checkUser(padreId)
         global.db.data.users[padreId].p.push(target)
         global.db.data.users[target].s = padreId
+        global.db.data.users[target].role = command // Salva esplicitamente 'fratello' o 'sorella'
 
         m.reply(`*👥 Legame stabilito! @${target.split('@')[0]} è ora tuo/a ${command}!*`, null, { mentions: [target] })
+    }
+
+    if (command === 'allontana') {
+        let target = m.mentionedJid[0] || (m.quoted ? m.quoted.sender : null)
+        if (!target) return m.reply('*⚠️ Tagga chi vuoi allontanare dai fratelli/sorelle!*')
+        
+        let u = global.db.data.users[user]
+        if (!u.s) return m.reply('*❌ Non hai un genitore associato.*')
+        
+        let padreId = u.s
+        let figliDelPadre = global.db.data.users[padreId]?.p || []
+        if (!figliDelPadre.includes(target)) return m.reply('*❌ Questa persona non fa parte dei tuoi fratelli/sorelle.*')
+        
+        global.db.data.users[padreId].p = figliDelPadre.filter(id => id !== target)
+        global.db.data.users[target].s = null
+        global.db.data.users[target].role = null
+        
+        m.reply(`*🚫 @${target.split('@')[0]} è stato rimosso dalla cerchia dei fratelli/sorelle.*`, null, { mentions: [target] })
     }
 
     if (command === 'albero' || command === 'famigliamia') {
@@ -196,9 +217,8 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
             checkUser(padre)
             nonno = global.db.data.users[padre]?.s || null
             
-            // Trova fratelli/sorelle (altri figli del genitore escluso il target stesso)
             let tuttiIFigliDelPadre = global.db.data.users[padre]?.p || []
-            fratelli = tuttiIFigliDelPadre.filter(id => id !== target).slice(0, 3)
+            fratelli = tuttiIFigliDelPadre.filter(id => id !== target).slice(0, 4)
 
             if (nonno) {
                 checkUser(nonno)
@@ -250,7 +270,6 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
             currentY += 260
         }
         
-        // Calcolo riga di TU, PARTNER e FRATELLI sullo stesso livello
         let rowSpacingLevel3 = 290
         positions['fratelli'] = []
         
@@ -258,7 +277,6 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
             positions['tu'] = { x: (canvasWidth / 2) - 150, y: currentY }
             positions['partner'] = { x: (canvasWidth / 2) + 150, y: currentY }
             
-            // Posiziona i fratelli all'esterno sinistro/destro
             fratelli.forEach((f, i) => {
                 let side = i % 2 === 0 ? -1 : 1
                 let offset = Math.floor(i / 2) + 1
@@ -266,7 +284,6 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
                 positions['fratelli'].push({ id: f, x: fx, y: currentY })
             })
         } else {
-            // Se single, distribuisci orizzontalmente centrati
             let totalRowElements = 1 + fratelli.length
             let startX = (canvasWidth / 2) - ((totalRowElements - 1) * rowSpacingLevel3) / 2
             positions['tu'] = { x: startX, y: currentY }
@@ -350,13 +367,11 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         }
 
         if (positions['padre']) {
-            // Collega il genitore a Te
             ctx.beginPath()
             ctx.moveTo(positions['padre'].x, positions['padre'].y + 70)
             ctx.bezierCurveTo(positions['padre'].x, positions['tu'].y - 100, positions['tu'].x, positions['tu'].y - 100, positions['tu'].x, positions['tu'].y - 70)
             ctx.stroke()
 
-            // Collega lo stesso genitore ai tuoi fratelli/sorelle
             positions['fratelli'].forEach((fPos) => {
                 ctx.beginPath()
                 ctx.moveTo(positions['padre'].x, positions['padre'].y + 70)
@@ -401,7 +416,9 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         if (partner) renderQueue.push(drawBox(partner, positions['partner'].x, positions['partner'].y, '❤️ PARTNER', '#c0392b'))
 
         positions['fratelli'].forEach((fPos) => {
-            renderQueue.push(drawBox(fPos.id, fPos.x, fPos.y, '👥 FRATELLO/SORELLA', '#7f8c8d'))
+            let rUser = global.db.data.users[fPos.id]
+            let exactRole = rUser && rUser.role === 'sorella' ? '👧 SORELLA' : '👦 FRATELLO'
+            renderQueue.push(drawBox(fPos.id, fPos.x, fPos.y, exactRole, '#7f8c8d'))
         })
 
         if (figli.length > 0) {
@@ -420,6 +437,6 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
     }
 }
 
-handler.command = /^(sposa|accettasposa|rifiutasposa|divorzia|adotta|disereda|fratello|sorella|albero|famigliamia|famiglia)$/i
+handler.command = /^(sposa|accettasposa|rifiutasposa|divorzia|adotta|disereda|fratello|sorella|allontana|albero|famigliamia|famiglia)$/i
 handler.group = true
 export default handler
