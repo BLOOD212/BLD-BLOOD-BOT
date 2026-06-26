@@ -18,13 +18,6 @@ function saveMarriages() {
     fs.writeFileSync(marriagesFile, JSON.stringify(marriages, null, 2));
 }
 
-const design = {
-    header: (title) => `ㅤ⋆｡˚『 ╭ \`${title}\` ╯ 』˚｡⋆\n╭`,
-    line: "│",
-    footer: "*╰⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*",
-    divider: "├─ׄ──⭒─ׄ─ׅ"
-};
-
 const checkUser = (id) => {
     if (!id) return
     if (!global.db.data.users[id]) global.db.data.users[id] = {}
@@ -90,6 +83,8 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         menu += `👉 *${usedPrefix}divorzia* - Sciogli l'unione\n`
         menu += `👉 *${usedPrefix}adotta @tag* - Adotta un figlio\n`
         menu += `👉 *${usedPrefix}disereda @tag* - Rimuovi un figlio\n`
+        menu += `👉 *${usedPrefix}fratello @tag* - Imposta un fratello\n`
+        menu += `👉 *${usedPrefix}sorella @tag* - Imposta una sorella\n`
         menu += `👉 *${usedPrefix}albero* - Visualizza la dinastia completa\n`
         return m.reply(menu)
     }
@@ -168,6 +163,23 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         m.reply(`*🚫 @${target.split('@')[0]} rimosso dalla famiglia.*`, null, { mentions: [target] })
     }
 
+    if (command === 'fratello' || command === 'sorella') {
+        let target = m.mentionedJid[0] || (m.quoted ? m.quoted.sender : null)
+        if (!target || target === user) return m.reply(`*⚠️ Tagga tuo ${command}!*`)
+        checkUser(target)
+
+        let u = global.db.data.users[user]
+        if (!u.s) return m.reply('*❌ Non puoi impostare fratelli o sorelle se prima non hai un Genitore (fatti adottare o usa un legame)!*')
+        if (global.db.data.users[target].s) return m.reply(`*❌ Questa persona appartiene già a un altro genitore.*`)
+
+        let padreId = u.s
+        checkUser(padreId)
+        global.db.data.users[padreId].p.push(target)
+        global.db.data.users[target].s = padreId
+
+        m.reply(`*👥 Legame stabilito! @${target.split('@')[0]} è ora tuo/a ${command}!*`, null, { mentions: [target] })
+    }
+
     if (command === 'albero' || command === 'famigliamia') {
         let target = m.mentionedJid[0] || user
         checkUser(target)
@@ -177,21 +189,30 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         let partner = marriages[target]
         let padre = u.s
         let nonno = null
+        let zii = []
+
         if (padre) {
             checkUser(padre)
             nonno = global.db.data.users[padre]?.s || null
+            if (nonno) {
+                checkUser(nonno)
+                let tuttiIFigliDelNonno = global.db.data.users[nonno]?.p || []
+                zii = tuttiIFigliDelNonno.filter(id => id !== padre).slice(0, 3) 
+            }
         }
         let figli = (u.p || []).slice(0, 5)
 
         let activeLevels = []
         if (nonno) activeLevels.push('nonno')
-        if (padre) activeLevels.push('padre')
+        if (padre || zii.length > 0) activeLevels.push('genitori_zii')
         activeLevels.push('tu')
         if (figli.length > 0) activeLevels.push('figli')
 
         let totalLevels = activeLevels.length
-        let canvasHeight = totalLevels * 220 + 100
-        let canvasWidth = figli.length > 3 ? figli.length * 260 + 100 : 1000
+        let maxHorizontalElements = Math.max(1 + zii.length, figli.length, partner ? 2 : 1)
+        
+        let canvasHeight = totalLevels * 250 + 100
+        let canvasWidth = Math.max(maxHorizontalElements * 280 + 200, 1000)
 
         const canvas = createCanvas(canvasWidth, canvasHeight)
         const ctx = canvas.getContext('2d')
@@ -207,23 +228,32 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
 
         if (nonno) {
             positions['nonno'] = { x: canvasWidth / 2, y: currentY }
-            currentY += 220
+            currentY += 250
         }
-        if (padre) {
-            positions['padre'] = { x: canvasWidth / 2, y: currentY }
-            currentY += 220
+        
+        if (padre || zii.length > 0) {
+            let totalRowElements = 1 + zii.length
+            let rowSpacing = 280
+            let startX = (canvasWidth / 2) - ((totalRowElements - 1) * rowSpacing) / 2
+            
+            positions['padre'] = { x: startX, y: currentY }
+            positions['zii'] = []
+            zii.forEach((z, i) => {
+                positions['zii'].push({ id: z, x: startX + ((i + 1) * rowSpacing), y: currentY })
+            })
+            currentY += 250
         }
         
         if (partner) {
-            positions['tu'] = { x: (canvasWidth / 2) - 150, y: currentY }
-            positions['partner'] = { x: (canvasWidth / 2) + 150, y: currentY }
+            positions['tu'] = { x: (canvasWidth / 2) - 160, y: currentY }
+            positions['partner'] = { x: (canvasWidth / 2) + 160, y: currentY }
         } else {
             positions['tu'] = { x: canvasWidth / 2, y: currentY }
         }
-        currentY += 220
+        currentY += 250
 
         if (figli.length > 0) {
-            let spacing = 270
+            let spacing = 280
             let startX = (canvasWidth / 2) - ((figli.length - 1) * spacing) / 2
             positions['figli'] = []
             figli.forEach((f, i) => {
@@ -233,7 +263,7 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
 
         const drawBox = async (id, x, y, label, color, textColor = '#fff') => {
             if (!id) return
-            const w = 240, h = 130, r = 24 
+            const w = 240, h = 140, r = 24 
             
             ctx.save()
             ctx.shadowColor = 'rgba(0, 0, 0, 0.6)'
@@ -252,28 +282,28 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
             ctx.fillStyle = '#f39c12'
             ctx.font = 'bold 16px Arial'
             ctx.textAlign = 'center'
-            ctx.fillText(label, x, y - 38)
+            ctx.fillText(label, x, y - 44)
 
             let name = 'Utente'
             try { name = await conn.getName(id) } catch {}
             ctx.fillStyle = textColor
             ctx.font = 'bold 15px Arial'
-            ctx.fillText(name.substring(0, 18), x, y + 48)
+            ctx.fillText(name.substring(0, 18), x, y + 55)
 
             try {
                 let url = await conn.profilePictureUrl(id, 'image').catch(() => 'https://telegra.ph/file/2416c30c33306fa33c5e0.jpg')
                 let img = await loadImage(url)
                 ctx.save()
                 ctx.beginPath()
-                ctx.arc(x, y + 2, 38, 0, Math.PI * 2)
+                ctx.arc(x, y - 4, 38, 0, Math.PI * 2)
                 ctx.clip()
-                ctx.drawImage(img, x - 38, y - 36, 76, 76)
+                ctx.drawImage(img, x - 38, y - 42, 76, 76)
                 ctx.restore()
                 
                 ctx.strokeStyle = 'rgba(255,255,255,0.7)'
                 ctx.lineWidth = 3
                 ctx.beginPath()
-                ctx.arc(x, y + 2, 38, 0, Math.PI * 2)
+                ctx.arc(x, y - 4, 38, 0, Math.PI * 2)
                 ctx.stroke()
             } catch {}
         }
@@ -281,18 +311,25 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         ctx.strokeStyle = 'rgba(241, 196, 15, 0.5)'
         ctx.lineWidth = 4.5
 
-        if (nonno && padre) {
+        if (nonno && positions['padre']) {
             ctx.beginPath()
-            ctx.moveTo(positions['nonno'].x, positions['nonno'].y + 65)
-            ctx.lineTo(positions['padre'].x, positions['padre'].y - 65)
+            ctx.moveTo(positions['nonno'].x, positions['nonno'].y + 70)
+            ctx.bezierCurveTo(positions['nonno'].x, positions['padre'].y - 100, positions['padre'].x, positions['padre'].y - 100, positions['padre'].x, positions['padre'].y - 70)
             ctx.stroke()
+
+            positions['zii'].forEach((zPos) => {
+                ctx.beginPath()
+                ctx.moveTo(positions['nonno'].x, positions['nonno'].y + 70)
+                ctx.bezierCurveTo(positions['nonno'].x, zPos.y - 100, zPos.x, zPos.y - 100, zPos.x, zPos.y - 70)
+                ctx.stroke()
+            })
         }
 
-        if (padre) {
-            let targetX = partner ? positions['tu'].x : positions['tu'].x
+        if (positions['padre']) {
+            let targetX = positions['tu'].x
             ctx.beginPath()
-            ctx.moveTo(positions['padre'].x, positions['padre'].y + 65)
-            ctx.bezierCurveTo(positions['padre'].x, positions['tu'].y - 100, targetX, positions['tu'].y - 100, targetX, positions['tu'].y - 65)
+            ctx.moveTo(positions['padre'].x, positions['padre'].y + 70)
+            ctx.bezierCurveTo(positions['padre'].x, positions['tu'].y - 100, targetX, positions['tu'].y - 100, targetX, positions['tu'].y - 70)
             ctx.stroke()
         }
 
@@ -308,13 +345,13 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         }
 
         if (figli.length > 0) {
-            let originX = canvasWidth / 2
-            let originY = partner ? positions['tu'].y : positions['tu'].y + 65
+            let originX = partner ? canvasWidth / 2 : positions['tu'].x
+            let originY = partner ? positions['tu'].y : positions['tu'].y + 70
             
             positions['figli'].forEach((fPos) => {
                 ctx.beginPath()
                 ctx.moveTo(originX, originY)
-                ctx.bezierCurveTo(originX, fPos.y - 100, fPos.x, fPos.y - 100, fPos.x, fPos.y - 65)
+                ctx.bezierCurveTo(originX, fPos.y - 100, fPos.x, fPos.y - 100, fPos.x, fPos.y - 70)
                 ctx.stroke()
             })
         }
@@ -322,8 +359,12 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         let renderQueue = []
 
         if (nonno) renderQueue.push(drawBox(nonno, positions['nonno'].x, positions['nonno'].y, '👑 NONNO/A', '#8e44ad'))
-        if (padre) renderQueue.push(drawBox(padre, positions['padre'].x, positions['padre'].y, '👨‍🍼 GENITORE', '#2980b9'))
+        if (positions['padre']) renderQueue.push(drawBox(padre, positions['padre'].x, positions['padre'].y, '👨‍🍼 GENITORE', '#2980b9'))
         
+        positions['zii']?.forEach((zPos) => {
+            renderQueue.push(drawBox(zPos.id, zPos.x, zPos.y, '👤 ZIO/A', '#d35400'))
+        })
+
         renderQueue.push(drawBox(target, positions['tu'].x, positions['tu'].y, '⭐ TU', '#2c3e50'))
         if (partner) renderQueue.push(drawBox(partner, positions['partner'].x, positions['partner'].y, '❤️ PARTNER', '#c0392b'))
 
@@ -343,6 +384,6 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
     }
 }
 
-handler.command = /^(sposa|accettasposa|rifiutasposa|divorzia|adotta|disereda|albero|famigliamia|famiglia)$/i
+handler.command = /^(sposa|accettasposa|rifiutasposa|divorzia|adotta|disereda|fratello|sorella|albero|famigliamia|famiglia)$/i
 handler.group = true
 export default handler
