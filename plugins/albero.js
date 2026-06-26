@@ -24,7 +24,7 @@ const checkUser = (id) => {
     let u = global.db.data.users[id]
     if (!Array.isArray(u.p)) u.p = []
     if (u.s === undefined) u.s = null
-    if (u.role === undefined) u.role = null // Ruolo specifico (fratello/sorella)
+    if (u.role === undefined) u.role = null
 }
 
 function drawRoundedRect(ctx, x, y, width, height, radius) {
@@ -41,40 +41,7 @@ function drawRoundedRect(ctx, x, y, width, height, radius) {
     ctx.closePath();
 }
 
-async function createMarriageImage(user1, user2, conn, isMarriage = true) {
-    const canvas = createCanvas(800, 500);
-    const ctx = canvas.getContext('2d');
-
-    const grad = ctx.createLinearGradient(0, 0, 0, 500);
-    grad.addColorStop(0, isMarriage ? '#FF6F61' : '#4B5EAA');
-    grad.addColorStop(1, isMarriage ? '#FFF5EE' : '#E6E6FA');
-    ctx.fillStyle = grad; ctx.fillRect(0, 0, 800, 500);
-
-    const drawAvatar = async (id, x, y) => {
-        let img;
-        try {
-            let url = await conn.profilePictureUrl(id, 'image').catch(() => 'https://telegra.ph/file/2416c30c33306fa33c5e0.jpg');
-            img = await loadImage(url);
-        } catch { img = await loadImage('https://telegra.ph/file/2416c30c33306fa33c5e0.jpg'); }
-        ctx.save();
-        ctx.beginPath(); ctx.arc(x, y, 90, 0, Math.PI * 2); ctx.clip();
-        ctx.drawImage(img, x - 90, y - 90, 180, 180);
-        ctx.restore();
-        ctx.strokeStyle = isMarriage ? '#FF69B4' : '#4B5EAA';
-        ctx.lineWidth = 6; ctx.stroke();
-    };
-
-    await drawAvatar(user1, 200, 200);
-    await drawAvatar(user2, 600, 200);
-
-    ctx.fillStyle = isMarriage ? '#FF1493' : '#4B5EAA';
-    ctx.font = 'bold 40px Arial'; ctx.textAlign = 'center';
-    ctx.fillText(isMarriage ? 'Matrimonio Celebrato!' : 'Divorzio Completato', 400, 380);
-
-    return canvas.toBuffer();
-}
-
-let handler = async (m, { conn, text, command, usedPrefix }) => {
+let handler = async (m, { conn, text, command, usedPrefix, isAdmin, isBotAdmin }) => {
     let user = m.sender
     checkUser(user)
 
@@ -88,7 +55,42 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         menu += `👉 *${usedPrefix}sorella @tag* - Imposta una sorella\n`
         menu += `👉 *${usedPrefix}allontana @tag* - Rimuovi un fratello/sorella\n`
         menu += `👉 *${usedPrefix}albero* - Visualizza la dinastia completa\n`
+        menu += `👉 *${usedPrefix}resetalbero* - Resetta i tuoi legami familiari ⚠️\n`
         return m.reply(menu)
+    }
+
+    if (command === 'resetalbero') {
+        // Reset dell'utente corrente
+        let u = global.db.data.users[user]
+        
+        // Rimuovi legame con il genitore
+        if (u.s) {
+            let padre = global.db.data.users[u.s]
+            if (padre && padre.p) padre.p = padre.p.filter(id => id !== user)
+        }
+        
+        // Libera i figli
+        if (u.p && u.p.length > 0) {
+            u.p.forEach(figlioId => {
+                if (global.db.data.users[figlioId]) {
+                    global.db.data.users[figlioId].s = null
+                }
+            })
+        }
+        
+        // Divorzio automatico se sposato
+        if (marriages[user]) {
+            let ex = marriages[user]
+            delete marriages[user]
+            delete marriages[ex]
+            saveMarriages()
+        }
+
+        u.p = []
+        u.s = null
+        u.role = null
+        
+        return m.reply('*🗑️ Il tuo albero genealogico personale è stato resettato con successo.*')
     }
 
     if (command === 'sposa') {
@@ -102,18 +104,7 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         global.marriage_proposals = global.marriage_proposals || {}
         global.marriage_proposals[target] = { proposer: user, timeout: setTimeout(() => delete global.marriage_proposals[target], 60000) }
 
-        const buttons = [
-            { buttonId: `${usedPrefix}accettasposa`, buttonText: { displayText: 'SÌ, LO VOGLIO ✅' }, type: 1 },
-            { buttonId: `${usedPrefix}rifiutasposa`, buttonText: { displayText: 'NO ❌' }, type: 1 }
-        ]
-
-        return conn.sendMessage(m.chat, {
-            text: `*💍 PROPOSTA DI MATRIMONIO 💍*\n\n@${user.split('@')[0]} ha chiesto la mano di @${target.split('@')[0]}.\n\n*Vuoi accettare?*`,
-            footer: 'SISTEMA GENEALOGICO',
-            buttons: buttons,
-            headerType: 1,
-            mentions: [user, target]
-        }, { quoted: m })
+        return m.reply(`*💍 PROPOSTA DI MATRIMONIO 💍*\n\n@${user.split('@')[0]} ha chiesto la mano di @${target.split('@')[0]}.\n\nScrivi *${usedPrefix}accettasposa* per accettare!`, null, { mentions: [user, target] })
     }
 
     if (command === 'accettasposa') {
@@ -127,8 +118,7 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         clearTimeout(proposal.timeout)
         delete global.marriage_proposals[user]
 
-        let img = await createMarriageImage(user, partner, conn, true)
-        return conn.sendMessage(m.chat, { image: img, caption: `*💖 VIVA GLI SPOSI!* @${user.split('@')[0]} e @${partner.split('@')[0]} sono ora uniti!`, mentions: [user, partner] })
+        return m.reply(`*💖 VIVA GLI SPOSI!* @${user.split('@')[0]} e @${partner.split('@')[0]} sono ora ufficialmente sposati!`, null, { mentions: [user, partner] })
     }
 
     if (command === 'divorzia') {
@@ -139,8 +129,7 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         delete marriages[ex]
         saveMarriages()
 
-        let img = await createMarriageImage(user, ex, conn, false)
-        return conn.sendMessage(m.chat, { image: img, caption: `*💔 Divorzio completato tra @${user.split('@')[0]} e @${ex.split('@')[0]}*`, mentions: [user, ex] })
+        return m.reply(`*💔 Divorzio completato tra @${user.split('@')[0]} e @${ex.split('@')[0]}*`, null, { mentions: [user, ex] })
     }
 
     if (command === 'adotta') {
@@ -157,10 +146,10 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
     if (command === 'disereda') {
         let target = m.mentionedJid[0] || (m.quoted ? m.quoted.sender : null)
         if (!target) return m.reply('*⚠️ Tagga il figlio!*')
-        let figli = global.db.data.users[user].p || []
-        if (!figli.includes(target)) return m.reply('*❌ Non è tuo figlio.*')
+        let figs = global.db.data.users[user].p || []
+        if (!figs.includes(target)) return m.reply('*❌ Non è tuo figlio.*')
 
-        global.db.data.users[user].p = figli.filter(id => id !== target)
+        global.db.data.users[user].p = figs.filter(id => id !== target)
         global.db.data.users[target].s = null
         m.reply(`*🚫 @${target.split('@')[0]} rimosso dalla famiglia.*`, null, { mentions: [target] })
     }
@@ -178,27 +167,27 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         checkUser(padreId)
         global.db.data.users[padreId].p.push(target)
         global.db.data.users[target].s = padreId
-        global.db.data.users[target].role = command // Salva esplicitamente 'fratello' o 'sorella'
+        global.db.data.users[target].role = command
 
         m.reply(`*👥 Legame stabilito! @${target.split('@')[0]} è ora tuo/a ${command}!*`, null, { mentions: [target] })
     }
 
     if (command === 'allontana') {
         let target = m.mentionedJid[0] || (m.quoted ? m.quoted.sender : null)
-        if (!target) return m.reply('*⚠️ Tagga chi vuoi allontanare dai fratelli/sorelle!*')
+        if (!target) return m.reply('*⚠️ Tagga chi vuoi allontanare!*')
         
         let u = global.db.data.users[user]
         if (!u.s) return m.reply('*❌ Non hai un genitore associato.*')
         
         let padreId = u.s
         let figliDelPadre = global.db.data.users[padreId]?.p || []
-        if (!figliDelPadre.includes(target)) return m.reply('*❌ Questa persona non fa parte dei tuoi fratelli/sorelle.*')
+        if (!figliDelPadre.includes(target)) return m.reply('*❌ Questa persona non è tuo fratello/sorella.*')
         
         global.db.data.users[padreId].p = figliDelPadre.filter(id => id !== target)
         global.db.data.users[target].s = null
         global.db.data.users[target].role = null
         
-        m.reply(`*🚫 @${target.split('@')[0]} è stato rimosso dalla cerchia dei fratelli/sorelle.*`, null, { mentions: [target] })
+        m.reply(`*🚫 @${target.split('@')[0]} rimosso dai fratelli.*`, null, { mentions: [target] })
     }
 
     if (command === 'albero' || command === 'famigliamia') {
@@ -235,66 +224,70 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
         if (figli.length > 0) activeLevels.push('figli')
 
         let totalLevels = activeLevels.length
-        let maxHorizontalElements = Math.max(1 + zii.length, 1 + fratelli.length + (partner ? 1 : 0), figli.length)
+        let maxHorizontalElements = Math.max(1 + zii.length * 2, 2 + fratelli.length * 2, figli.length, 2)
         
-        let canvasHeight = totalLevels * 260 + 100
-        let canvasWidth = Math.max(maxHorizontalElements * 290 + 200, 1100)
+        let canvasHeight = totalLevels * 280 + 120
+        let canvasWidth = Math.max(maxHorizontalElements * 260 + 300, 1200)
 
         const canvas = createCanvas(canvasWidth, canvasHeight)
         const ctx = canvas.getContext('2d')
         
         const bgGrad = ctx.createLinearGradient(0, 0, 0, canvasHeight)
-        bgGrad.addColorStop(0, '#111318')
-        bgGrad.addColorStop(1, '#060709')
+        bgGrad.addColorStop(0, '#0f1115')
+        bgGrad.addColorStop(1, '#050608')
         ctx.fillStyle = bgGrad
         ctx.fillRect(0, 0, canvasWidth, canvasHeight)
 
         let currentY = 120
         let positions = {}
 
+        // 1. POSIZIONAMENTO NONNO (Sempre in cima al centro)
         if (nonno) {
             positions['nonno'] = { x: canvasWidth / 2, y: currentY }
-            currentY += 260
+            currentY += 280
         }
         
+        // 2. GENITORI E ZII (Zii distribuiti diagonalmente ai lati)
         if (padre || zii.length > 0) {
-            let totalRowElements = 1 + zii.length
-            let rowSpacing = 290
-            let startX = (canvasWidth / 2) - ((totalRowElements - 1) * rowSpacing) / 2
-            
-            positions['padre'] = { x: startX, y: currentY }
+            positions['padre'] = { x: canvasWidth / 2, y: currentY }
             positions['zii'] = []
+            
             zii.forEach((z, i) => {
-                positions['zii'].push({ id: z, x: startX + ((i + 1) * rowSpacing), y: currentY })
+                let side = i % 2 === 0 ? -1 : 1
+                let factor = Math.floor(i / 2) + 1
+                // Diagonale spaziosa verso l'esterno
+                let zx = (canvasWidth / 2) + (side * (factor * 320))
+                positions['zii'].push({ id: z, x: zx, y: currentY })
             })
-            currentY += 260
+            currentY += 280
         }
         
-        let rowSpacingLevel3 = 290
+        // 3. TU, PARTNER E FRATELLI (Marito e moglie vicinissimi al centro, fratelli in diagonale esterna)
         positions['fratelli'] = []
-        
         if (partner) {
-            positions['tu'] = { x: (canvasWidth / 2) - 150, y: currentY }
-            positions['partner'] = { x: (canvasWidth / 2) + 150, y: currentY }
+            positions['tu'] = { x: (canvasWidth / 2) - 100, y: currentY }
+            positions['partner'] = { x: (canvasWidth / 2) + 100, y: currentY }
             
             fratelli.forEach((f, i) => {
                 let side = i % 2 === 0 ? -1 : 1
-                let offset = Math.floor(i / 2) + 1
-                let fx = (canvasWidth / 2) + (side * (150 + (offset * rowSpacingLevel3)))
+                let factor = Math.floor(i / 2) + 1
+                let fx = (canvasWidth / 2) + (side * (240 + (factor * 300)))
                 positions['fratelli'].push({ id: f, x: fx, y: currentY })
             })
         } else {
-            let totalRowElements = 1 + fratelli.length
-            let startX = (canvasWidth / 2) - ((totalRowElements - 1) * rowSpacingLevel3) / 2
-            positions['tu'] = { x: startX, y: currentY }
+            positions['tu'] = { x: canvasWidth / 2, y: currentY }
             fratelli.forEach((f, i) => {
-                positions['fratelli'].push({ id: f, x: startX + ((i + 1) * rowSpacingLevel3), y: currentY })
+                let side = i % 2 === 0 ? -1 : 1
+                let factor = Math.floor(i / 2) + 1
+                let fx = (canvasWidth / 2) + (side * (factor * 320))
+                positions['fratelli'].push({ id: f, x: fx, y: currentY })
             })
         }
-        currentY += 260
+        currentY += 280
 
+        // 4. FIGLI (Sotto la coppia o sotto di te, centrati perfettamente)
         if (figli.length > 0) {
-            let spacing = 290
+            let spacing = 280
             let startX = (canvasWidth / 2) - ((figli.length - 1) * spacing) / 2
             positions['figli'] = []
             figli.forEach((f, i) => {
@@ -304,12 +297,12 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
 
         const drawBox = async (id, x, y, label, color, textColor = '#fff') => {
             if (!id) return
-            const w = 240, h = 140, r = 24 
+            const w = 230, h = 140, r = 24 
             
             ctx.save()
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)'
-            ctx.shadowBlur = 16
-            ctx.shadowOffsetY = 6
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.7)'
+            ctx.shadowBlur = 18
+            ctx.shadowOffsetY = 8
             ctx.fillStyle = color
             drawRoundedRect(ctx, x - w/2, y - h/2, w, h, r)
             ctx.fill()
@@ -321,76 +314,81 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
             ctx.stroke()
 
             ctx.fillStyle = '#f39c12'
-            ctx.font = 'bold 16px Arial'
+            ctx.font = 'bold 15px Arial'
             ctx.textAlign = 'center'
-            ctx.fillText(label, x, y - 44)
+            ctx.fillText(label, x, y - 46)
 
             let name = 'Utente'
             try { name = await conn.getName(id) } catch {}
             ctx.fillStyle = textColor
             ctx.font = 'bold 15px Arial'
-            ctx.fillText(name.substring(0, 18), x, y + 55)
+            ctx.fillText(name.substring(0, 16), x, y + 54)
 
             try {
                 let url = await conn.profilePictureUrl(id, 'image').catch(() => 'https://telegra.ph/file/2416c30c33306fa33c5e0.jpg')
                 let img = await loadImage(url)
                 ctx.save()
                 ctx.beginPath()
-                ctx.arc(x, y - 4, 38, 0, Math.PI * 2)
+                ctx.arc(x, y - 5, 36, 0, Math.PI * 2)
                 ctx.clip()
-                ctx.drawImage(img, x - 38, y - 42, 76, 76)
+                ctx.drawImage(img, x - 36, y - 41, 72, 72)
                 ctx.restore()
                 
-                ctx.strokeStyle = 'rgba(255,255,255,0.7)'
+                ctx.strokeStyle = 'rgba(255,255,255,0.8)'
                 ctx.lineWidth = 3
                 ctx.beginPath()
-                ctx.arc(x, y - 4, 38, 0, Math.PI * 2)
+                ctx.arc(x, y - 5, 36, 0, Math.PI * 2)
                 ctx.stroke()
             } catch {}
         }
 
-        ctx.strokeStyle = 'rgba(241, 196, 15, 0.5)'
-        ctx.lineWidth = 4.5
+        // --- COLLEGAMENTI ED ESTETICA DELLE LINEE ---
+        ctx.strokeStyle = 'rgba(241, 196, 15, 0.6)'
+        ctx.lineWidth = 4
 
+        // Linee Diagonali Pulite Nonno -> Genitore e Zii
         if (nonno && positions['padre']) {
             ctx.beginPath()
             ctx.moveTo(positions['nonno'].x, positions['nonno'].y + 70)
-            ctx.bezierCurveTo(positions['nonno'].x, positions['padre'].y - 100, positions['padre'].x, positions['padre'].y - 100, positions['padre'].x, positions['padre'].y - 70)
+            ctx.lineTo(positions['padre'].x, positions['padre'].y - 70)
             ctx.stroke()
 
             positions['zii'].forEach((zPos) => {
                 ctx.beginPath()
                 ctx.moveTo(positions['nonno'].x, positions['nonno'].y + 70)
-                ctx.bezierCurveTo(positions['nonno'].x, zPos.y - 100, zPos.x, zPos.y - 100, zPos.x, zPos.y - 70)
+                ctx.lineTo(zPos.x, zPos.y - 70) // Diagonale netta e pulita
                 ctx.stroke()
             })
         }
 
+        // Linee Diagonali Pulite Genitore -> Tu e Fratelli
         if (positions['padre']) {
             ctx.beginPath()
             ctx.moveTo(positions['padre'].x, positions['padre'].y + 70)
-            ctx.bezierCurveTo(positions['padre'].x, positions['tu'].y - 100, positions['tu'].x, positions['tu'].y - 100, positions['tu'].x, positions['tu'].y - 70)
+            ctx.lineTo(positions['tu'].x, positions['tu'].y - 70)
             ctx.stroke()
 
             positions['fratelli'].forEach((fPos) => {
                 ctx.beginPath()
                 ctx.moveTo(positions['padre'].x, positions['padre'].y + 70)
-                ctx.bezierCurveTo(positions['padre'].x, fPos.y - 100, fPos.x, fPos.y - 100, fPos.x, fPos.y - 70)
+                ctx.lineTo(fPos.x, fPos.y - 70) // Diagonale netta e pulita
                 ctx.stroke()
             })
         }
 
+        // Linea di Matrimonio (Coppia Super Vicina)
         if (partner) {
             ctx.strokeStyle = '#e74c3c'
             ctx.lineWidth = 5
             ctx.beginPath()
-            ctx.moveTo(positions['tu'].x + 120, positions['tu'].y)
-            ctx.lineTo(positions['partner'].x - 120, positions['partner'].y)
+            ctx.moveTo(positions['tu'].x + 115, positions['tu'].y)
+            ctx.lineTo(positions['partner'].x - 115, positions['partner'].y)
             ctx.stroke()
-            ctx.strokeStyle = 'rgba(241, 196, 15, 0.5)'
-            ctx.lineWidth = 4.5
+            ctx.strokeStyle = 'rgba(241, 196, 15, 0.6)'
+            ctx.lineWidth = 4
         }
 
+        // Linee verticali/diagonali verso i figli (Partono dal centro esatto dei genitori)
         if (figli.length > 0) {
             let originX = partner ? canvasWidth / 2 : positions['tu'].x
             let originY = partner ? positions['tu'].y : positions['tu'].y + 70
@@ -398,7 +396,7 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
             positions['figli'].forEach((fPos) => {
                 ctx.beginPath()
                 ctx.moveTo(originX, originY)
-                ctx.bezierCurveTo(originX, fPos.y - 100, fPos.x, fPos.y - 100, fPos.x, fPos.y - 70)
+                ctx.lineTo(fPos.x, fPos.y - 70)
                 ctx.stroke()
             })
         }
@@ -431,12 +429,12 @@ let handler = async (m, { conn, text, command, usedPrefix }) => {
 
         return conn.sendMessage(m.chat, { 
             image: canvas.toBuffer(), 
-            caption: `🌳 *ALBERO GENEALOGICO REALE*\n\nVisualizzazione dei legami diretti di @${target.split('@')[0]}`, 
+            caption: `🌳 *ALBERO GENEALOGICO GEOMETRICO*\n\nAlbero pulito e strutturato di @${target.split('@')[0]}`, 
             mentions: [target] 
         }, { quoted: m })
     }
 }
 
-handler.command = /^(sposa|accettasposa|rifiutasposa|divorzia|adotta|disereda|fratello|sorella|allontana|albero|famigliamia|famiglia)$/i
+handler.command = /^(sposa|accettasposa|divorzia|adotta|disereda|fratello|sorella|allontana|resetalbero|albero|famigliamia|famiglia)$/i
 handler.group = true
 export default handler
