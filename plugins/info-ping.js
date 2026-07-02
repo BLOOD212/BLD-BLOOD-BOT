@@ -1,4 +1,3 @@
-import os from 'os';
 import { performance } from 'perf_hooks';
 
 const clockString = ms => {
@@ -34,14 +33,7 @@ const handler = async (m, { conn }) => {
    𝖲𝗍𝖺𝗍𝗈: _Online_
 ╰━━━━━━•✦•━━━━━━╯`.trim();
 
-  await conn.sendMessage(m.chat, {
-    text: info,
-    footer: "",
-    buttons: [
-      { buttonId: ".ds", buttonText: { displayText: "🧹 Elimina Sessioni" }, type: 1 }
-    ],
-    headerType: 1
-  });
+  await conn.sendMessage(m.chat, { text: info }, { quoted: m });
 };
 
 handler.command = /^(ping)$/i;
