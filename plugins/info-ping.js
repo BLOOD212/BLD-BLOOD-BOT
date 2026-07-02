@@ -1,14 +1,5 @@
-import fs from 'fs';
 import os from 'os';
 import { performance } from 'perf_hooks';
-
-const toMathematicalAlphanumericSymbols = number => {
-  const map = {
-    '0': '𝟎', '1': '𝟏', '2': '𝟐', '3': '𝟑', '4': '𝟒',
-    '5': '𝟓', '6': '𝟔', '7': '𝟕', '8': '𝟖', '9': '𝟗', '.': '.'
-  };
-  return number.toString().split('').map(digit => map[digit] || digit).join('');
-};
 
 const clockString = ms => {
   const days = Math.floor(ms / 86400000);
@@ -26,22 +17,8 @@ const handler = async (m, { conn }) => {
   const neww = performance.now();
   const speed = (neww - old).toFixed(3);
   
-  // Data di avvio (puoi personalizzare questo valore se necessario)
   const avvio = new Date().toLocaleString('it-IT');
-
-  const image = fs.readFileSync('./icone/ping.png');
   let nomeDelBot = global.db.data.nomedelbot || 'ʙʟᴏᴏᴅ-ʙᴏᴛ';
-
-  const prova = {
-    key: { participants: "0@s.whatsapp.net", fromMe: false, id: "Halo" },
-    message: {
-      documentMessage: {
-        title: `✨ ᴘɪɴɢ ✨`,
-        jpegThumbnail: image
-      }
-    },
-    participant: "0@s.whatsapp.net"
-  };
 
   const info = `╭━━━━━━•✦•━━━━━━╮
               ✨ ᴘɪɴɢ ✨
@@ -59,12 +36,12 @@ const handler = async (m, { conn }) => {
 
   await conn.sendMessage(m.chat, {
     text: info,
-    footer: "𝟑𝟑𝟑 𝐁𝐨𝐭 𝐯𝐞𝐫𝐬𝐢𝐨𝐧𝐞 𝟏𝟎.𝟏",
+    footer: "",
     buttons: [
       { buttonId: ".ds", buttonText: { displayText: "🧹 Elimina Sessioni" }, type: 1 }
     ],
     headerType: 1
-  }, { quoted: prova });
+  });
 };
 
 handler.command = /^(ping)$/i;
