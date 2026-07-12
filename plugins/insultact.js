@@ -7,14 +7,11 @@ const playAgainButtons = (prefix) => [
 ];
 
 let handler = async (m, { conn, usedPrefix, text }) => {
-    // Controllo se è un gruppo
     if (!m.isGroup) return
 
-    // Controllo se il bot è attivo per la chat (database)
     let gruppi = global.db.data.chats[m.chat]
     if (gruppi.spacobot === false) return
 
-    // Gestione Cooldown (5 secondi)
     const cooldownKey = `insultact_${m.chat}`;
     const now = Date.now();
     const lastUse = global.cooldowns?.[cooldownKey] || 0;
@@ -28,11 +25,9 @@ let handler = async (m, { conn, usedPrefix, text }) => {
     global.cooldowns = global.cooldowns || {};
     global.cooldowns[cooldownKey] = now;
 
-    // Target dell'insulto
     let menzione = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : text
     if (!menzione) throw 'Cu vo pigghiari po culu?'
 
-    // Categorie di insulti catanesi
     const categorie = {
         pesanti: [
             "cunnutu tu to oma to opa da sucaminchi ri to soru e tutta a to razza",
@@ -63,7 +58,6 @@ let handler = async (m, { conn, usedPrefix, text }) => {
         varie: "🤌"
     };
 
-    // Invio messaggio con bottoni e menzione
     await conn.sendMessage(m.chat, {
         text: `*${emojiCategoria[randomCategory]} INSULTO CATANESE ${randomCategory.toUpperCase()}* \n\n@${menzione.split`@`[0]} ${insultoRandom}`,
         buttons: playAgainButtons(usedPrefix),
