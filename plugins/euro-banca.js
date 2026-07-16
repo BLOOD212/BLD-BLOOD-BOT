@@ -701,7 +701,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     } catch (error) {
         console.error('Errore nella generazione dell\'immagine o nell\'invio del messaggio:', error);
         let txt = `
- ⋆｡˚『 ╭ \`BANCA VAREBOT\` ╯ 』˚｡⋆\n╭\n│
+ ⋆｡˚『 ╭ \`BANCA\` ╯ 』˚｡⋆\n╭\n│
 │ 『 👤 』 \`Nome:\` ${name}
 │ 『 🍥 』\`Utente:\` @${who.split('@')[0]}
 │
