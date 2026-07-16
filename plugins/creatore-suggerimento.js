@@ -28,7 +28,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         originalMsg: m,
     };
 
-    m.reply('🌠 Il tuo suggerimento è stato inviato allo Staff di varebot per approvazione!');
+    m.reply('🌠 Il tuo suggerimento è stato inviato allo Staff per approvazione!');
 }
 handler.before = async function (m, { conn }) {
     if (!conn.suggerimenti) return;
