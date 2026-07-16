@@ -4,7 +4,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     if (!text) {
         return await conn.reply(m.chat, `『 📖 』 - \`Inserisci il nome della repo/utente per la ricerca\`
 
-\`Esempio:\` *${usedPrefix}${command} varebot*`, m)
+\`Esempio:\` *${usedPrefix}${command} bloodbot*`, m)
     }
     let waitMessage = await conn.reply(m.chat, '*🔍 Ricerca in corso...*', m)
 
